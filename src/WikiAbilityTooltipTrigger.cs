@@ -81,6 +81,19 @@ namespace Morgott.PerkOracle
                     return;
                 }
 
+                // Research gate (pure verdict surfaced here): when the "require research" toggle is on and
+                // the soldier's faction has not completed the perk-swap research, deny with a localized
+                // on-screen-equivalent feedback message and leave the wiki open (no swap, no close).
+                if (PerkSwapResearch.GateVerdict(PerkOracleMain.RequirePerkSwapResearch, SwapContext.Character)
+                    == PerkSwapVerdict.DenyResearchLocked)
+                {
+                    string msg = Loc.Get(
+                        "PERKORACLE_SwapResearchLocked",
+                        "Perk reassignment requires the \"Operative Reconditioning\" research.");
+                    Debug.Log("[PerkOracle] PerkSwap denied (research locked): " + msg);
+                    return; // wiki stays open so the player sees the candidates again
+                }
+
                 GeoRosterAbilityDetailTooltip tip = Tooltip;
                 if ((UnityEngine.Object)(object)tip != (UnityEngine.Object)null)
                 {

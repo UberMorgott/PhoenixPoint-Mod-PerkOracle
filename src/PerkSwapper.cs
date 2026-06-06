@@ -66,6 +66,11 @@ namespace Morgott.PerkOracle
                 AbilityTrackSlot slot = ctx.Slot;
                 TacticalAbilityDef oldDef = slot.Ability; // step 1
 
+                // STUB hook: future resource-cost insertion point. When PerkSwapCostsResources is enabled a
+                // later iteration will charge resources here (and may abort the swap on insufficient funds).
+                // For now this is intentionally a no-op so the swap stays free regardless of the toggle.
+                ApplyResourceCostStub(ctx);
+
                 // Decision gate (learned? same? already-owned?). Owned set = progression.Abilities.
                 IReadOnlyList<TacticalAbilityDef> owned = progression.Abilities;
                 PerkSwapVerdict verdict = PerkSwapDecision.Evaluate(chosenDef, oldDef, owned);
@@ -174,6 +179,19 @@ namespace Morgott.PerkOracle
                 Debug.Log("[PerkOracle] PerkSwapper.TrySwap failed: " + ex.Message);
                 return false;
             }
+        }
+
+        /// <summary>
+        /// STUB for a future "perk swap costs resources" feature. Currently does nothing (the swap is always
+        /// free). Reads <c>PerkOracleMain.PerkSwapCostsResources</c> only to mark where the future cost would
+        /// be charged; it intentionally has no effect and never blocks the swap. No Wallet/SkillPoints access.
+        /// </summary>
+        private static void ApplyResourceCostStub(PerkSwapContext ctx)
+        {
+            _ = ctx;
+            _ = PerkOracleMain.PerkSwapCostsResources;
+            // TODO(resource-cost): when implemented, charge the configured cost here and return a
+            // success/failure so TrySwap can abort BEFORE mutating _abilities on insufficient funds.
         }
 
         private static string DefName(TacticalAbilityDef def)

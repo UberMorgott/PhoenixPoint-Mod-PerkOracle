@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using Base.Core;
+using Base.Defs;
 using HarmonyLib;
 using I2.Loc;
 using PhoenixPoint.Modding;
@@ -29,6 +31,35 @@ namespace Morgott.PerkOracle
             }
         }
 
+        /// <summary>
+        /// Runtime read of the "require research" sub-toggle. Defaults to TRUE if the config is unavailable
+        /// so a missing config keeps the swap gated (the safe, opt-in default) rather than free.
+        /// </summary>
+        public static bool RequirePerkSwapResearch
+        {
+            get
+            {
+                PerkOracleMain inst = Instance;
+                PerkOracleConfig cfg = inst != null ? inst.Config : null;
+                return cfg == null || cfg.RequirePerkSwapResearch;
+            }
+        }
+
+        /// <summary>
+        /// Runtime read of the STUB "swap costs resources" toggle. Has no behavior yet (see
+        /// <c>PerkSwapper.ApplyResourceCostStub</c>); exposed only so the future hook can read it. Defaults
+        /// to false when the config is unavailable.
+        /// </summary>
+        public static bool PerkSwapCostsResources
+        {
+            get
+            {
+                PerkOracleMain inst = Instance;
+                PerkOracleConfig cfg = inst != null ? inst.Config : null;
+                return cfg != null && cfg.PerkSwapCostsResources;
+            }
+        }
+
         public override bool CanSafelyDisable => true;
 
         public override void OnModEnabled()
@@ -39,6 +70,27 @@ namespace Morgott.PerkOracle
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             Logger.LogInfo("[PerkOracle] PatchAll done");
             LoadLocalization();
+            RegisterPerkSwapResearch();
+        }
+
+        /// <summary>
+        /// Inject the custom perk-swap research into the live def repository. The ModSDK ModMain does not
+        /// expose an ApplyDefRepoPatches override, so we register from OnModEnabled via the global
+        /// DefRepository game component — the same path the Officer mod uses. EnsureRegistered is idempotent
+        /// (dedups on the def Guid) and fully guarded, so a missing template logs and skips rather than
+        /// throwing out of mod enable.
+        /// </summary>
+        private void RegisterPerkSwapResearch()
+        {
+            try
+            {
+                DefRepository repo = GameUtl.GameComponent<DefRepository>();
+                PerkSwapResearch.EnsureRegistered(repo);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning("[PerkOracle] RegisterPerkSwapResearch failed: " + ex);
+            }
         }
 
         /// <summary>

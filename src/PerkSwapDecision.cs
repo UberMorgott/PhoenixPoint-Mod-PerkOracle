@@ -22,6 +22,14 @@ namespace Morgott.PerkOracle
 
         /// <summary>Inputs were missing (null def / null owned set); cannot decide, treat as deny.</summary>
         DenyInvalidInput,
+
+        /// <summary>
+        /// The swap is gated behind the "Operative Reconditioning" research and that research has not been
+        /// completed for the soldier's faction. The caller surfaces a localized feedback message and leaves
+        /// the wiki open. Set only by the research gate in the entry point, never by <see cref="Evaluate{T}"/>
+        /// (which stays Unity-free and game-API-free).
+        /// </summary>
+        DenyResearchLocked,
     }
 
     /// <summary>

@@ -56,5 +56,11 @@
       <HintPath>$(GameManaged)\UnityEngine.TextRenderingModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- ImageConversion.LoadImage (runtime PNG->Texture2D) for the custom research-icon loader; the
+         ModSDK omits this module, so pull it from the game's Managed folder. -->
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(GameManaged)\UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 </Project>
