@@ -1,0 +1,29 @@
+// SteamCMD Workshop build item descriptor for PerkOracle (Phoenix Point).
+//
+// Usage:
+//   steamcmd +login <user> +workshop_build_item "<abs path to this .vdf>" +quit
+//
+//   publishedfileid "0"            -> CREATE a brand-new Workshop item.
+//   publishedfileid "<real id>"    -> UPDATE the existing item with that id.
+//
+// NOTE: First publish for Phoenix Point should be done via the official
+//       SnapshotGames/PPWorkshopTool GUI (it creates the item and assigns the
+//       publishedfileid). Then paste that id below and use SteamCMD / update.ps1
+//       for all future updates. You must be logged in as the item's OWNER.
+//
+//   contentfolder  = absolute path to the assembled /Dist (PerkOracle.dll +
+//                    meta.json + Assets\). Run workshop\pack-dist.ps1 first.
+//   previewfile    = absolute path to the preview image (<= 1 MB).
+//   changenote     = shown in the item's change history.
+//
+// Paths below assume the repo lives at E:\DEV\PhoenixPoint\PerkOracle.
+// Adjust if your checkout is elsewhere.
+
+"workshopitem"
+{
+	"appid"           "839770"
+	"publishedfileid" "PUBLISHEDFILEID_PLACEHOLDER"
+	"contentfolder"   "E:\DEV\PhoenixPoint\PerkOracle\workshop\Dist"
+	"previewfile"     "E:\DEV\PhoenixPoint\PerkOracle\image\steam_preview.jpg"
+	"changenote"      "Update PerkOracle."
+}

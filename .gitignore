@@ -15,3 +15,16 @@ Thumbs.db
 
 # Original ChatGPT source art (huge, not for repo) — keep processed deliverables only
 image/ChatGPT Image*.png
+
+# Raw screenshot sources — keep only the processed screenshot*.jpg
+image/*.bmp
+
+# Steam Workshop generated content folder (rebuilt by pack-dist.ps1)
+workshop/Dist/
+
+# Python
+**/__pycache__/
+*.pyc
+
+# Secrets / cookies
+.env
