@@ -25,12 +25,12 @@ Under [b]Terror From The Void (TFTV)[/b], some personal perks are randomly rolle
 English, 简体中文 (Simplified Chinese), Français, Deutsch, Italiano, Polski, Русский, Español — 8 languages.
 
 [h2]How to use[/h2]
-[olist]
+[list=1]
 [*]Install and enable the [b]TFTV[/b] overhaul first.
 [*][b]Subscribe[/b] to PerkOracle here on the Workshop.
 [*]Launch Phoenix Point and [b]enable PerkOracle[/b] in the in-game mod manager (it loads after TFTV).
 [*]Open a soldier's ability-progression screen, hover a highlighted (rolled) cell, and press [b]cancel[/b] (right-click / Esc) to open the wiki.
-[/olist]
+[/list]
 
 [h2]Configuration[/h2]
 In the in-game mod settings:
