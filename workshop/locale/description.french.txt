@@ -1,0 +1,51 @@
+[h1]PerkOracle[/h1]
+[b]Un aperçu en jeu, en lecture seule, des perks « personnels » qu'un soldat aurait pu tirer au sort — pour Phoenix Point, seul ou avec TFTV. Échange de perks optionnel, désactivé par défaut, pour les joueurs qui veulent plus de contrôle.[/b]
+
+[b]PerkOracle ne génère, n'ajoute ni ne modifie aucun perk.[/b] Dans Phoenix Point, certains perks de la voie « personnelle » sont tirés au sort pour chaque soldat — ce hasard est le [b]système propre au jeu[/b] (vanilla et TFTV), pas une fonction ajoutée par ce mod. PerkOracle est un mod d'interface / de confort qui se contente de [b]lire[/b] et d'afficher ces données.
+
+[hr][/hr]
+
+[h1]Ce qu'il fait[/h1]
+[list]
+[*][b]Met en évidence les perks tirés au sort[/b] — sur l'écran de progression des compétences, les cases de la voie personnelle dont le perk a été tiré au sort reçoivent une teinte bleue distincte, pour distinguer d'un coup d'œil ce qui vient du tirage aléatoire de ce qui vient de la voie de classe fixe.
+[*][b]Fenêtre « wiki » des candidats[/b] — au-dessus d'une case tirée au sort, appuyez sur [b]annuler[/b] (clic droit ou [b]Échap[/b]) pour ouvrir une fenêtre listant [i]chaque[/i] perk qui aurait pu tomber dans cet emplacement, chacun avec l'[b]icône et l'infobulle natives[/b] du jeu. La fenêtre est temporaire et ne change rien ; annulez de nouveau pour la fermer.
+[/list]
+
+PerkOracle ne modifie [b]pas[/b] la génération des perks et n'ajoute pas de lignes de progression. Avec l'échange désactivé (par défaut), il est purement en lecture seule.
+
+[h1]Optionnel : Échange de perks (désactivé par défaut)[/h1]
+[list]
+[*][b]AllowPerkSwap[/b] — [b]DÉSACTIVÉ[/b] par défaut ; tel quel, PerkOracle est strictement en lecture seule (aperçu uniquement). Activez-le dans les Paramètres du mod, et un [b]clic gauche[/b] sur un perk dans le wiki remplace un perk [b]déjà appris[/b] dans cet emplacement par un autre perk existant.
+[*]Cela ne crée [b]aucun nouveau perk[/b] ; cela change seulement quel perk existant occupe un emplacement que vous avez déjà débloqué. Aucun changement de jeu sans votre accord.
+[/list]
+
+[h1]Compatibilité[/h1]
+[list]
+[*][b]Autonome[/b] — fonctionne seul avec Phoenix Point de base ; rien d'autre n'est requis.
+[*][b]Terror From The Void (TFTV)[/b] — entièrement compatible. Avec TFTV présent, il lit les données de perks aléatoires par emplacement de TFTV ; sinon, il se rabat sur le pool de perks personnels du jeu de base.
+[*][b]Mods ajoutant des classes[/b] — fonctionne avec les mods qui ajoutent des classes (par ex. nouveaux mods Officier / classes additionnelles).
+[/list]
+
+[h1]Langues prises en charge[/h1]
+English, 简体中文 (chinois simplifié), Français, Deutsch, Italiano, Polski, Русский, Español — 8 langues.
+
+[h1]Comment l'utiliser[/h1]
+[list=1]
+[*][b]Abonnez-vous[/b] à PerkOracle sur le Workshop. (Si vous utilisez TFTV, installez-le aussi — PerkOracle se charge après lui.)
+[*]Lancez Phoenix Point et [b]activez PerkOracle[/b] dans le gestionnaire de mods en jeu.
+[*]Ouvrez l'écran de progression des compétences d'un soldat, trouvez une case teintée en bleu (tirée au sort) et appuyez sur [b]annuler[/b] (clic droit / Échap).
+[/list]
+
+[h1]Signalement de bugs / Support[/h1]
+[b]Merci de NE PAS signaler les bugs dans les commentaires Steam[/b] — signalez-les sur GitHub :
+[*][url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues/new]GitHub Issues[/url]
+Lors du signalement, merci d'inclure les [b]trois éléments[/b] :
+[list=1]
+[*]Votre fichier [b]Player.log[/b] — situé à : %USERPROFILE%\AppData\LocalLow\Snapshot Games Inc\Phoenix Point\Player.log
+[*]La [b]liste complète des mods[/b] que vous avez installés.
+[*]Une [b]description complète[/b] du bug — ce qui s'est passé et, étape par étape, comment le reproduire.
+[/list]
+
+[h1]Source & crédits[/h1]
+Open source (MIT) : [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
+Réalisé par [b]Morgott[/b]. Compatible avec la refonte [b]TFTV[/b] de Voland163 et des contributeurs (optionnel). Phoenix Point © Snapshot Games.

@@ -34,9 +34,23 @@ REPO_ROOT = os.path.dirname(WORKSHOP_DIR)                     # repo root
 
 CONTENT_FOLDER = os.path.join(WORKSHOP_DIR, "Dist")
 PREVIEW_FILE = os.path.join(REPO_ROOT, "image", "steam_preview.jpg")
-DESC_EN = os.path.join(WORKSHOP_DIR, "description_en.txt")
-DESC_RU = os.path.join(WORKSHOP_DIR, "description_ru.txt")
+LOCALE_DIR = os.path.join(WORKSHOP_DIR, "locale")
 VDF_FILE = os.path.join(WORKSHOP_DIR, "perkoracle.vdf")
+
+# Per-language store descriptions, in the order they are pushed. Steam shows
+# each viewer the description matching their client language; "english" is the
+# default/fallback for any locale not listed. (Steam API language codes.)
+# https://partner.steamgames.com/doc/store/localization/languages
+LOCALE_DESCRIPTIONS = [
+    ("english", "description.english.txt"),
+    ("russian", "description.russian.txt"),
+    ("german", "description.german.txt"),
+    ("french", "description.french.txt"),
+    ("spanish", "description.spanish.txt"),
+    ("italian", "description.italian.txt"),
+    ("polish", "description.polish.txt"),
+    ("schinese", "description.schinese.txt"),
+]
 PUBLISHED_ID_FILE = os.path.join(HERE, "published_id.txt")
 
 APP_ID = 839770
@@ -63,13 +77,14 @@ VISIBILITY_MAP = {
 
 
 def build_description() -> str:
-    """English description first, then a Russian section (single Steam field)."""
-    with open(DESC_EN, "r", encoding="utf-8") as f:
-        en = f.read().strip()
-    with open(DESC_RU, "r", encoding="utf-8") as f:
-        ru = f.read().strip()
-    separator = "\n\n[hr][/hr]\n\n[h1]Русский / Russian[/h1]\n\n"
-    combined = en + separator + ru
+    """Default (english) description for create/update.
+
+    Per-language descriptions live in workshop/locale/ and are pushed
+    separately via --localize-descriptions; english is the Steam fallback.
+    """
+    en_path = os.path.join(LOCALE_DIR, "description.english.txt")
+    with open(en_path, "r", encoding="utf-8") as f:
+        combined = f.read().strip()
     # Steam's limit is 8000 *bytes* (it reports "ASCII characters" but counts
     # the UTF-8 byte length). Multi-byte Cyrillic/CJK costs >1 byte per char,
     # so validate the encoded length, not the character count.
@@ -212,6 +227,63 @@ def submit_update(steam, published_file_id: int, description: str,
     return holder
 
 
+def submit_description_for_language(steam, published_file_id: int, lang_code: str,
+                                    description: str, changenote: str) -> int:
+    """Push ONE localized description for ``lang_code`` and return its EResult.
+
+    Only sets the per-language description (no title/content/preview/visibility
+    touched), so nothing is re-uploaded and the Workshop brand title stays put.
+    Blocks on the SubmitItemUpdateResult_t callback. Returns the int EResult.
+    """
+    handle = steam.Workshop.StartItemUpdate(APP_ID, published_file_id)
+    steam.Workshop.SetItemUpdateLanguage(handle, lang_code)
+    steam.Workshop.SetItemDescription(handle, description)
+
+    holder: dict = {}
+
+    def on_submitted(result):
+        holder["result"] = int(result.result)
+
+    steam.Workshop.SubmitItemUpdate(
+        handle, changenote,
+        callback=on_submitted, override_callback=True,
+    )
+    # No content upload here, so this resolves quickly; cap at 120s anyway.
+    pump_until(steam, holder, timeout=120.0,
+               label=f"SubmitItemUpdateResult_t[{lang_code}]")
+    return holder["result"]
+
+
+def localize_descriptions(steam, published_file_id: int, changenote: str) -> dict:
+    """Iterate LOCALE_DESCRIPTIONS, push each, collect per-language EResult.
+
+    english is pushed first (it is the default/fallback). A failure on one
+    language is recorded and the rest still run. Returns {lang_code: eresult}.
+    """
+    results: dict = {}
+    for lang_code, filename in LOCALE_DESCRIPTIONS:
+        path = os.path.join(LOCALE_DIR, filename)
+        with open(path, "r", encoding="utf-8") as f:
+            text = f.read().strip()
+        nbytes = len(text.encode("utf-8"))
+        if nbytes > 8000:
+            raise SystemExit(
+                f"{filename} is {nbytes} UTF-8 bytes, exceeds Steam's 8000-byte limit."
+            )
+        print(f"[locale] {lang_code:<9} <- {filename} ({nbytes} bytes) ...", flush=True)
+        try:
+            eresult = submit_description_for_language(
+                steam, published_file_id, lang_code, text, changenote)
+        except SystemExit as e:
+            print(f"[locale] {lang_code:<9} ERROR: {e}")
+            results[lang_code] = -1
+            continue
+        results[lang_code] = eresult
+        status = "OK" if eresult == ERESULT_OK else f"FAILED (EResult={eresult})"
+        print(f"[locale] {lang_code:<9} -> {status}")
+    return results
+
+
 def persist_id(published_file_id: int) -> None:
     with open(PUBLISHED_ID_FILE, "w", encoding="utf-8") as f:
         f.write(str(published_file_id))
@@ -244,8 +316,13 @@ def main() -> int:
                       help="Create a brand-new Workshop item, then upload content.")
     mode.add_argument("--update", action="store_true",
                       help="Update an existing item (requires --item).")
+    mode.add_argument("--localize-descriptions", action="store_true",
+                      help="Push per-language store descriptions from workshop/locale/ "
+                           "for an existing item (requires --item). Does NOT touch the "
+                           "title, content, preview or visibility.")
     ap.add_argument("--item", type=int, default=0,
-                    help="Existing publishedfileid (required with --update).")
+                    help="Existing publishedfileid (required with --update / "
+                         "--localize-descriptions).")
     ap.add_argument("--changenote", default="v1.0.0 initial release",
                     help="Change note shown in the item's history.")
     ap.add_argument("--visibility", choices=list(VISIBILITY_MAP), default="public",
@@ -259,12 +336,57 @@ def main() -> int:
                          "a manual web step instead of being uploaded headlessly.")
     args = ap.parse_args()
 
-    if args.update and not args.item:
-        ap.error("--update requires --item <publishedfileid>")
+    if (args.update or args.localize_descriptions) and not args.item:
+        ap.error("--update / --localize-descriptions requires --item <publishedfileid>")
+
+    # ------------------------------------------------------------------
+    # Localize-descriptions mode: push per-language store descriptions only.
+    # No content/preview/title/visibility touched -> early return.
+    # ------------------------------------------------------------------
+    if args.localize_descriptions:
+        missing = [fn for _, fn in LOCALE_DESCRIPTIONS
+                   if not os.path.exists(os.path.join(LOCALE_DIR, fn))]
+        if missing:
+            raise SystemExit(f"Missing locale description file(s) in {LOCALE_DIR}: {missing}")
+
+        print("=" * 70)
+        print("PerkOracle Workshop publisher (SteamworksPy, headless)")
+        print(f"  mode        : localize-descriptions")
+        print(f"  app_id      : {APP_ID}")
+        print(f"  item        : {args.item}")
+        print(f"  locale dir  : {LOCALE_DIR}")
+        print(f"  languages   : {', '.join(c for c, _ in LOCALE_DESCRIPTIONS)}")
+        print(f"  changenote  : {args.changenote}")
+        print("=" * 70)
+
+        steam = STEAMWORKS()
+        steam.initialize()
+        print(f"[init] SteamworksPy ready: appid={steam.app_id}, "
+              f"SteamID={steam.Users.GetSteamID()}, "
+              f"user={steam.Friends.GetPlayerName().decode(errors='replace')}")
+        if steam.app_id != APP_ID:
+            raise SystemExit(f"Bound to wrong appid {steam.app_id}, expected {APP_ID}")
+
+        results = localize_descriptions(steam, args.item, args.changenote)
+
+        url = f"https://steamcommunity.com/sharedfiles/filedetails/?id={args.item}"
+        print("=" * 70)
+        print("LOCALIZE RESULT")
+        print(f"  item URL : {url}")
+        for lang_code, _ in LOCALE_DESCRIPTIONS:
+            r = results.get(lang_code)
+            status = "EResult.OK" if r == ERESULT_OK else f"FAILED (EResult={r})"
+            print(f"  {lang_code:<9}: {status}")
+        print("=" * 70)
+
+        steam.unload()
+        all_ok = all(r == ERESULT_OK for r in results.values())
+        return 0 if all_ok else 1
 
     # Sanity-check inputs.
     for p, what in [(CONTENT_FOLDER, "content folder"), (PREVIEW_FILE, "preview"),
-                    (DESC_EN, "EN description"), (DESC_RU, "RU description")]:
+                    (os.path.join(LOCALE_DIR, "description.english.txt"),
+                     "english description")]:
         if not os.path.exists(p):
             raise SystemExit(f"Missing {what}: {p}")
 

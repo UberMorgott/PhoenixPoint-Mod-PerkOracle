@@ -1,0 +1,51 @@
+[h1]PerkOracle[/h1]
+[b]Podgląd w grze (tylko do odczytu) tego, jakie „osobiste" perki mogły wylosować się żołnierzowi — dla Phoenix Point, samodzielnie lub z TFTV. Opcjonalna, domyślnie wyłączona wymiana perków dla graczy, którzy chcą więcej kontroli.[/b]
+
+[b]PerkOracle nie tworzy, nie dodaje ani nie zmienia żadnych perków.[/b] W Phoenix Point część perków ze ścieżki „osobistej" losuje się dla każdego żołnierza — ta losowość to [b]własny system gry[/b] (vanilla i TFTV), a nie funkcja dodana przez ten mod. PerkOracle to mod interfejsu / ułatwiający rozgrywkę, który jedynie [b]odczytuje[/b] i wyświetla te dane.
+
+[hr][/hr]
+
+[h1]Co robi[/h1]
+[list]
+[*][b]Wyróżnia wylosowane perki[/b] — na ekranie postępu umiejętności komórki ścieżki osobistej, których perk został wylosowany, otrzymują wyraźny niebieski odcień, dzięki czemu od razu widać, co pochodzi z losowania, a co ze stałej ścieżki klasy.
+[*][b]Wyskakujące okno „wiki" kandydatów[/b] — nad wylosowaną komórką naciśnij [b]anuluj[/b] (prawy przycisk myszy lub [b]Esc[/b]), aby otworzyć okno z listą [i]każdego[/i] perka, który mógł trafić do tego slotu — każdy z [b]natywną ikoną i podpowiedzią[/b] gry. Okno jest tymczasowe i niczego nie zmienia; naciśnij anuluj ponownie, aby je zamknąć.
+[/list]
+
+PerkOracle [b]nie[/b] zmienia generowania perków ani nie dodaje wierszy postępu. Z wyłączoną wymianą (domyślnie) służy wyłącznie do podglądu.
+
+[h1]Opcjonalnie: Wymiana perków (domyślnie wyłączona)[/h1]
+[list]
+[*][b]AllowPerkSwap[/b] — domyślnie [b]WYŁĄCZONA[/b]; od razu po instalacji PerkOracle działa wyłącznie w trybie odczytu (tylko podgląd). Włącz ją w Ustawieniach moda, a [b]lewy przycisk myszy[/b] na perku w wiki zastąpi [b]już wyuczony[/b] perk w tym slocie innym istniejącym perkiem.
+[*]To [b]nie tworzy nowych perków[/b]; zmienia jedynie, który istniejący perk zajmuje już odblokowany slot. Żadnej zmiany w rozgrywce, dopóki sam tego nie wybierzesz.
+[/list]
+
+[h1]Zgodność[/h1]
+[list]
+[*][b]Samodzielnie[/b] — działa z podstawową grą Phoenix Point samodzielnie; nic więcej nie jest wymagane.
+[*][b]Terror From The Void (TFTV)[/b] — w pełni zgodny. Przy zainstalowanym TFTV odczytuje dane o losowych perkach dla poszczególnych slotów z TFTV; w przeciwnym razie korzysta z puli osobistych perków gry podstawowej.
+[*][b]Mody dodające klasy[/b] — działa razem z modami dodającymi klasy (np. nowe mody Oficera / dodatkowych klas).
+[/list]
+
+[h1]Obsługiwane języki[/h1]
+English, 简体中文 (chiński uproszczony), Français, Deutsch, Italiano, Polski, Русский, Español — 8 języków.
+
+[h1]Jak używać[/h1]
+[list=1]
+[*][b]Zasubskrybuj[/b] PerkOracle w Warsztacie. (Jeśli używasz TFTV, zainstaluj go również — PerkOracle ładuje się po nim.)
+[*]Uruchom Phoenix Point i [b]włącz PerkOracle[/b] w menedżerze modów w grze.
+[*]Otwórz ekran postępu umiejętności żołnierza, znajdź niebiesko zabarwioną (wylosowaną) komórkę i naciśnij [b]anuluj[/b] (prawy przycisk / Esc).
+[/list]
+
+[h1]Zgłaszanie błędów / Wsparcie[/h1]
+[b]Prosimy NIE zgłaszać błędów w komentarzach na Steam[/b] — zgłaszaj je na GitHub:
+[*][url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues/new]GitHub Issues[/url]
+Przy zgłaszaniu dołącz proszę [b]wszystkie trzy[/b]:
+[list=1]
+[*]Twój plik [b]Player.log[/b] — znajduje się w: %USERPROFILE%\AppData\LocalLow\Snapshot Games Inc\Phoenix Point\Player.log
+[*][b]Pełną listę modów[/b], które masz zainstalowane.
+[*][b]Pełny opis[/b] błędu — co się stało i krok po kroku, jak go odtworzyć.
+[/list]
+
+[h1]Kod źródłowy i autorzy[/h1]
+Otwarte źródło (MIT): [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
+Stworzony przez [b]Morgotta[/b]. Zgodny z modyfikacją [b]TFTV[/b] autorstwa Voland163 i współtwórców (opcjonalnie). Phoenix Point © Snapshot Games.

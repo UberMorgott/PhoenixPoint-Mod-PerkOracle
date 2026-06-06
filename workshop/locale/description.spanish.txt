@@ -1,0 +1,51 @@
+[h1]PerkOracle[/h1]
+[b]Una vista previa en el juego, de solo lectura, de qué perks «personales» podría haber obtenido un soldado al azar — para Phoenix Point, en solitario o con TFTV. Intercambio de perks opcional, desactivado por defecto, para quienes quieren más control.[/b]
+
+[b]PerkOracle no genera, añade ni cambia ningún perk.[/b] En Phoenix Point algunos perks de la vía «personal» se obtienen al azar por cada soldado — esa aleatoriedad es el [b]propio sistema del juego[/b] (vanilla y TFTV), no algo que añada este mod. PerkOracle es un mod de interfaz / de calidad de vida que solo [b]lee[/b] y muestra esos datos.
+
+[hr][/hr]
+
+[h1]Qué hace[/h1]
+[list]
+[*][b]Resalta los perks aleatorios[/b] — en la pantalla de progresión de habilidades, las celdas de la vía personal cuyo perk se obtuvo al azar reciben un tinte azul característico, para que veas de un vistazo qué proviene del azar y qué de la vía de clase fija.
+[*][b]Ventana «wiki» de candidatos[/b] — sobre una celda aleatoria, pulsa [b]cancelar[/b] (clic derecho o [b]Esc[/b]) para abrir una ventana que enumera [i]todos[/i] los perks que podrían haber caído en esa ranura, cada uno con el [b]icono y la información emergente nativos[/b] del juego. La ventana es temporal y no cambia nada; cancela de nuevo para cerrarla.
+[/list]
+
+PerkOracle [b]no[/b] altera la generación de perks ni añade filas de progresión. Con el intercambio desactivado (por defecto) es puramente de solo lectura.
+
+[h1]Opcional: Intercambio de perks (desactivado por defecto)[/h1]
+[list]
+[*][b]AllowPerkSwap[/b] — por defecto [b]DESACTIVADO[/b]; de fábrica, PerkOracle es estrictamente de solo lectura (solo vista previa). Actívalo en los Ajustes del mod, y un [b]clic izquierdo[/b] en un perk del wiki reemplaza un perk [b]ya aprendido[/b] en esa ranura por otro perk existente.
+[*]Esto [b]no crea perks nuevos[/b]; solo cambia qué perk existente ocupa una ranura que ya has desbloqueado. Ningún cambio de juego salvo que lo elijas.
+[/list]
+
+[h1]Compatibilidad[/h1]
+[list]
+[*][b]En solitario[/b] — funciona por sí solo con Phoenix Point base; no se requiere nada más.
+[*][b]Terror From The Void (TFTV)[/b] — totalmente compatible. Con TFTV presente, lee los datos de perks aleatorios por ranura de TFTV; en caso contrario, recurre al conjunto de perks personales del juego base.
+[*][b]Mods que añaden clases[/b] — funciona junto a mods que añaden clases (p. ej. nuevos mods de Oficial / clases adicionales).
+[/list]
+
+[h1]Idiomas admitidos[/h1]
+English, 简体中文 (chino simplificado), Français, Deutsch, Italiano, Polski, Русский, Español — 8 idiomas.
+
+[h1]Cómo usarlo[/h1]
+[list=1]
+[*][b]Suscríbete[/b] a PerkOracle en el Workshop. (Si usas TFTV, instálalo también — PerkOracle se carga después de él.)
+[*]Inicia Phoenix Point y [b]activa PerkOracle[/b] en el gestor de mods del juego.
+[*]Abre la pantalla de progresión de habilidades de un soldado, busca una celda con tinte azul (aleatoria) y pulsa [b]cancelar[/b] (clic derecho / Esc).
+[/list]
+
+[h1]Informes de errores / Soporte[/h1]
+[b]Por favor, NO informes de errores en los comentarios de Steam[/b] — repórtalos en GitHub:
+[*][url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues/new]GitHub Issues[/url]
+Al informar, incluye por favor [b]los tres[/b]:
+[list=1]
+[*]Tu archivo [b]Player.log[/b] — se encuentra en: %USERPROFILE%\AppData\LocalLow\Snapshot Games Inc\Phoenix Point\Player.log
+[*]La [b]lista completa de mods[/b] que tienes instalados.
+[*]Una [b]descripción completa[/b] del error — qué ocurrió y, paso a paso, cómo reproducirlo.
+[/list]
+
+[h1]Código fuente y créditos[/h1]
+Código abierto (MIT): [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
+Creado por [b]Morgott[/b]. Compatible con la revisión [b]TFTV[/b] de Voland163 y colaboradores (opcional). Phoenix Point © Snapshot Games.
