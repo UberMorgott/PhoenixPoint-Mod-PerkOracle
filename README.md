@@ -20,6 +20,11 @@ or add ability rows — it only previews (and optionally swaps) what the game al
 
 > **Steam Workshop:** <https://steamcommunity.com/sharedfiles/filedetails/?id=3739613434>
 
+## Links
+
+- **Changelog:** [CHANGELOG.md](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md)
+- **Issues / bug reports / questions:** [GitHub Issues](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues)
+
 ## Features
 
 - **Rolled-perk highlight** — on the ability-progression grid, cells whose perk was
@@ -33,6 +38,11 @@ or add ability rows — it only previews (and optionally swaps) what the game al
   default**). When enabled, **left-click** any perk in the wiki to replace the soldier's
   already-learned perk in that slot. Free and reversible. Aimed at players who prefer an
   easier game.
+- **Optional research gate** — controlled by the `RequirePerkSwapResearch` toggle (**on by
+  default**). When on, perk swapping is unlocked only after you complete a dedicated geoscape
+  research project, **"Operative Reconditioning"** (costs roughly 3 in-game days), which ships
+  with its own custom research illustration and fully localized in-universe text. Turn the
+  toggle **off** for free play (swap available immediately once `AllowPerkSwap` is on).
 - **Full localization** — UI strings ship in eight languages. The in-game mod **name** is
   localized per language, and the Steam Workshop / store description is localized into all
   eight languages too.
@@ -66,7 +76,7 @@ If you don't use the Steam Workshop, you can install PerkOracle by hand:
 
 1. Download the **latest release** ZIP from
    [GitHub Releases](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest)
-   (current asset: `PerkOracle-v1.1.0.zip`).
+   (current asset: `PerkOracle-v1.2.0.zip`).
 2. Extract the ZIP — you'll get a `PerkOracle` folder containing `PerkOracle.dll`,
    `meta.json`, and an `Assets/` folder.
 3. Copy that `PerkOracle` folder into your Phoenix Point `Mods` folder. For a Steam install
@@ -84,6 +94,8 @@ In the in-game mod settings:
 | Setting | Default | Effect |
 |---|---|---|
 | `AllowPerkSwap` | `false` | When **off**, the wiki is a pure preview (view-only). When **on**, left-clicking a perk in the wiki replaces the soldier's learned perk in that slot. |
+| `RequirePerkSwapResearch` | `true` | When **on**, perk swapping requires the **"Operative Reconditioning"** geoscape research to be completed first. Turn **off** for free play (swap available as soon as `AllowPerkSwap` is on). Only relevant while `AllowPerkSwap` is on. |
+| `PerkSwapCostsResources` | `false` | Placeholder for a future update (making swaps cost resources). **No effect yet.** |
 
 ## Building from source
 
@@ -120,6 +132,11 @@ PerkOracle показывает, какие случайные **«персон�
 навыков. Опционально позволяет заменить уже выученный перк в этой ячейке на любой другой
 из его пула.
 
+### Ссылки
+
+- **Список изменений:** [CHANGELOG.md](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md)
+- **Issues / баг-репорты / вопросы:** [GitHub Issues](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues)
+
 ### Возможности
 
 - **Подсветка роленых перков** — в сетке прогрессии случайно выпавшие ячейки получают
@@ -130,6 +147,11 @@ PerkOracle показывает, какие случайные **«персон�
 - **Опциональная замена перков** — управляется настройкой `AllowPerkSwap` (**по умолчанию
   выключено**). Когда включено, левый клик по перку в вики заменяет выученный перк бойца в
   этом слоте. Бесплатно и обратимо. Для тех, кто любит игру попроще.
+- **Опциональное гейтирование исследованием** — управляется настройкой `RequirePerkSwapResearch`
+  (**по умолчанию включено**). Когда включено, замена перков доступна только после завершения
+  отдельного исследования на геоскейпе — **«Operative Reconditioning»** (стоит примерно 3 игровых
+  дня), со своей кастомной иллюстрацией исследования и полностью локализованным внутриигровым
+  текстом. Выключите для свободной игры (замена доступна сразу, как только включён `AllowPerkSwap`).
 - **Полная локализация** — интерфейс на восьми языках; название мода в игре локализовано
   для каждого языка, описание в Steam Workshop тоже переведено на все восемь языков.
 
@@ -158,7 +180,7 @@ PerkOracle показывает, какие случайные **«персон�
 
 1. Скачайте ZIP **последнего релиза** со страницы
    [GitHub Releases](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest)
-   (текущий файл: `PerkOracle-v1.1.0.zip`).
+   (текущий файл: `PerkOracle-v1.2.0.zip`).
 2. Распакуйте ZIP — вы получите папку `PerkOracle`, содержащую `PerkOracle.dll`,
    `meta.json` и папку `Assets/`.
 3. Скопируйте эту папку `PerkOracle` в каталог `Mods` игры Phoenix Point. Для установки
@@ -173,6 +195,13 @@ PerkOracle показывает, какие случайные **«персон�
 
 `AllowPerkSwap` (по умолчанию `false`): при выключенном значении вики работает только на
 просмотр; при включённом — левый клик по перку заменяет выученный перк бойца в этом слоте.
+
+`RequirePerkSwapResearch` (по умолчанию `true`): при включённом значении замена перков
+требует завершить исследование **«Operative Reconditioning»** на геоскейпе. Выключите для
+свободной игры (замена доступна сразу, как только включён `AllowPerkSwap`).
+
+`PerkSwapCostsResources` (по умолчанию `false`): задел на будущее обновление (плата ресурсами
+за замену). **Пока ни на что не влияет.**
 
 ### Лицензия
 

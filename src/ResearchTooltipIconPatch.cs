@@ -27,10 +27,16 @@ namespace Morgott.PerkOracle
         {
             try
             {
+                // Only our research → swap the sprite. For any other research, change nothing.
+                if (__instance.Research?.ResearchDef?.Id != PerkSwapResearch.ResearchId)
+                {
+                    return;
+                }
+
                 Sprite icon = PerkSwapResearch.IconSprite;
                 if ((UnityEngine.Object)(object)icon == (UnityEngine.Object)null)
                 {
-                    // No custom sprite loaded: never touch the shared Icon at all (leave its flag as-is).
+                    // No custom sprite loaded: leave the slot untouched.
                     return;
                 }
                 if ((UnityEngine.Object)(object)__instance.Icon == (UnityEngine.Object)null)
@@ -38,22 +44,11 @@ namespace Morgott.PerkOracle
                     return;
                 }
 
-                // ResearchTooltip.Icon is a SINGLE shared Image reused for every research
-                // (UIModuleResearch.cs:54). We must own preserveAspect symmetrically: set it true only while
-                // OUR research is displayed, and restore it to false for any other research — otherwise a
-                // stale true leaks onto stock art viewed afterward and can letterbox it.
-                if (__instance.Research?.ResearchDef?.Id == PerkSwapResearch.ResearchId)
-                {
-                    __instance.Icon.sprite = icon;
-                    // Defensive: the Icon slot's RectTransform/preserveAspect are prefab-baked (unknown).
-                    // Force preserveAspect so the square custom sprite is not stretched on a non-square slot.
-                    __instance.Icon.preserveAspect = true;
-                }
-                else
-                {
-                    // Some other research is showing: undo any preserveAspect we may have left set.
-                    __instance.Icon.preserveAspect = false;
-                }
+                // Replicate vanilla rendering exactly: set ONLY the sprite and leave every slot flag
+                // (preserveAspect, RectTransform, etc.) alone. Vanilla never sets preserveAspect on this
+                // shared Icon Image, and our illustration is native 2:1 (1024×512) like every vanilla
+                // research image — so swapping only the sprite makes it render identically to stock art.
+                __instance.Icon.sprite = icon;
             }
             catch (Exception ex)
             {
