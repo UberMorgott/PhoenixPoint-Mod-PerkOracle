@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Steam Workshop page
+    url: https://steamcommunity.com/sharedfiles/filedetails/?id=3739613434
+    about: General questions and discussion. Please report BUGS here on GitHub Issues, not in Steam comments.

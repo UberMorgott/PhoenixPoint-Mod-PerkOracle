@@ -1,28 +1,28 @@
 [h1]PerkOracle[/h1]
-[b]A read-only in-game preview of which "personal" perks a soldier could have rolled — for Phoenix Point (TFTV). Optional, off-by-default perk swapping for players who want more control.[/b]
+[b]A read-only in-game preview of which "personal" perks a soldier could have rolled — for Phoenix Point, standalone or with TFTV. Optional, off-by-default perk swapping for players who want more control.[/b]
 
-[b]PerkOracle does not generate, add, or change any perks.[/b] In Phoenix Point, some "personal"-track perks are rolled randomly per soldier — that randomness is the [b]game's own system[/b] (vanilla and TFTV), not something this mod adds. PerkOracle is a UI / quality-of-life mod that only [b]reads[/b] the data the game already has, and shows it to you clearly.
+[b]PerkOracle does not generate, add, or change any perks.[/b] In Phoenix Point, some "personal"-track perks are rolled randomly per soldier — that randomness is the [b]game's own system[/b] (vanilla and TFTV), not something this mod adds. PerkOracle is a UI / quality-of-life mod that only [b]reads[/b] and displays that data.
 
 [hr][/hr]
 
 [h1]What it does[/h1]
 [list]
-[*][b]Highlights rolled perks[/b] — on the ability-progression screen, the personal-track cells whose perk was randomly rolled get a distinct blue tint, so you can tell at a glance which perks came from the random roll versus the fixed class track.
-[*][b]Candidate "wiki" popup[/b] — over a rolled cell, press [b]cancel[/b] (right-click or [b]Esc[/b]) to open a popup listing [i]every[/i] perk that could have rolled into that slot. Each candidate is shown with the game's [b]native icon and native name/description tooltip[/b]. The popup is a temporary window — it is [b]not[/b] a new progression row, and nothing is changed by opening it. Cancel again to close.
+[*][b]Highlights rolled perks[/b] — on the ability-progression screen, personal-track cells whose perk was randomly rolled get a distinct blue tint, so you can tell at a glance which came from the random roll versus the fixed class track.
+[*][b]Candidate "wiki" popup[/b] — over a rolled cell, press [b]cancel[/b] (right-click or [b]Esc[/b]) to open a popup listing [i]every[/i] perk that could have rolled into that slot, each with the game's [b]native icon and tooltip[/b]. The popup is temporary and changes nothing; cancel again to close.
 [/list]
 
-PerkOracle does [b]not[/b] alter perk generation, does [b]not[/b] add perks or progression rows, and does [b]not[/b] modify the ability track. With swapping off (the default) it is a pure, view-only preview.
+PerkOracle does [b]not[/b] alter perk generation or add progression rows. With swapping off (the default) it is pure, view-only preview.
 
 [h1]Optional: Perk Swap (off by default)[/h1]
 [list]
-[*][b]AllowPerkSwap[/b] — default [b]OFF[/b]. When you enable it in the config, [b]left-clicking[/b] a perk in the wiki replaces an [b]already-learned[/b] perk in that slot with another existing perk — for players who want more control over their soldiers.
-[*]This creates [b]no new perks[/b]; it only swaps which existing perk occupies a slot you have already unlocked. Leaving it off keeps PerkOracle a strictly read-only preview tool.
+[*][b]AllowPerkSwap[/b] — default [b]OFF[/b]; out of the box PerkOracle is strictly read-only (preview only). Turn it ON in the mod's Settings, and [b]left-clicking[/b] a perk in the wiki replaces an [b]already-learned[/b] perk in that slot with another existing perk.
+[*]This creates [b]no new perks[/b]; it only swaps which existing perk occupies a slot you have already unlocked. No gameplay change unless you opt in.
 [/list]
 
 [h1]Requirements[/h1]
 [list]
-[*][b]Phoenix Point[/b]
-[*][b]Terror From The Void (TFTV)[/b] overhaul — [i]phoenixrising.tftv[/i]
+[*][b]Phoenix Point[/b] — works with the [b]standalone[/b] base game.
+[*][b]Terror From The Void (TFTV)[/b] — [b]fully compatible but not required[/b]. With TFTV installed it reads TFTV's per-slot random-perk data; otherwise it falls back to the base game's personal-perk pool.
 [/list]
 
 [h1]Supported languages[/h1]
@@ -30,19 +30,21 @@ English, 简体中文 (Simplified Chinese), Français, Deutsch, Italiano, Polski
 
 [h1]How to use[/h1]
 [list=1]
-[*]Install and enable the [b]TFTV[/b] overhaul first.
-[*][b]Subscribe[/b] to PerkOracle here on the Workshop.
-[*]Launch Phoenix Point and [b]enable PerkOracle[/b] in the in-game mod manager (it loads after TFTV).
+[*][b]Subscribe[/b] to PerkOracle on the Workshop. (If you use TFTV, install it too — PerkOracle loads after it.)
+[*]Launch Phoenix Point and [b]enable PerkOracle[/b] in the in-game mod manager.
 [*]Open a soldier's ability-progression screen, find a blue-tinted (rolled) cell, and press [b]cancel[/b] (right-click / Esc) to open the candidate wiki.
 [/list]
 
-[h1]Source[/h1]
-Open source (MIT). Code, issues and releases:
-[url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
-
-[h1]Credits[/h1]
-[list]
-[*]Built by [b]Morgott[/b].
-[*]Targets the [b]TFTV[/b] overhaul by Voland163 and contributors.
-[*]Phoenix Point © Snapshot Games.
+[h1]Bug reports / Support[/h1]
+[b]Please do NOT report bugs in the Steam comments[/b] — report them on GitHub:
+[*][url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues/new]GitHub Issues[/url]
+When reporting, please include [b]all three[/b]:
+[list=1]
+[*]Your [b]Player.log[/b] file — found at: %USERPROFILE%\AppData\LocalLow\Snapshot Games Inc\Phoenix Point\Player.log
+[*]The [b]full list of mods[/b] you have installed.
+[*]A [b]complete description[/b] of the bug — what happened and step-by-step how to reproduce it.
 [/list]
+
+[h1]Source & credits[/h1]
+Open source (MIT): [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
+Built by [b]Morgott[/b]. Compatible with the [b]TFTV[/b] overhaul by Voland163 and contributors (optional). Phoenix Point © Snapshot Games.
