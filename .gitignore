@@ -12,3 +12,6 @@ Thumbs.db
 
 # Release packaging
 *.zip
+
+# Original ChatGPT source art (huge, not for repo) — keep processed deliverables only
+image/ChatGPT Image*.png
