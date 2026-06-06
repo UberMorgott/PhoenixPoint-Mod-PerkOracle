@@ -17,6 +17,7 @@ PerkOracle ändert [b]nicht[/b] die Perk-Erzeugung und fügt keine Fortschrittsz
 [list]
 [*][b]AllowPerkSwap[/b] — Standard [b]AUS[/b]; ab Werk ist PerkOracle streng schreibgeschützt (nur Vorschau). Aktiviere es in den Einstellungen des Mods, und ein [b]Linksklick[/b] auf einen Perk im Wiki ersetzt einen [b]bereits gelernten[/b] Perk in diesem Slot durch einen anderen vorhandenen Perk.
 [*]Das erzeugt [b]keine neuen Perks[/b]; es tauscht nur, welcher vorhandene Perk einen bereits freigeschalteten Slot belegt. Keine Spieländerung, sofern du dich nicht dafür entscheidest.
+[*][b]Optionales Forschungs-Gate[/b] — du kannst eine einmalige Forschung „Operative Reconditioning" (Umkonditionierung von Einsatzkräften) verlangen, bevor Soldaten umgeschult werden können. Schalte es in den Mod-Einstellungen ein oder aus.
 [/list]
 
 [h1]Kompatibilität[/h1]
@@ -49,5 +50,7 @@ Füge bei der Meldung bitte [b]alle drei[/b] bei:
 [h1]Quellcode & Mitwirkende[/h1]
 Open Source (CC BY-NC 4.0): [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
 Erstellt von [b]Morgott[/b]. Kompatibel mit dem [b]TFTV[/b]-Overhaul von Voland163 und Mitwirkenden (optional). Phoenix Point © Snapshot Games.
+Änderungsprotokoll: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md
+Probleme, Fehler & Fragen: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues
 
 Lizenz: CC BY-NC 4.0 (Attribution-NonCommercial). © 2026 Morgott. https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle

@@ -17,6 +17,7 @@ PerkOracle [b]不会[/b]改变天赋的生成，也不会添加进阶行。在�
 [list]
 [*][b]AllowPerkSwap[/b] —— 默认[b]关闭[/b]；开箱即用时 PerkOracle 严格只读（仅预览）。在模组设置中将其开启后，在百科中[b]左键点击[/b]某个天赋，即可用另一个已有天赋替换该槽位中[b]已学会的[/b]天赋。
 [*]这[b]不会创建新天赋[/b]；只是改变哪个已有天赋占据你已经解锁的槽位。除非你主动选择，否则不会改变游戏玩法。
+[*][b]可选的研究门槛[/b] —— 你可以要求先完成一次性的「干员再调适」（Operative Reconditioning）研究，之后才能为士兵进行再训练。可在模组设置中开启或关闭。
 [/list]
 
 [h1]兼容性[/h1]
@@ -49,5 +50,7 @@ English、简体中文、Français、Deutsch、Italiano、Polski、Русски�
 [h1]源代码与致谢[/h1]
 开源（CC BY-NC 4.0）：[url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
 由 [b]Morgott[/b] 制作。兼容 Voland163 及贡献者制作的 [b]TFTV[/b] 大型改版（可选）。Phoenix Point © Snapshot Games。
+更新日志：https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md
+问题、Bug 与提问：https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues
 
 许可：CC BY-NC 4.0 (Attribution-NonCommercial). © 2026 Morgott. https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle

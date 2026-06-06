@@ -17,6 +17,7 @@ PerkOracle [b]non[/b] altera la generazione dei perk e non aggiunge righe di pro
 [list]
 [*][b]AllowPerkSwap[/b] — di default [b]DISATTIVATO[/b]; appena installato, PerkOracle è rigorosamente di sola lettura (solo anteprima). Attivalo nelle Impostazioni del mod e un [b]clic sinistro[/b] su un perk nel wiki sostituisce un perk [b]già appreso[/b] in quello slot con un altro perk esistente.
 [*]Questo [b]non crea nuovi perk[/b]; cambia solo quale perk esistente occupa uno slot che hai già sbloccato. Nessuna modifica al gioco a meno che tu non lo scelga.
+[*][b]Gate di ricerca opzionale[/b] — puoi richiedere una ricerca una tantum «Ricondizionamento degli operativi» prima che i soldati possano essere riaddestrati. Attivalo o disattivalo nelle impostazioni del mod.
 [/list]
 
 [h1]Compatibilità[/h1]
@@ -49,5 +50,7 @@ Quando segnali, includi per favore [b]tutti e tre[/b]:
 [h1]Sorgente e crediti[/h1]
 Open source (CC BY-NC 4.0): [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
 Realizzato da [b]Morgott[/b]. Compatibile con l'overhaul [b]TFTV[/b] di Voland163 e collaboratori (opzionale). Phoenix Point © Snapshot Games.
+Registro delle modifiche: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md
+Problemi, bug e domande: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues
 
 Licenza: CC BY-NC 4.0 (Attribution-NonCommercial). © 2026 Morgott. https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle

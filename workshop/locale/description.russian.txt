@@ -17,6 +17,7 @@ PerkOracle [b]не[/b] меняет генерацию перков и не до
 [list]
 [*][b]AllowPerkSwap[/b] — по умолчанию [b]ВЫКЛ[/b]; «из коробки» PerkOracle строго только для чтения (только предпросмотр). Включите опцию в настройках мода — и тогда [b]левый клик[/b] по перку в вики заменит [b]уже выученный[/b] перк в этом слоте на другой существующий перк.
 [*]Это [b]не создаёт новых перков[/b]; меняется лишь то, какой существующий перк занимает уже открытый вами слот. Без вашего согласия в игре ничего не меняется.
+[*][b]Опциональный гейт по исследованию[/b] — можно потребовать однократное исследование «Переподготовка оперативников», прежде чем бойцов можно будет переучивать. Включается/выключается в настройках мода.
 [/list]
 
 [h1]Совместимость[/h1]
@@ -49,5 +50,7 @@ English, 简体中文 (упрощённый китайский), Français, Deut
 [h1]Исходный код и авторы[/h1]
 Открытый код (CC BY-NC 4.0): [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
 Разработчик — [b]Morgott[/b]. Совместим с оверхолом [b]TFTV[/b] от Voland163 и участников (опционально). Phoenix Point © Snapshot Games.
+Список изменений: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md
+Вопросы, баги и предложения: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues
 
 Лицензия: CC BY-NC 4.0 (Attribution-NonCommercial). © 2026 Morgott. https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle

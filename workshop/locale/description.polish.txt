@@ -17,6 +17,7 @@ PerkOracle [b]nie[/b] zmienia generowania perków ani nie dodaje wierszy postęp
 [list]
 [*][b]AllowPerkSwap[/b] — domyślnie [b]WYŁĄCZONA[/b]; od razu po instalacji PerkOracle działa wyłącznie w trybie odczytu (tylko podgląd). Włącz ją w Ustawieniach moda, a [b]lewy przycisk myszy[/b] na perku w wiki zastąpi [b]już wyuczony[/b] perk w tym slocie innym istniejącym perkiem.
 [*]To [b]nie tworzy nowych perków[/b]; zmienia jedynie, który istniejący perk zajmuje już odblokowany slot. Żadnej zmiany w rozgrywce, dopóki sam tego nie wybierzesz.
+[*][b]Opcjonalna blokada badania[/b] — możesz wymagać jednorazowego badania „Przygotowanie operatorów", zanim żołnierzy będzie można przeszkalać. Włącz ją lub wyłącz w ustawieniach moda.
 [/list]
 
 [h1]Zgodność[/h1]
@@ -49,5 +50,7 @@ Przy zgłaszaniu dołącz proszę [b]wszystkie trzy[/b]:
 [h1]Kod źródłowy i autorzy[/h1]
 Otwarte źródło (CC BY-NC 4.0): [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
 Stworzony przez [b]Morgotta[/b]. Zgodny z modyfikacją [b]TFTV[/b] autorstwa Voland163 i współtwórców (opcjonalnie). Phoenix Point © Snapshot Games.
+Lista zmian: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md
+Problemy, błędy i pytania: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues
 
 Licencja: CC BY-NC 4.0 (Attribution-NonCommercial). © 2026 Morgott. https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle

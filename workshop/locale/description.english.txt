@@ -17,6 +17,7 @@ PerkOracle does [b]not[/b] alter perk generation or add progression rows. With s
 [list]
 [*][b]AllowPerkSwap[/b] — default [b]OFF[/b]; out of the box PerkOracle is strictly read-only (preview only). Turn it ON in the mod's Settings, and [b]left-clicking[/b] a perk in the wiki replaces an [b]already-learned[/b] perk in that slot with another existing perk.
 [*]This creates [b]no new perks[/b]; it only swaps which existing perk occupies a slot you have already unlocked. No gameplay change unless you opt in.
+[*][b]Optional research gate[/b] — you can require a one-time "Operative Reconditioning" research before soldiers can be retrained. Toggle it on or off in the mod settings.
 [/list]
 
 [h1]Compatibility[/h1]
@@ -49,5 +50,7 @@ When reporting, please include [b]all three[/b]:
 [h1]Source & credits[/h1]
 Open source (CC BY-NC 4.0): [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
 Built by [b]Morgott[/b]. Compatible with the [b]TFTV[/b] overhaul by Voland163 and contributors (optional). Phoenix Point © Snapshot Games.
+Changelog: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md
+Issues, bugs & questions: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues
 
 License: CC BY-NC 4.0 (Attribution-NonCommercial). © 2026 Morgott. https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle
