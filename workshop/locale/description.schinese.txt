@@ -1,56 +1,52 @@
 [h1]PerkOracle[/h1]
-[b]一个只读的游戏内预览，显示士兵的「个人」天赋可能随机出过哪些 —— 适用于 Phoenix Point，可单独使用或搭配 TFTV。还提供可选的、默认关闭的天赋替换，供想要更多掌控的玩家使用。[/b]
+[b]一个只读的游戏内预览，显示士兵的随机「个人」天赋可能出过哪些。适用于 Phoenix Point，可单独使用或搭配 TFTV。[/b]
 
-[b]PerkOracle 不会生成、添加或修改任何天赋。[/b]在 Phoenix Point 中，部分「个人」线天赋是为每名士兵随机抽取的 —— 这种随机性是[b]游戏自身的机制[/b]（原版与 TFTV 皆然），并非本模组添加的功能。PerkOracle 是一个界面 / 体验优化模组，只会[b]读取[/b]并显示这些数据。
+在 Phoenix Point 中，部分「个人」线天赋是为每名士兵随机抽取的。这种随机性是游戏自身的机制（原版与 TFTV 皆然），并非本模组添加的功能。PerkOracle 只会读取这些数据并显示出来，不会生成、添加或修改任何天赋。
+
+它还提供可选的天赋替换，默认关闭，供想要更多掌控的玩家使用。
 
 [hr][/hr]
 
 [h1]功能介绍[/h1]
 [list]
-[*][b]高亮随机天赋[/b] —— 在能力进阶界面中，个人线上天赋为随机抽取的格子会被染上明显的蓝色，让你一眼就能分辨哪些来自随机抽取、哪些来自固定的职业线。
-[*][b]候选「百科」弹窗[/b] —— 将光标悬停在随机抽取的（蓝色高亮的）天赋上并[b]点击右键[/b]，即可打开一个弹窗，列出[i]所有[/i]可能落入该槽位的天赋，每个都带有游戏[b]原生的图标与提示[/b]。该弹窗为临时性质，不会改变任何内容；再次点击右键即可关闭。
+[*][b]高亮随机天赋。[/b]在能力进阶界面中，个人线上天赋为随机抽取的格子会被染上蓝色，让你一眼就能分辨哪些来自随机抽取、哪些来自固定的职业线。
+[*][b]候选「百科」弹窗。[/b]将光标悬停在随机抽取的（蓝色）天赋上并[b]点击右键[/b]，即可打开一个弹窗，列出[i]所有[/i]可能落入该槽位的天赋，每个都带有游戏原生的图标与提示。该弹窗不会改变任何内容；再次点击右键即可关闭。
 [/list]
-
-PerkOracle [b]不会[/b]改变天赋的生成，也不会添加进阶行。在替换功能关闭（默认）的情况下，它纯粹是只读查看。
 
 [h1]可选：天赋替换（默认关闭）[/h1]
 [list]
-[*][b]AllowPerkSwap[/b] —— 默认[b]关闭[/b]；开箱即用时 PerkOracle 严格只读（仅预览）。在模组设置中将其开启后，在百科中[b]左键点击[/b]某个天赋，即可用另一个已有天赋替换该槽位中[b]已学会的[/b]天赋。
-[*]这[b]不会创建新天赋[/b]；只是改变哪个已有天赋占据你已经解锁的槽位。除非你主动选择，否则不会改变游戏玩法。
-[*][b]可选的研究门槛[/b] —— 你可以要求先完成一次性的「干员再调适」（Operative Reconditioning）研究，之后才能为士兵进行再训练。可在模组设置中开启或关闭。
+[*][b]AllowPerkSwap[/b] 开箱即用时为[b]关闭[/b]，因此 PerkOracle 严格保持只读。在模组设置中将其开启后，在百科中[b]左键点击[/b]某个天赋，即可用另一个已有天赋替换该槽位中已学会的天赋。只是改变哪个已有天赋占据你已经解锁的槽位。
+[*][b]可选的研究门槛。[/b]你可以要求先完成一次性的「干员再调适」（Operative Reconditioning）研究，之后才能为士兵进行再训练。可在模组设置中开启或关闭。
 [/list]
 
 [h1]兼容性[/h1]
 [list]
-[*][b]单独使用[/b] —— 可单独搭配原版 Phoenix Point 运行；无需其他任何东西。
-[*][b]Terror From The Void (TFTV)[/b] —— 完全兼容。安装了 TFTV 时，它会读取 TFTV 按槽位的随机天赋数据；否则回退到原版游戏的个人天赋池。
-[*][b]添加职业的模组[/b] —— 可与添加职业的模组共同使用（例如新的军官 / 额外职业模组）。
+[*][b]单独使用。[/b]可单独搭配原版 Phoenix Point 运行，无需其他任何东西。
+[*][b]Terror From The Void (TFTV)。[/b]完全兼容。安装了 TFTV 时，它会读取 TFTV 按槽位的随机天赋数据；否则使用原版游戏的个人天赋池。
+[*][b]添加职业的模组。[/b]可与添加职业的模组共同使用（例如新的军官模组、额外职业等）。
 [/list]
 
 [h1]支持的语言[/h1]
-English、简体中文、Français、Deutsch、Italiano、Polski、Русский、Español —— 共 8 种语言。
+English、简体中文、Français、Deutsch、Italiano、Polski、Русский、Español。共 8 种语言。
 
 [h1]使用方法[/h1]
 [list=1]
-[*]在创意工坊[b]订阅[/b] PerkOracle。（如果你使用 TFTV，也请一并安装 —— PerkOracle 会在它之后加载。）
+[*]在创意工坊[b]订阅[/b] PerkOracle。（如果你使用 TFTV，也请一并安装；PerkOracle 会在它之后加载。）
 [*]启动 Phoenix Point，并在游戏内的模组管理器中[b]启用 PerkOracle[/b]。
-[*]打开某名士兵的能力进阶界面，将光标悬停在随机抽取的（蓝色高亮的）天赋上，然后[b]点击右键[/b]。
+[*]打开某名士兵的能力进阶界面，将光标悬停在随机抽取的（蓝色）天赋上，然后[b]点击右键[/b]。
 [/list]
 
 [h1]问题反馈 / 支持[/h1]
-[b]请不要在 Steam 评论中反馈 Bug[/b] —— 请到 GitHub 反馈：
-[*][url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues/new]GitHub Issues[/url]
-反馈时，请[b]务必同时提供以下三项[/b]：
+[b]请不要在 Steam 评论中反馈 Bug。[/b]请到 GitHub 反馈：[url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues[/url]
+反馈时，请务必同时提供以下三项：
 [list=1]
-[*]你的 [b]Player.log[/b] 文件 —— 位于：%USERPROFILE%\AppData\LocalLow\Snapshot Games Inc\Phoenix Point\Player.log
+[*]你的 [b]Player.log[/b] 文件，位于：%USERPROFILE%\AppData\LocalLow\Snapshot Games Inc\Phoenix Point\Player.log
 [*]你已安装的[b]完整模组列表[/b]。
-[*]Bug 的[b]完整描述[/b] —— 发生了什么，以及逐步的复现方法。
+[*]Bug 的[b]完整描述[/b]：发生了什么，以及逐步的复现方法。
 [/list]
 
 [h1]源代码与致谢[/h1]
-开源（CC BY-NC 4.0）：[url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
+源代码：[url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
+更新日志：[url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md]CHANGELOG.md[/url]
 由 [b]Morgott[/b] 制作。兼容 Voland163 及贡献者制作的 [b]TFTV[/b] 大型改版（可选）。Phoenix Point © Snapshot Games。
-更新日志：https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md
-问题、Bug 与提问：https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues
-
-许可：CC BY-NC 4.0 (Attribution-NonCommercial). © 2026 Morgott. https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle
+许可：CC BY-NC 4.0 (Attribution-NonCommercial). © 2026 Morgott.
