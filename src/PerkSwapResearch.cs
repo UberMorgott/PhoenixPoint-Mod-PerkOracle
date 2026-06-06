@@ -31,6 +31,27 @@ namespace Morgott.PerkOracle
         /// </summary>
         public const string ResearchId = "PERKORACLE_PerkSwap_ResearchDef";
 
+        /// <summary>
+        /// Cached custom research illustration, loaded once (lazily) from
+        /// <see cref="CustomIconRelativePath"/>. Null when the PNG is missing or fails to decode — callers
+        /// (the <c>ResearchTooltip.Init</c> postfix) MUST null-check and no-op so the tooltip never breaks.
+        /// Backing field + flag so a failed load is not retried on every tooltip open.
+        /// </summary>
+        private static Sprite _iconSprite;
+        private static bool _iconLoadAttempted;
+        public static Sprite IconSprite
+        {
+            get
+            {
+                if (!_iconLoadAttempted)
+                {
+                    _iconLoadAttempted = true;
+                    _iconSprite = TryLoadCustomIconSprite();
+                }
+                return _iconSprite;
+            }
+        }
+
         /// <summary>Guid of the cloned <see cref="ResearchViewElementDef"/> (must differ from the research's).</summary>
         private const string ViewElementGuid = "PERKORACLE_PerkSwap_ViewElementDef";
 
@@ -291,28 +312,29 @@ namespace Morgott.PerkOracle
         }
 
         /// <summary>
-        /// ICON (v1): keep the cloned template's stock <see cref="ResearchViewElementDef.ResearchIcon"/>.
+        /// ICON: this no longer touches the def's icon — it intentionally leaves the cloned template's
+        /// Addressable <see cref="ResearchViewElementDef.ResearchIcon"/> as-is.
         ///
-        /// The research icon field is an Addressable asset reference (<c>AssetReferenceSprite</c>), not a
-        /// plain <see cref="Sprite"/>. A runtime PNG → Sprite (ReadAllBytes → Texture2D → ImageConversion
-        /// → Sprite.Create) cannot be assigned into an Addressable reference, so there is no clean v1 path
-        /// to show a custom PNG as the research icon without a Harmony patch at the display site.
-        ///
-        /// TODO(custom-icon): when wiring a custom icon, intercept the research-screen icon resolution
-        /// (Harmony postfix on the icon getter) and swap in a runtime Sprite loaded from
-        /// <see cref="CustomIconRelativePath"/> via <see cref="TryLoadCustomIconSprite"/>. Until then the
-        /// project shows the AtmosphericAnalysis stock icon — acceptable for v1.
+        /// The custom illustration is now LIVE, but applied at the DISPLAY site rather than on the def: the
+        /// research icon field is an Addressable asset reference (<c>AssetReferenceSprite</c>), not a plain
+        /// <see cref="Sprite"/>, so a runtime PNG → Sprite (ReadAllBytes → Texture2D → ImageConversion →
+        /// Sprite.Create) cannot be assigned into it. Instead, <c>ResearchTooltipIconPatch</c> (a Harmony
+        /// postfix on <c>ResearchTooltip.Init</c>) swaps the displayed <c>ResearchTooltip.Icon</c> Image to
+        /// the cached <see cref="IconSprite"/> (loaded from <see cref="CustomIconRelativePath"/> via
+        /// <see cref="TryLoadCustomIconSprite"/>) whenever our research is shown. If the PNG is missing,
+        /// <see cref="IconSprite"/> stays null and the patch no-ops, leaving the stock icon.
         /// </summary>
         private static void ApplyCustomIcon(ResearchViewElementDef ved)
         {
-            // Intentionally a no-op for v1 (keeps the cloned Addressable icon). See the method summary.
+            // No-op by design: the custom icon is applied at the display site (ResearchTooltipIconPatch),
+            // not on the def's Addressable ResearchIcon. See the method summary.
             _ = ved;
         }
 
         /// <summary>
         /// Load the optional custom icon PNG from the mod install dir into a runtime <see cref="Sprite"/>.
-        /// Currently UNUSED (see <see cref="ApplyCustomIcon"/>); kept ready for a future non-Addressable
-        /// display path. Returns null if the file is absent or decoding fails.
+        /// Used (once, lazily) by <see cref="IconSprite"/>, which <c>ResearchTooltipIconPatch</c> consumes to
+        /// swap the displayed research icon. Returns null if the file is absent or decoding fails.
         /// </summary>
         private static Sprite TryLoadCustomIconSprite()
         {
