@@ -60,6 +60,23 @@ For a manual install:
    `meta.json`).
 3. Enable the mod in the in-game mod manager. If you run TFTV, let PerkOracle load after it.
 
+## Manual installation (without Steam Workshop)
+
+If you don't use the Steam Workshop, you can install PerkOracle by hand:
+
+1. Download the **latest release** ZIP from
+   [GitHub Releases](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest)
+   (current asset: `PerkOracle-v1.1.0.zip`).
+2. Extract the ZIP — you'll get a `PerkOracle` folder containing `PerkOracle.dll`,
+   `meta.json`, and an `Assets/` folder.
+3. Copy that `PerkOracle` folder into your Phoenix Point `Mods` folder. For a Steam install
+   this is typically `…\steamapps\common\Phoenix Point\Mods\` (create the `Mods` folder if it
+   doesn't exist). The final path should be `Phoenix Point\Mods\PerkOracle\meta.json`.
+4. Launch Phoenix Point and enable **PerkOracle** in the in-game mod manager.
+
+> TFTV is optional. If you play with it, install it too (by any method); PerkOracle works
+> standalone either way.
+
 ## Configuration
 
 In the in-game mod settings:
@@ -134,6 +151,23 @@ PerkOracle показывает, какие случайные **«персон�
    `PerkOracle.dll` и `meta.json`).
 3. Включите мод во внутриигровом менеджере модов. Если используете TFTV — пусть PerkOracle
    загружается после него.
+
+### Ручная установка (без Steam Workshop)
+
+Если вы не пользуетесь Steam Workshop, PerkOracle можно установить вручную:
+
+1. Скачайте ZIP **последнего релиза** со страницы
+   [GitHub Releases](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest)
+   (текущий файл: `PerkOracle-v1.1.0.zip`).
+2. Распакуйте ZIP — вы получите папку `PerkOracle`, содержащую `PerkOracle.dll`,
+   `meta.json` и папку `Assets/`.
+3. Скопируйте эту папку `PerkOracle` в каталог `Mods` игры Phoenix Point. Для установки
+   через Steam это обычно `…\steamapps\common\Phoenix Point\Mods\` (создайте папку `Mods`,
+   если её нет). Итоговый путь должен быть `Phoenix Point\Mods\PerkOracle\meta.json`.
+4. Запустите Phoenix Point и включите **PerkOracle** во внутриигровом менеджере модов.
+
+> TFTV опционален. Если играете с ним, установите его тоже (любым способом); PerkOracle
+> в любом случае работает автономно.
 
 ### Настройка
 
