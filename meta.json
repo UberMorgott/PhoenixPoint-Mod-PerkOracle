@@ -14,13 +14,13 @@
   "Version": "1.0.0",
   "Name": [
     { "Key": "English", "Value": "PerkOracle" },
-    { "Key": "Chinese (Simplified)", "Value": "PerkOracle" },
-    { "Key": "French", "Value": "PerkOracle" },
-    { "Key": "German", "Value": "PerkOracle" },
-    { "Key": "Italian", "Value": "PerkOracle" },
-    { "Key": "Polish", "Value": "PerkOracle" },
-    { "Key": "Russian", "Value": "PerkOracle" },
-    { "Key": "Spanish", "Value": "PerkOracle" }
+    { "Key": "Chinese (Simplified)", "Value": "技能神谕" },
+    { "Key": "French", "Value": "Oracle des compétences" },
+    { "Key": "German", "Value": "Perk-Orakel" },
+    { "Key": "Italian", "Value": "Oracolo dei perk" },
+    { "Key": "Polish", "Value": "Wyrocznia perków" },
+    { "Key": "Russian", "Value": "Оракул перков" },
+    { "Key": "Spanish", "Value": "Oráculo de aptitudes" }
   ],
   "Description": [
     { "Key": "English", "Value": "Helps you foresee a soldier's random ('rolled') personal perks. On the ability-progression grid, rolled cells are highlighted. Press cancel (right-click or Esc) while hovering a rolled cell to open a wiki popup listing every perk that could roll into that slot, with native ability tooltips; cancel again closes it. Optionally, enable Perk Swap in the mod settings to left-click any perk in the wiki and replace the soldier's learned perk with it (free) - for players who prefer an easier game. Fixed/class cells are left unchanged. Requires the TFTV overhaul." },

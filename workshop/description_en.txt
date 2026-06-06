@@ -1,7 +1,7 @@
 [h1]PerkOracle[/h1]
 [b]A read-only in-game preview of which "personal" perks a soldier could have rolled — for Phoenix Point, standalone or with TFTV. Optional, off-by-default perk swapping for players who want more control.[/b]
 
-[b]PerkOracle does not generate, add, or change any perks.[/b] In Phoenix Point, some "personal"-track perks are rolled randomly per soldier — that randomness is the [b]game's own system[/b] (vanilla and TFTV), not something this mod adds. PerkOracle is a UI / quality-of-life mod that only [b]reads[/b] and displays that data.
+[b]PerkOracle does not generate, add, or change any perks.[/b] In Phoenix Point some "personal"-track perks are rolled randomly per soldier — that randomness is the [b]game's own system[/b] (vanilla and TFTV), not something this mod adds. PerkOracle is a UI / quality-of-life mod that only [b]reads[/b] and displays that data.
 
 [hr][/hr]
 
@@ -11,7 +11,7 @@
 [*][b]Candidate "wiki" popup[/b] — over a rolled cell, press [b]cancel[/b] (right-click or [b]Esc[/b]) to open a popup listing [i]every[/i] perk that could have rolled into that slot, each with the game's [b]native icon and tooltip[/b]. The popup is temporary and changes nothing; cancel again to close.
 [/list]
 
-PerkOracle does [b]not[/b] alter perk generation or add progression rows. With swapping off (the default) it is pure, view-only preview.
+PerkOracle does [b]not[/b] alter perk generation or add progression rows. With swapping off (the default) it is pure, view-only.
 
 [h1]Optional: Perk Swap (off by default)[/h1]
 [list]
@@ -19,10 +19,11 @@ PerkOracle does [b]not[/b] alter perk generation or add progression rows. With s
 [*]This creates [b]no new perks[/b]; it only swaps which existing perk occupies a slot you have already unlocked. No gameplay change unless you opt in.
 [/list]
 
-[h1]Requirements[/h1]
+[h1]Compatibility[/h1]
 [list]
-[*][b]Phoenix Point[/b] — works with the [b]standalone[/b] base game.
-[*][b]Terror From The Void (TFTV)[/b] — [b]fully compatible but not required[/b]. With TFTV installed it reads TFTV's per-slot random-perk data; otherwise it falls back to the base game's personal-perk pool.
+[*][b]Standalone[/b] — works with base Phoenix Point on its own; nothing else required.
+[*][b]Terror From The Void (TFTV)[/b] — fully compatible. With TFTV present it reads TFTV's per-slot random-perk data; otherwise it falls back to the base game's personal-perk pool.
+[*][b]Class-adding mods[/b] — works alongside mods that add classes (e.g. new Officer / additional-class mods).
 [/list]
 
 [h1]Supported languages[/h1]
@@ -32,7 +33,7 @@ English, 简体中文 (Simplified Chinese), Français, Deutsch, Italiano, Polski
 [list=1]
 [*][b]Subscribe[/b] to PerkOracle on the Workshop. (If you use TFTV, install it too — PerkOracle loads after it.)
 [*]Launch Phoenix Point and [b]enable PerkOracle[/b] in the in-game mod manager.
-[*]Open a soldier's ability-progression screen, find a blue-tinted (rolled) cell, and press [b]cancel[/b] (right-click / Esc) to open the candidate wiki.
+[*]Open a soldier's ability-progression screen, find a blue-tinted (rolled) cell, and press [b]cancel[/b] (right-click / Esc).
 [/list]
 
 [h1]Bug reports / Support[/h1]
