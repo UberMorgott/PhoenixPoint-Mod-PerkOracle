@@ -67,11 +67,11 @@ namespace Morgott.PerkOracle
         private const string ResearchDbName = "pp_ResearchDB";
 
         /// <summary>
-        /// Research point cost. Grounded on a vanilla mid-tier class-unlock project (Officer mod's
-        /// <c>PX_OfficerTraining_ResearchDef</c> uses 1000); set to ~1.5x for an intentionally "expensive"
-        /// project. Single tunable const — change here to rebalance.
+        /// Research point cost. Calibrated from player feedback: at ~80 research points/day, 1500 took ~19
+        /// in-game days — far too long for this utility project. 240 ≈ 3 days, the intended pace. This is
+        /// also in the ballpark of a vanilla early-game project. Single tunable const — change here to rebalance.
         /// </summary>
-        private const int ResearchPointCost = 1500;
+        private const int ResearchPointCost = 240;
 
         /// <summary>
         /// Relative path (under the mod install dir) of an optional custom research icon PNG. See the icon
