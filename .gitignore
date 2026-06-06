@@ -1,0 +1,14 @@
+# Build output
+bin/
+obj/
+
+# IDE / OS
+.serena/
+.vs/
+*.user
+*.suo
+Thumbs.db
+.DS_Store
+
+# Release packaging
+*.zip

@@ -1,0 +1,20 @@
+# Normalize all text files to CRLF in the working tree (Windows C# project).
+* text=auto eol=crlf
+
+# Explicit text types
+*.cs     text eol=crlf
+*.csproj text eol=crlf
+*.sln    text eol=crlf
+*.json   text eol=crlf
+*.md     text eol=crlf
+*.ps1    text eol=crlf
+*.csv    text eol=crlf
+*.txt    text eol=crlf
+*.yml    text eol=crlf
+
+# Binary files (never normalize)
+*.dll binary
+*.pdb binary
+*.png binary
+*.jpg binary
+*.zip binary

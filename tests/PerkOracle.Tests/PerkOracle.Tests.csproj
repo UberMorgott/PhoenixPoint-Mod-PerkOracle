@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <!--
+    Compile the production classifier against a mirrored AbilityTrackSource enum (defined in this
+    project) so the pure logic is unit-tested without loading Unity's Assembly-CSharp under net8.
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\src\PerkClassification.cs" Link="PerkClassification.cs" />
+    <!-- PerkPoolResolver is the pure ordering/filter core (no Unity/TFTV types), so it links and
+         unit-tests cleanly under net8 with injected fakes. -->
+    <Compile Include="..\..\src\PerkPoolResolver.cs" Link="PerkPoolResolver.cs" />
+    <!-- PerkSwapDecision is the pure allow/deny gate for perk swaps (no Unity/TFTV types). -->
+    <Compile Include="..\..\src\PerkSwapDecision.cs" Link="PerkSwapDecision.cs" />
+  </ItemGroup>
+</Project>
