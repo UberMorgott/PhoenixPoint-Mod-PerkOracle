@@ -1,4 +1,6 @@
 using System;
+using Base.Core;
+using Base.UI.MessageBox;
 using PhoenixPoint.Geoscape.View.ViewControllers.Roster;
 using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
@@ -91,6 +93,7 @@ namespace Morgott.PerkOracle
                         "PERKORACLE_SwapResearchLocked",
                         "Perk reassignment requires the \"Operative Reconditioning\" research.");
                     Debug.Log("[PerkOracle] PerkSwap denied (research locked): " + msg);
+                    ShowDenyMessage(msg);
                     return; // wiki stays open so the player sees the candidates again
                 }
 
@@ -108,6 +111,30 @@ namespace Morgott.PerkOracle
             catch (Exception ex)
             {
                 Debug.Log("[PerkOracle] WikiAbilityTooltipTrigger.OnPointerClick failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Surface a transient, visible "can't do that" notice via the game's native modal message box —
+        /// the same mechanism the base game uses for simple notices (e.g. SerializationCommands.cs:202 uses
+        /// <c>GameUtl.GetMessageBox().ShowSimplePrompt(..., MessageBoxButtons.OK, ...)</c>). An info-icon
+        /// OK-only prompt fits this geoscape roster context and needs no UI plumbing of our own. Fully
+        /// wrapped + null-guarded: <see cref="GameUtl.GetMessageBox"/> returns null early in startup
+        /// (GameUtl.cs:114), and a UI hiccup must never throw back into the click handler.
+        /// </summary>
+        private static void ShowDenyMessage(string msg)
+        {
+            try
+            {
+                MessageBox box = GameUtl.GetMessageBox();
+                if ((UnityEngine.Object)(object)box != (UnityEngine.Object)null)
+                {
+                    box.ShowSimplePrompt(msg, MessageBoxIcon.Information, MessageBoxButtons.OK, callback: null);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log("[PerkOracle] WikiAbilityTooltipTrigger.ShowDenyMessage failed: " + ex.Message);
             }
         }
 

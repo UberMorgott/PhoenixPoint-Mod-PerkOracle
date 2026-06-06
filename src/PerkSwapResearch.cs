@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using Base.Defs;
 using Base.UI;
 using PhoenixPoint.Common.UI;
@@ -102,7 +103,13 @@ namespace Morgott.PerkOracle
                     return;
                 }
 
-                ResearchDef template = repo.GetDef(TemplateResearchName) as ResearchDef;
+                // DefRepository.GetDef resolves by Guid ONLY (DefRepository.cs:70-75, _guid2Def keyed by
+                // def.Guid), and TemplateResearchName is a NAME, not a Guid — so a plain GetDef would return
+                // null and abort registration. Resolve name-safe: try GetDef first (handles the case where the
+                // string happens to be a Guid), then fall back to a name scan over GetAllDefs<ResearchDef>().
+                // This mirrors the verified pattern in TFTV (TFTV.PortedAATweaks.Utilities.cs:36).
+                ResearchDef template = repo.GetDef(TemplateResearchName) as ResearchDef
+                    ?? repo.GetAllDefs<ResearchDef>().FirstOrDefault(d => d.name == TemplateResearchName);
                 if ((UnityEngine.Object)(object)template == (UnityEngine.Object)null)
                 {
                     Debug.Log("[PerkOracle] PerkSwapResearch: template '" + TemplateResearchName
