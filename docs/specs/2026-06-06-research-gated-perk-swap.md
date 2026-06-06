@@ -64,16 +64,16 @@ At the swap entry point (`WikiAbilityTooltipTrigger.OnPointerClick` → `PerkSwa
 ### Research text — EN (source)
 - Name: `Operative Reconditioning`
 - Description: `Phoenix Project drill records survived the collapse. They describe how a trained operative can be put back through conditioning and brought out the other side with a different specialty. Old reflexes are not added to, they are overwritten. The work is dull and the soldier is off the line while it runs, but a squad is no longer stuck with the specialists it was handed.`
-- Benefits: `Lets you reassign a soldier's rolled personal perks from the perk panel.`
+- Benefits: `Retrains a soldier so a personal perk gained at random can be relearned as a different one.`
 - Complete: `Reconditioning protocols restored. Operatives can be retrained.`
-- Deny message (`PERKORACLE_SwapResearchLocked`): `Perk reassignment requires the "Operative Reconditioning" research.`
+- Deny message (`PERKORACLE_SwapResearchLocked`): `Soldiers can only be retrained once the "Operative Reconditioning" research is complete.`
 
 ### Research text — RU (source)
 - Name: `Переподготовка оперативников`
 - Description: `Уцелели тренировочные протоколы «Феникса». В них описано, как обученного бойца можно заново провести через подготовку и вывести из неё с другой специализацией. Старые рефлексы не дополняются, а переписываются. Работа муторная, и на это время боец выбывает из строя, но отряд больше не привязан к тому набору специалистов, что достался изначально.`
-- Benefits: `Позволяет переназначать выпавшие личные перки бойца на панели перков.`
+- Benefits: `Переучивает бойца так, что случайно полученный личный перк можно сменить на другой.`
 - Complete: `Протоколы переподготовки восстановлены. Оперативников можно переучивать.`
-- Deny message: `Переназначение перков требует исследования «Переподготовка оперативников».`
+- Deny message: `Бойцов можно переучивать только после завершения исследования «Переподготовка оперативников».`
 
 ## Implementation risks (verify during TDD/build)
 
