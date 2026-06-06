@@ -47,5 +47,7 @@ Al informar, incluye por favor [b]los tres[/b]:
 [/list]
 
 [h1]Código fuente y créditos[/h1]
-Código abierto (MIT): [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
+Código abierto (CC BY-NC 4.0): [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
 Creado por [b]Morgott[/b]. Compatible con la revisión [b]TFTV[/b] de Voland163 y colaboradores (opcional). Phoenix Point © Snapshot Games.
+
+Licencia: CC BY-NC 4.0 (Attribution-NonCommercial). © 2026 Morgott. https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle

@@ -100,7 +100,7 @@ dotnet test
 
 ## License
 
-[MIT](LICENSE).
+PerkOracle © 2026 Morgott. Licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) — free to use and modify for non-commercial purposes with attribution. Repository: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle
 
 ## Credits
 
@@ -176,4 +176,4 @@ PerkOracle показывает, какие случайные **«персон�
 
 ### Лицензия
 
-[MIT](LICENSE).
+PerkOracle © 2026 Morgott. Лицензия [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) — свободно использовать и изменять в некоммерческих целях с указанием авторства. Репозиторий: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle

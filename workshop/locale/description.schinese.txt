@@ -47,5 +47,7 @@ English、简体中文、Français、Deutsch、Italiano、Polski、Русски�
 [/list]
 
 [h1]源代码与致谢[/h1]
-开源（MIT）：[url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
+开源（CC BY-NC 4.0）：[url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
 由 [b]Morgott[/b] 制作。兼容 Voland163 及贡献者制作的 [b]TFTV[/b] 大型改版（可选）。Phoenix Point © Snapshot Games。
+
+许可：CC BY-NC 4.0 (Attribution-NonCommercial). © 2026 Morgott. https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle

@@ -47,5 +47,7 @@ English, 简体中文 (упрощённый китайский), Français, Deut
 [/list]
 
 [h1]Исходный код и авторы[/h1]
-Открытый код (MIT): [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
+Открытый код (CC BY-NC 4.0): [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
 Разработчик — [b]Morgott[/b]. Совместим с оверхолом [b]TFTV[/b] от Voland163 и участников (опционально). Phoenix Point © Snapshot Games.
+
+Лицензия: CC BY-NC 4.0 (Attribution-NonCommercial). © 2026 Morgott. https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle
