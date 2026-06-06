@@ -70,9 +70,14 @@ def build_description() -> str:
         ru = f.read().strip()
     separator = "\n\n[hr][/hr]\n\n[h1]Русский / Russian[/h1]\n\n"
     combined = en + separator + ru
-    if len(combined) > 8000:
+    # Steam's limit is 8000 *bytes* (it reports "ASCII characters" but counts
+    # the UTF-8 byte length). Multi-byte Cyrillic/CJK costs >1 byte per char,
+    # so validate the encoded length, not the character count.
+    nbytes = len(combined.encode("utf-8"))
+    if nbytes > 8000:
         raise SystemExit(
-            f"Combined description is {len(combined)} chars, exceeds Steam's 8000 limit."
+            f"Combined description is {nbytes} UTF-8 bytes "
+            f"({len(combined)} chars), exceeds Steam's 8000-byte limit."
         )
     return combined
 
@@ -113,8 +118,42 @@ def create_item(steam) -> dict:
     return holder
 
 
+def add_gallery_previews(steam, handle: int, gallery: list) -> bool:
+    """Try to ADD extra gallery preview images via AddItemPreviewFile.
+
+    Returns True if the images were submitted to the binding, False if the
+    binding does not expose AddItemPreviewFile (the headless add is then
+    impossible and must be done on the Workshop web page instead).
+
+    NOTE: AddItemPreviewFile ADDS a new preview on every call. Re-running this
+    script with the same --gallery images would DUPLICATE them on the item.
+    """
+    if not gallery:
+        return True  # nothing requested
+
+    add_fn = getattr(steam.Workshop, "AddItemPreviewFile", None)
+    if not callable(add_fn):
+        print("[gallery] SKIPPED: this SteamworksPy build does not expose "
+              "ISteamUGC::AddItemPreviewFile.")
+        print("[gallery] The following screenshots must be added MANUALLY on the "
+              "Workshop web page (Add/Edit Images):")
+        for img in gallery:
+            print(f"[gallery]   - {img}")
+        return False
+
+    # Defensive: only reached if a future rebuild adds the binding.
+    for img in gallery:
+        if not os.path.exists(img):
+            raise SystemExit(f"Gallery image not found: {img}")
+        print(f"[gallery] AddItemPreviewFile(image) <- {img}")
+        add_fn(handle, img, 0)  # k_EItemPreviewType_Image == 0
+    print("[gallery] NOTE: re-running with the same images would DUPLICATE "
+          "these previews.")
+    return True
+
+
 def submit_update(steam, published_file_id: int, description: str,
-                  visibility, changenote: str, tags: list) -> dict:
+                  visibility, changenote: str, tags: list, gallery: list) -> dict:
     """StartItemUpdate -> set fields -> SubmitItemUpdate (async, uploads)."""
     handle = steam.Workshop.StartItemUpdate(APP_ID, published_file_id)
     print(f"[update] StartItemUpdate handle={handle}")
@@ -126,6 +165,8 @@ def submit_update(steam, published_file_id: int, description: str,
     steam.Workshop.SetItemVisibility(handle, visibility)
     if tags:
         steam.Workshop.SetItemTags(handle, tags)
+
+    gallery_added = add_gallery_previews(steam, handle, gallery)
     print(f"[update] title/desc/content/preview/visibility set "
           f"(content={CONTENT_FOLDER}, preview={PREVIEW_FILE}, "
           f"visibility={visibility.name}, tags={tags or 'none'})")
@@ -166,6 +207,7 @@ def submit_update(steam, published_file_id: int, description: str,
             f"SubmitItemUpdate FAILED: EResult={holder['result']} "
             f"(see steamworks.enums.EResult)."
         )
+    holder["gallery_added"] = gallery_added
     print(f"[update] OK -> upload committed for id={holder['id']}")
     return holder
 
@@ -210,6 +252,11 @@ def main() -> int:
                     help="Item visibility (default: public).")
     ap.add_argument("--tags", default="",
                     help="Comma-separated Workshop tags (default: none).")
+    ap.add_argument("--gallery", nargs="+", default=[], metavar="IMG",
+                    help="Additional gallery preview images to ADD to the item. "
+                         "NOTE: this SteamworksPy build does not expose "
+                         "ISteamUGC::AddItemPreviewFile, so these are reported as "
+                         "a manual web step instead of being uploaded headlessly.")
     args = ap.parse_args()
 
     if args.update and not args.item:
@@ -253,7 +300,7 @@ def main() -> int:
         print(f"[update] using existing publishedfileid={published_file_id}")
 
     submitted = submit_update(steam, published_file_id, description,
-                              visibility, args.changenote, tags)
+                              visibility, args.changenote, tags, args.gallery)
     needs_legal = needs_legal or submitted["needs_legal"]
     published_file_id = submitted["id"] or published_file_id
 
@@ -265,6 +312,14 @@ def main() -> int:
     print(f"  publishedfileid : {published_file_id}")
     print(f"  item URL        : {url}")
     print(f"  upload          : committed (SubmitItemUpdate returned EResult.OK)")
+    if args.gallery:
+        if submitted.get("gallery_added"):
+            print(f"  gallery         : {len(args.gallery)} preview image(s) submitted via AddItemPreviewFile")
+        else:
+            print(f"  gallery         : NOT added headlessly (binding lacks AddItemPreviewFile)")
+            print(f"                    add these MANUALLY on the Workshop web page:")
+            for img in args.gallery:
+                print(f"                      - {img}")
     if needs_legal:
         print("  ACTION REQUIRED : Steam reports you must ACCEPT THE WORKSHOP LEGAL")
         print("                    AGREEMENT once. Open the item URL above in a browser")
