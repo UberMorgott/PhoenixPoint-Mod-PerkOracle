@@ -8,7 +8,7 @@
 [h1]Qué hace[/h1]
 [list]
 [*][b]Resalta los perks aleatorios[/b] — en la pantalla de progresión de habilidades, las celdas de la vía personal cuyo perk se obtuvo al azar reciben un tinte azul característico, para que veas de un vistazo qué proviene del azar y qué de la vía de clase fija.
-[*][b]Ventana «wiki» de candidatos[/b] — sobre una celda aleatoria, pulsa [b]cancelar[/b] (clic derecho o [b]Esc[/b]) para abrir una ventana que enumera [i]todos[/i] los perks que podrían haber caído en esa ranura, cada uno con el [b]icono y la información emergente nativos[/b] del juego. La ventana es temporal y no cambia nada; cancela de nuevo para cerrarla.
+[*][b]Ventana «wiki» de candidatos[/b] — pasa el cursor sobre un perk obtenido al azar (resaltado en azul) y haz [b]clic derecho[/b] sobre él para abrir una ventana que enumera [i]todos[/i] los perks que podrían haber caído en esa ranura, cada uno con el [b]icono y la información emergente nativos[/b] del juego. La ventana es temporal y no cambia nada; haz clic derecho de nuevo para cerrarla.
 [/list]
 
 PerkOracle [b]no[/b] altera la generación de perks ni añade filas de progresión. Con el intercambio desactivado (por defecto) es puramente de solo lectura.
@@ -33,7 +33,7 @@ English, 简体中文 (chino simplificado), Français, Deutsch, Italiano, Polski
 [list=1]
 [*][b]Suscríbete[/b] a PerkOracle en el Workshop. (Si usas TFTV, instálalo también — PerkOracle se carga después de él.)
 [*]Inicia Phoenix Point y [b]activa PerkOracle[/b] en el gestor de mods del juego.
-[*]Abre la pantalla de progresión de habilidades de un soldado, busca una celda con tinte azul (aleatoria) y pulsa [b]cancelar[/b] (clic derecho / Esc).
+[*]Abre la pantalla de progresión de habilidades de un soldado, pasa el cursor sobre un perk obtenido al azar (resaltado en azul) y haz [b]clic derecho[/b] sobre él.
 [/list]
 
 [h1]Informes de errores / Soporte[/h1]

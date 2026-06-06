@@ -8,7 +8,7 @@
 [h1]Ce qu'il fait[/h1]
 [list]
 [*][b]Met en évidence les perks tirés au sort[/b] — sur l'écran de progression des compétences, les cases de la voie personnelle dont le perk a été tiré au sort reçoivent une teinte bleue distincte, pour distinguer d'un coup d'œil ce qui vient du tirage aléatoire de ce qui vient de la voie de classe fixe.
-[*][b]Fenêtre « wiki » des candidats[/b] — au-dessus d'une case tirée au sort, appuyez sur [b]annuler[/b] (clic droit ou [b]Échap[/b]) pour ouvrir une fenêtre listant [i]chaque[/i] perk qui aurait pu tomber dans cet emplacement, chacun avec l'[b]icône et l'infobulle natives[/b] du jeu. La fenêtre est temporaire et ne change rien ; annulez de nouveau pour la fermer.
+[*][b]Fenêtre « wiki » des candidats[/b] — survolez avec le curseur un perk tiré au sort (surligné en bleu) et [b]faites un clic droit[/b] dessus pour ouvrir une fenêtre listant [i]chaque[/i] perk qui aurait pu tomber dans cet emplacement, chacun avec l'[b]icône et l'infobulle natives[/b] du jeu. La fenêtre est temporaire et ne change rien ; faites un nouveau clic droit pour la fermer.
 [/list]
 
 PerkOracle ne modifie [b]pas[/b] la génération des perks et n'ajoute pas de lignes de progression. Avec l'échange désactivé (par défaut), il est purement en lecture seule.
@@ -33,7 +33,7 @@ English, 简体中文 (chinois simplifié), Français, Deutsch, Italiano, Polski
 [list=1]
 [*][b]Abonnez-vous[/b] à PerkOracle sur le Workshop. (Si vous utilisez TFTV, installez-le aussi — PerkOracle se charge après lui.)
 [*]Lancez Phoenix Point et [b]activez PerkOracle[/b] dans le gestionnaire de mods en jeu.
-[*]Ouvrez l'écran de progression des compétences d'un soldat, trouvez une case teintée en bleu (tirée au sort) et appuyez sur [b]annuler[/b] (clic droit / Échap).
+[*]Ouvrez l'écran de progression des compétences d'un soldat, survolez un perk tiré au sort (surligné en bleu) et [b]faites un clic droit[/b] dessus.
 [/list]
 
 [h1]Signalement de bugs / Support[/h1]

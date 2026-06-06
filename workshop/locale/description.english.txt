@@ -8,7 +8,7 @@
 [h1]What it does[/h1]
 [list]
 [*][b]Highlights rolled perks[/b] — on the ability-progression screen, personal-track cells whose perk was randomly rolled get a distinct blue tint, so you can tell at a glance which came from the random roll versus the fixed class track.
-[*][b]Candidate "wiki" popup[/b] — over a rolled cell, press [b]cancel[/b] (right-click or [b]Esc[/b]) to open a popup listing [i]every[/i] perk that could have rolled into that slot, each with the game's [b]native icon and tooltip[/b]. The popup is temporary and changes nothing; cancel again to close.
+[*][b]Candidate "wiki" popup[/b] — hover the cursor over a randomly-rolled (blue-highlighted) cell and [b]right-click[/b] it to open a popup listing [i]every[/i] perk that could have rolled into that slot, each with the game's [b]native icon and tooltip[/b]. The popup is temporary and changes nothing; right-click again to close it.
 [/list]
 
 PerkOracle does [b]not[/b] alter perk generation or add progression rows. With swapping off (the default) it is pure, view-only.
@@ -33,7 +33,7 @@ English, 简体中文 (Simplified Chinese), Français, Deutsch, Italiano, Polski
 [list=1]
 [*][b]Subscribe[/b] to PerkOracle on the Workshop. (If you use TFTV, install it too — PerkOracle loads after it.)
 [*]Launch Phoenix Point and [b]enable PerkOracle[/b] in the in-game mod manager.
-[*]Open a soldier's ability-progression screen, find a blue-tinted (rolled) cell, and press [b]cancel[/b] (right-click / Esc).
+[*]Open a soldier's ability-progression screen, hover a randomly-rolled (blue-highlighted) perk and [b]right-click[/b] it.
 [/list]
 
 [h1]Bug reports / Support[/h1]

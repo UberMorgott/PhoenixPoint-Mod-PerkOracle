@@ -8,7 +8,7 @@
 [h1]Cosa fa[/h1]
 [list]
 [*][b]Evidenzia i perk casuali[/b] — nella schermata di progressione delle abilità, le celle del ramo personale il cui perk è stato estratto casualmente ricevono una tinta blu distinta, così capisci a colpo d'occhio cosa proviene dall'estrazione casuale e cosa dal ramo di classe fisso.
-[*][b]Finestra «wiki» dei candidati[/b] — sopra una cella casuale, premi [b]annulla[/b] (clic destro o [b]Esc[/b]) per aprire una finestra che elenca [i]ogni[/i] perk che avrebbe potuto cadere in quello slot, ciascuno con l'[b]icona e il tooltip nativi[/b] del gioco. La finestra è temporanea e non cambia nulla; premi annulla di nuovo per chiuderla.
+[*][b]Finestra «wiki» dei candidati[/b] — passa il cursore su un perk estratto casualmente (evidenziato in blu) e [b]fai clic con il tasto destro[/b] su di esso per aprire una finestra che elenca [i]ogni[/i] perk che avrebbe potuto cadere in quello slot, ciascuno con l'[b]icona e il tooltip nativi[/b] del gioco. La finestra è temporanea e non cambia nulla; fai di nuovo clic con il tasto destro per chiuderla.
 [/list]
 
 PerkOracle [b]non[/b] altera la generazione dei perk e non aggiunge righe di progressione. Con lo scambio disattivato (impostazione predefinita) è puramente di sola visualizzazione.
@@ -33,7 +33,7 @@ English, 简体中文 (cinese semplificato), Français, Deutsch, Italiano, Polsk
 [list=1]
 [*][b]Iscriviti[/b] a PerkOracle nel Workshop. (Se usi TFTV, installa anche quello — PerkOracle si carica dopo di esso.)
 [*]Avvia Phoenix Point e [b]abilita PerkOracle[/b] nel gestore di mod in gioco.
-[*]Apri la schermata di progressione delle abilità di un soldato, trova una cella con tinta blu (casuale) e premi [b]annulla[/b] (clic destro / Esc).
+[*]Apri la schermata di progressione delle abilità di un soldato, passa il cursore su un perk estratto casualmente (evidenziato in blu) e [b]fai clic con il tasto destro[/b] su di esso.
 [/list]
 
 [h1]Segnalazioni di bug / Supporto[/h1]

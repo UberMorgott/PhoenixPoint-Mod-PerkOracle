@@ -8,7 +8,7 @@
 [h1]Co robi[/h1]
 [list]
 [*][b]Wyróżnia wylosowane perki[/b] — na ekranie postępu umiejętności komórki ścieżki osobistej, których perk został wylosowany, otrzymują wyraźny niebieski odcień, dzięki czemu od razu widać, co pochodzi z losowania, a co ze stałej ścieżki klasy.
-[*][b]Wyskakujące okno „wiki" kandydatów[/b] — nad wylosowaną komórką naciśnij [b]anuluj[/b] (prawy przycisk myszy lub [b]Esc[/b]), aby otworzyć okno z listą [i]każdego[/i] perka, który mógł trafić do tego slotu — każdy z [b]natywną ikoną i podpowiedzią[/b] gry. Okno jest tymczasowe i niczego nie zmienia; naciśnij anuluj ponownie, aby je zamknąć.
+[*][b]Wyskakujące okno „wiki" kandydatów[/b] — najedź kursorem na wylosowany (podświetlony na niebiesko) perk i [b]kliknij go prawym przyciskiem myszy[/b], aby otworzyć okno z listą [i]każdego[/i] perka, który mógł trafić do tego slotu — każdy z [b]natywną ikoną i podpowiedzią[/b] gry. Okno jest tymczasowe i niczego nie zmienia; kliknij prawym przyciskiem ponownie, aby je zamknąć.
 [/list]
 
 PerkOracle [b]nie[/b] zmienia generowania perków ani nie dodaje wierszy postępu. Z wyłączoną wymianą (domyślnie) służy wyłącznie do podglądu.
@@ -33,7 +33,7 @@ English, 简体中文 (chiński uproszczony), Français, Deutsch, Italiano, Pols
 [list=1]
 [*][b]Zasubskrybuj[/b] PerkOracle w Warsztacie. (Jeśli używasz TFTV, zainstaluj go również — PerkOracle ładuje się po nim.)
 [*]Uruchom Phoenix Point i [b]włącz PerkOracle[/b] w menedżerze modów w grze.
-[*]Otwórz ekran postępu umiejętności żołnierza, znajdź niebiesko zabarwioną (wylosowaną) komórkę i naciśnij [b]anuluj[/b] (prawy przycisk / Esc).
+[*]Otwórz ekran postępu umiejętności żołnierza, najedź kursorem na wylosowany (podświetlony na niebiesko) perk i [b]kliknij go prawym przyciskiem myszy[/b].
 [/list]
 
 [h1]Zgłaszanie błędów / Wsparcie[/h1]

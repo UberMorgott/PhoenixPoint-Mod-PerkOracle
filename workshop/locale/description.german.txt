@@ -8,7 +8,7 @@
 [h1]Was es macht[/h1]
 [list]
 [*][b]Hebt ausgewürfelte Perks hervor[/b] — im Fähigkeiten-Fortschrittsbildschirm erhalten Zellen der persönlichen Spur, deren Perk zufällig ausgewürfelt wurde, einen deutlichen blauen Farbton, sodass du auf einen Blick erkennst, was aus dem Zufall stammt und was aus der festen Klassenspur.
-[*][b]Kandidaten-„Wiki"-Popup[/b] — drücke über einer ausgewürfelten Zelle [b]Abbrechen[/b] (Rechtsklick oder [b]Esc[/b]), um ein Popup zu öffnen, das [i]jeden[/i] Perk auflistet, der in diesen Slot hätte fallen können — jeweils mit dem [b]nativen Symbol und Tooltip[/b] des Spiels. Das Popup ist temporär und ändert nichts; erneut Abbrechen drücken, um es zu schließen.
+[*][b]Kandidaten-„Wiki"-Popup[/b] — bewege den Mauszeiger über einen zufällig ausgewürfelten (blau hervorgehobenen) Perk und [b]klicke ihn mit der rechten Maustaste an[/b], um ein Popup zu öffnen, das [i]jeden[/i] Perk auflistet, der in diesen Slot hätte fallen können — jeweils mit dem [b]nativen Symbol und Tooltip[/b] des Spiels. Das Popup ist temporär und ändert nichts; klicke erneut mit der rechten Maustaste, um es zu schließen.
 [/list]
 
 PerkOracle ändert [b]nicht[/b] die Perk-Erzeugung und fügt keine Fortschrittszeilen hinzu. Mit deaktiviertem Tauschen (Standard) ist es rein anzeigend.
@@ -33,7 +33,7 @@ English, 简体中文 (Vereinfachtes Chinesisch), Français, Deutsch, Italiano, 
 [list=1]
 [*][b]Abonniere[/b] PerkOracle im Workshop. (Wenn du TFTV nutzt, installiere es ebenfalls — PerkOracle lädt danach.)
 [*]Starte Phoenix Point und [b]aktiviere PerkOracle[/b] im Ingame-Mod-Manager.
-[*]Öffne den Fähigkeiten-Fortschrittsbildschirm eines Soldaten, finde eine blau getönte (ausgewürfelte) Zelle und drücke [b]Abbrechen[/b] (Rechtsklick / Esc).
+[*]Öffne den Fähigkeiten-Fortschrittsbildschirm eines Soldaten, bewege den Mauszeiger über einen zufällig ausgewürfelten (blau hervorgehobenen) Perk und [b]klicke ihn mit der rechten Maustaste an[/b].
 [/list]
 
 [h1]Fehlerberichte / Support[/h1]

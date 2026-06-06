@@ -56,6 +56,11 @@ PUBLISHED_ID_FILE = os.path.join(HERE, "published_id.txt")
 APP_ID = 839770
 TITLE = "PerkOracle"
 
+# Global Workshop tags (NOT per-language). Phoenix Point's valid tags are:
+# Geoscape, Tactical, Difficulty, Gameplay, Bionics, Mutations. Applied once
+# during the english pass of --localize-descriptions (tags are item-global).
+WORKSHOP_TAGS = ["Gameplay", "Tactical"]
+
 # Native libs + steam_appid.txt resolve relative to CWD inside SteamworksPy,
 # so run from this directory.
 os.chdir(HERE)
@@ -228,16 +233,23 @@ def submit_update(steam, published_file_id: int, description: str,
 
 
 def submit_description_for_language(steam, published_file_id: int, lang_code: str,
-                                    description: str, changenote: str) -> int:
+                                    description: str, changenote: str,
+                                    tags: list = None) -> int:
     """Push ONE localized description for ``lang_code`` and return its EResult.
 
     Only sets the per-language description (no title/content/preview/visibility
     touched), so nothing is re-uploaded and the Workshop brand title stays put.
-    Blocks on the SubmitItemUpdateResult_t callback. Returns the int EResult.
+    If ``tags`` is given, also sets the item's (global) Workshop tags on this
+    update -- intended for the english/default pass only, since tags are not
+    per-language. Blocks on the SubmitItemUpdateResult_t callback. Returns the
+    int EResult.
     """
     handle = steam.Workshop.StartItemUpdate(APP_ID, published_file_id)
     steam.Workshop.SetItemUpdateLanguage(handle, lang_code)
     steam.Workshop.SetItemDescription(handle, description)
+    if tags:
+        ok = steam.Workshop.SetItemTags(handle, tags)
+        print(f"[locale] {lang_code:<9}    SetItemTags({tags}) -> {ok}", flush=True)
 
     holder: dict = {}
 
@@ -254,11 +266,13 @@ def submit_description_for_language(steam, published_file_id: int, lang_code: st
     return holder["result"]
 
 
-def localize_descriptions(steam, published_file_id: int, changenote: str) -> dict:
+def localize_descriptions(steam, published_file_id: int, changenote: str,
+                          tags: list = None) -> dict:
     """Iterate LOCALE_DESCRIPTIONS, push each, collect per-language EResult.
 
-    english is pushed first (it is the default/fallback). A failure on one
-    language is recorded and the rest still run. Returns {lang_code: eresult}.
+    english is pushed first (it is the default/fallback). If ``tags`` is given,
+    the (global) Workshop tags are set ONCE on the english pass. A failure on
+    one language is recorded and the rest still run. Returns {lang_code: eresult}.
     """
     results: dict = {}
     for lang_code, filename in LOCALE_DESCRIPTIONS:
@@ -271,9 +285,11 @@ def localize_descriptions(steam, published_file_id: int, changenote: str) -> dic
                 f"{filename} is {nbytes} UTF-8 bytes, exceeds Steam's 8000-byte limit."
             )
         print(f"[locale] {lang_code:<9} <- {filename} ({nbytes} bytes) ...", flush=True)
+        # Tags are item-global; set them only on the first (english) pass.
+        pass_tags = tags if lang_code == "english" else None
         try:
             eresult = submit_description_for_language(
-                steam, published_file_id, lang_code, text, changenote)
+                steam, published_file_id, lang_code, text, changenote, pass_tags)
         except SystemExit as e:
             print(f"[locale] {lang_code:<9} ERROR: {e}")
             results[lang_code] = -1
@@ -356,6 +372,7 @@ def main() -> int:
         print(f"  item        : {args.item}")
         print(f"  locale dir  : {LOCALE_DIR}")
         print(f"  languages   : {', '.join(c for c, _ in LOCALE_DESCRIPTIONS)}")
+        print(f"  tags        : {WORKSHOP_TAGS} (set on english pass)")
         print(f"  changenote  : {args.changenote}")
         print("=" * 70)
 
@@ -367,7 +384,8 @@ def main() -> int:
         if steam.app_id != APP_ID:
             raise SystemExit(f"Bound to wrong appid {steam.app_id}, expected {APP_ID}")
 
-        results = localize_descriptions(steam, args.item, args.changenote)
+        results = localize_descriptions(steam, args.item, args.changenote,
+                                        tags=WORKSHOP_TAGS)
 
         url = f"https://steamcommunity.com/sharedfiles/filedetails/?id={args.item}"
         print("=" * 70)
@@ -377,6 +395,9 @@ def main() -> int:
             r = results.get(lang_code)
             status = "EResult.OK" if r == ERESULT_OK else f"FAILED (EResult={r})"
             print(f"  {lang_code:<9}: {status}")
+        en_ok = results.get("english") == ERESULT_OK
+        print(f"  tags     : {WORKSHOP_TAGS} "
+              f"{'applied on english pass (EResult.OK)' if en_ok else 'NOT confirmed (english pass failed)'}")
         print("=" * 70)
 
         steam.unload()
