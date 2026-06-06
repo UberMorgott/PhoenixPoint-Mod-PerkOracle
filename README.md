@@ -2,7 +2,7 @@
 
 # PerkOracle
 
-> An in-game wiki of rollable perks for Phoenix Point (TFTV) — with optional perk swapping.
+> An in-game wiki of rollable perks for Phoenix Point — standalone, TFTV-compatible — with optional perk swapping.
 
 <!-- screenshot placeholder -->
 
@@ -11,29 +11,38 @@ ability slot, presented as an in-game popup wiki with the game's native ability 
 Optionally, it can let you swap an already-learned perk in that slot for any other perk
 from its pool.
 
-Under [TFTV (Terror From The Void)](https://github.com/Voland163/TFTV) some personal perks
-are randomly rolled per soldier. PerkOracle reads TFTV's own configuration to know exactly
-which perks each slot can produce, so the preview is accurate.
+PerkOracle works standalone with base Phoenix Point and is fully compatible with
+[Terror From The Void (TFTV)](https://github.com/Voland163/TFTV). When TFTV is present,
+PerkOracle reads its per-slot perk data so the preview is exact; without it, the preview
+falls back to the base game's personal-perk pool. It also works alongside class-adding mods
+(e.g. an Officer / new-class mod). PerkOracle does **not** add perks, change perk generation,
+or add ability rows — it only previews (and optionally swaps) what the game already rolls.
+
+> **Steam Workshop:** <https://steamcommunity.com/sharedfiles/filedetails/?id=3739613434>
 
 ## Features
 
 - **Rolled-perk highlight** — on the ability-progression grid, cells whose perk was
   randomly rolled get a distinct background, so rolled perks stand out from fixed / class
   perks at a glance.
-- **Candidate wiki** — hover a rolled cell and press **cancel** (right-click or **Esc**) to
-  open a popup listing *every* perk that could roll into that slot. Candidates use the
-  game's native ability cell and the native framed name/description tooltip on hover. Cancel
-  again to close.
+- **Candidate wiki** — hover the blue / rolled-highlighted perk cell and **right-click** it
+  to open a popup listing *every* perk that could roll into that slot. Candidates use the
+  game's native ability cell and the native framed name/description tooltip on hover.
+  Right-click again to close.
 - **Optional perk swap** — controlled by the `AllowPerkSwap` config toggle (**off by
   default**). When enabled, **left-click** any perk in the wiki to replace the soldier's
   already-learned perk in that slot. Free and reversible. Aimed at players who prefer an
   easier game.
-- **Full localization** — UI strings ship in eight languages.
+- **Full localization** — UI strings ship in eight languages. The in-game mod **name** is
+  localized per language, and the Steam Workshop / store description is localized into all
+  eight languages too.
 
 ## Requirements
 
-- **Phoenix Point**
-- **Terror From The Void (TFTV)** overhaul — `phoenixrising.tftv`
+- **Phoenix Point** (base game) — that's all that's required.
+- **Terror From The Void (TFTV)** — *optional.* Fully compatible: when installed, PerkOracle
+  reads TFTV's per-slot rolled-perk data; when absent, it falls back to the base personal-perk
+  pool. Also compatible with class-adding mods (e.g. Officer / new-class mods).
 
 ## Supported languages
 
@@ -41,13 +50,15 @@ English, 简体中文, Français, Deutsch, Italiano, Polski, Русский, Esp
 
 ## Installation
 
-1. Install and enable the **TFTV** overhaul.
-2. Download the latest release from the
+The easiest route is to **subscribe on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3739613434)**.
+For a manual install:
+
+1. Download the latest release from the
    [Releases page](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases).
-3. Extract the `PerkOracle` folder into your Phoenix Point `Mods\` directory, e.g.
+2. Extract the `PerkOracle` folder into your Phoenix Point `Mods\` directory, e.g.
    `…\Phoenix Point\Mods\PerkOracle\` (the folder must contain `PerkOracle.dll` and
    `meta.json`).
-4. Enable the mod in the in-game mod manager. It loads after TFTV.
+3. Enable the mod in the in-game mod manager. If you run TFTV, let PerkOracle load after it.
 
 ## Configuration
 
@@ -77,15 +88,15 @@ dotnet test
 ## Credits
 
 - Built by **Morgott**.
-- Depends on and targets the **TFTV** overhaul by Voland163 and contributors.
+- Compatible with (but not dependent on) the **TFTV** overhaul by Voland163 and contributors.
 - Phoenix Point © Snapshot Games.
 
 ---
 
 ## Русский
 
-> Внутриигровая вики случайных («роленых») перков для Phoenix Point (TFTV) — с
-> опциональной заменой перков.
+> Внутриигровая вики случайных («роленых») перков для Phoenix Point — автономный мод,
+> совместимый с TFTV — с опциональной заменой перков.
 
 PerkOracle показывает, какие случайные **«персональные»** перки боец может получить в
 каждую ячейку прогрессии, в виде внутриигрового всплывающего вики с нативными подсказками
@@ -96,27 +107,33 @@ PerkOracle показывает, какие случайные **«персон�
 
 - **Подсветка роленых перков** — в сетке прогрессии случайно выпавшие ячейки получают
   отдельный фон, чтобы отличать их от фиксированных/классовых перков.
-- **Вики кандидатов** — наведите курсор на роленую ячейку и нажмите **отмену** (правый клик
-  или **Esc**), чтобы открыть окно со *всеми* перками, которые могли выпасть в этот слот, с
-  нативными подсказками. Повторная отмена закрывает окно.
+- **Вики кандидатов** — наведите курсор на подсвеченную (синюю/роленую) ячейку и нажмите по
+  ней **правую кнопку мыши**, чтобы открыть окно со *всеми* перками, которые могли выпасть в
+  этот слот, с нативными подсказками. Повторный правый клик закрывает окно.
 - **Опциональная замена перков** — управляется настройкой `AllowPerkSwap` (**по умолчанию
   выключено**). Когда включено, левый клик по перку в вики заменяет выученный перк бойца в
   этом слоте. Бесплатно и обратимо. Для тех, кто любит игру попроще.
-- **Полная локализация** — интерфейс на восьми языках.
+- **Полная локализация** — интерфейс на восьми языках; название мода в игре локализовано
+  для каждого языка, описание в Steam Workshop тоже переведено на все восемь языков.
 
 ### Требования
 
-- **Phoenix Point**
-- Оверхаул **Terror From The Void (TFTV)** — `phoenixrising.tftv`
+- **Phoenix Point** (базовая игра) — это всё, что нужно.
+- **Terror From The Void (TFTV)** — *опционально.* Полностью совместим: при установленном
+  TFTV PerkOracle читает его данные о роленых перках по слотам, без него — использует базовый
+  пул персональных перков. Также совместим с модами, добавляющими классы (например, Officer).
 
 ### Установка
 
-1. Установите и включите оверхаул **TFTV**.
-2. Скачайте последний релиз со страницы
+Проще всего **подписаться в [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3739613434)**.
+Для ручной установки:
+
+1. Скачайте последний релиз со страницы
    [Releases](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases).
-3. Распакуйте папку `PerkOracle` в каталог `Mods\` игры Phoenix Point (в папке должны быть
+2. Распакуйте папку `PerkOracle` в каталог `Mods\` игры Phoenix Point (в папке должны быть
    `PerkOracle.dll` и `meta.json`).
-4. Включите мод во внутриигровом менеджере модов. Он загружается после TFTV.
+3. Включите мод во внутриигровом менеджере модов. Если используете TFTV — пусть PerkOracle
+   загружается после него.
 
 ### Настройка
 

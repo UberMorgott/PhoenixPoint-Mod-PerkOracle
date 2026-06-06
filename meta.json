@@ -11,7 +11,7 @@
     { "Key": "Russian", "Value": "Morgott" },
     { "Key": "Spanish", "Value": "Morgott" }
   ],
-  "Version": "1.0.0",
+  "Version": "1.1.0",
   "Name": [
     { "Key": "English", "Value": "PerkOracle" },
     { "Key": "Chinese (Simplified)", "Value": "技能神谕" },
