@@ -1,7 +1,7 @@
 [h1]PerkOracle[/h1]
-[b]Podgląd w grze (tylko do odczytu) tego, jakie losowe „osobiste" perki mogły wypaść żołnierzowi. Dla Phoenix Point, samodzielnie lub z TFTV.[/b]
+[b]Podgląd w grze (tylko do odczytu) tego, jakie losowe „osobiste” perki mogły wypaść żołnierzowi. Dla Phoenix Point, samodzielnie lub z TFTV.[/b]
 
-W Phoenix Point część perków ze ścieżki „osobistej" losuje się dla każdego żołnierza. Ta losowość to własny system gry (vanilla i TFTV), a nie funkcja dodana przez ten mod. PerkOracle jedynie odczytuje te dane i je wyświetla. Nie tworzy, nie dodaje ani nie zmienia żadnych perków.
+W Phoenix Point część perków ze ścieżki „osobistej” losuje się dla każdego żołnierza. Ta losowość to własny system gry (vanilla i TFTV), a nie funkcja dodana przez ten mod. PerkOracle jedynie odczytuje te dane i je wyświetla. Nie tworzy, nie dodaje ani nie zmienia żadnych perków.
 
 Oferuje też opcjonalną wymianę perków, domyślnie wyłączoną, dla graczy, którzy chcą więcej kontroli.
 
@@ -10,13 +10,13 @@ Oferuje też opcjonalną wymianę perków, domyślnie wyłączoną, dla graczy, 
 [h1]Co robi[/h1]
 [list]
 [*][b]Wyróżnia wylosowane perki.[/b] Na ekranie postępu umiejętności komórki ścieżki osobistej, których perk został wylosowany, otrzymują niebieski odcień, dzięki czemu od razu widać, co pochodzi z losowania, a co ze stałej ścieżki klasy.
-[*][b]Wyskakujące okno „wiki" kandydatów.[/b] Najedź kursorem na wylosowany (niebieski) perk i [b]kliknij go prawym przyciskiem myszy[/b], aby otworzyć okno z listą [i]każdego[/i] perka, który mógł trafić do tego slotu, każdy z natywną ikoną i podpowiedzią gry. Okno niczego nie zmienia; kliknij prawym przyciskiem ponownie, aby je zamknąć.
+[*][b]Wyskakujące okno „wiki” kandydatów.[/b] Najedź kursorem na wylosowany (niebieski) perk i [b]kliknij go prawym przyciskiem myszy[/b], aby otworzyć okno z listą [i]każdego[/i] perka, który mógł trafić do tego slotu, każdy z natywną ikoną i podpowiedzią gry. Okno niczego nie zmienia; kliknij prawym przyciskiem ponownie, aby je zamknąć.
 [/list]
 
 [h1]Opcjonalnie: Wymiana perków (domyślnie wyłączona)[/h1]
 [list]
 [*][b]AllowPerkSwap[/b] od razu po instalacji jest [b]WYŁĄCZONA[/b], więc PerkOracle pozostaje wyłącznie w trybie odczytu. Włącz ją w Ustawieniach moda, a [b]lewy przycisk myszy[/b] na perku w wiki zastąpi już wyuczony perk w tym slocie innym istniejącym perkiem. Zmienia jedynie, który istniejący perk zajmuje już odblokowany slot.
-[*][b]Opcjonalna blokada badania.[/b] Możesz wymagać jednorazowego badania „Przygotowanie operatorów", zanim żołnierzy będzie można przeszkalać. Włącz ją lub wyłącz w ustawieniach moda.
+[*][b]Opcjonalna blokada badania.[/b] Możesz wymagać jednorazowego badania „Przekwalifikowanie operatorów”, zanim będzie można przeszkalać żołnierzy. Włącz lub wyłącz tę opcję w ustawieniach moda.
 [/list]
 
 [h1]Zgodność[/h1]

@@ -16,7 +16,7 @@ Il propose aussi un échange de perks optionnel, désactivé par défaut, pour l
 [h1]Optionnel : Échange de perks (désactivé par défaut)[/h1]
 [list]
 [*][b]AllowPerkSwap[/b] est [b]DÉSACTIVÉ[/b] de base, donc PerkOracle reste strictement en lecture seule. Activez-le dans les Paramètres du mod, et un [b]clic gauche[/b] sur un perk dans le wiki remplace un perk déjà appris dans cet emplacement par un autre perk existant. Cela change seulement quel perk existant occupe un emplacement que vous avez déjà débloqué.
-[*][b]Verrou de recherche optionnel.[/b] Vous pouvez exiger une recherche unique « Reconditionnement des opératifs » avant que les soldats puissent être reconvertis. Activez-le ou désactivez-le dans les paramètres du mod.
+[*][b]Verrou de recherche optionnel.[/b] Vous pouvez exiger une recherche unique « Reconditionnement des opérateurs » avant que les soldats puissent être réentraînés. Activez-le ou désactivez-le dans les paramètres du mod.
 [/list]
 
 [h1]Compatibilité[/h1]

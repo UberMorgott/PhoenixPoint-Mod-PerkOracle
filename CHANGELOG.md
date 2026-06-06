@@ -4,6 +4,16 @@ All notable changes to PerkOracle are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-06-06
+
+### Changed
+- Improved German, French, Italian, Polish, and Simplified Chinese translations
+  (in-game text and store descriptions).
+
+### Fixed
+- Polish grammar and German/Polish typographic quotes; unified the localized
+  research name across languages.
+
 ## [1.2.0] - 2026-06-06
 
 ### Added
@@ -42,6 +52,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: rolled-perk highlight, in-game candidate wiki with native ability
   tooltips, optional free perk swap, and 8-language localization.
 
+[1.2.1]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.2.1
 [1.2.0]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.2.0
 [1.1.0]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.1.0
 [1.0.0]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.0.0
