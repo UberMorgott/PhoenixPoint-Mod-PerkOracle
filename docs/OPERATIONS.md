@@ -36,6 +36,25 @@ polish, schinese** (Steam shows each viewer their client-language description;
 
 ---
 
+## ⚠️ Publish: two DIFFERENT operations — do not confuse them
+
+> **`--localize-descriptions` does NOT publish the mod build.** It only edits the
+> store description text (+ tags). To ship a **new version** that subscribers
+> download, you MUST run **`--update`** (it uploads packed `workshop/Dist/`). If
+> subscribers don't see the new version, you ran descriptions-only — rerun
+> `--update`.
+
+| Goal | Command | What it uploads | Verify |
+|---|---|---|---|
+| **Publish a NEW VERSION (build/content)** | `pwsh -File workshop/pack-dist.ps1` then `python workshop/steamugc/publish_ugc.py --update --item 3739613434 --changenote "vX.Y.Z - ..."` | Packed `workshop/Dist/` (PerkOracle.dll + meta.json + Assets) + title/description/preview/visibility/tags | `[update] OK -> upload committed` and `SubmitItemUpdate ... EResult.OK`; Workshop item **"Last updated"** timestamp changes |
+| **Update DESCRIPTION / tags ONLY (no build)** | `python workshop/steamugc/publish_ugc.py --localize-descriptions --item 3739613434 --changenote "..."` | Only `workshop/locale/description.<lang>.txt` per language (+ tags on english pass) — **NOT** the mod build/content/preview/title | Per-language `EResult.OK` table; **"Last updated"** does NOT change (no content upload) |
+
+Before a NEW VERSION publish, bump the version in **`meta.json`** (repo root —
+`pack-dist.ps1` copies this into `Dist/`) and the `PerkOracle.csproj` `<Version>`
+so the changenote and `meta.json` agree on `vX.Y.Z`.
+
+---
+
 ## Quick command cheat-sheet
 
 ```powershell
@@ -127,6 +146,11 @@ Trigger phrases: "обнови мод", "update the mod", "publish a new build".
 ## Task: Edit / localize the store description
 
 Trigger phrases: "поменяй описание", "update the description", "localize".
+
+> **WARNING — this is DESCRIPTION-ONLY, not a build publish.**
+> `--localize-descriptions` edits only `workshop/locale/description.<lang>.txt`
+> (+ tags); it does **NOT** upload the mod build/content. To ship a new mod
+> version use **"Update the mod"** below (`--update`).
 
 1. Edit the relevant file(s) in `workshop/locale/`:
    `description.english.txt`, `.russian.txt`, `.german.txt`, `.french.txt`,
