@@ -11,6 +11,7 @@ Oferuje też opcjonalną wymianę perków, domyślnie wyłączoną, dla graczy, 
 [list]
 [*][b]Wyróżnia wylosowane perki.[/b] Na ekranie postępu umiejętności komórki ścieżki osobistej, których perk został wylosowany, otrzymują niebieski odcień, dzięki czemu od razu widać, co pochodzi z losowania, a co ze stałej ścieżki klasy.
 [*][b]Wyskakujące okno „wiki” kandydatów.[/b] Najedź kursorem na wylosowany (niebieski) perk i [b]kliknij go prawym przyciskiem myszy[/b], aby otworzyć okno z listą [i]każdego[/i] perka, który mógł trafić do tego slotu, każdy z natywną ikoną i podpowiedzią gry. Okno niczego nie zmienia; kliknij prawym przyciskiem ponownie, aby je zamknąć.
+[*][b]Podgląd podklas.[/b] Na ekranie wyboru podklasy widzisz [i]wszystkie[/i] podklasy od razu, w tym niezbadane (pokazane na szaro), z podpowiedzią dla każdego perka. Przed potwierdzeniem okno dialogowe pokazuje perki wybranej podklasy z natywnymi ikonami i podpowiedziami gry.
 [/list]
 
 [h1]Opcjonalnie: Wymiana perków (domyślnie wyłączona)[/h1]

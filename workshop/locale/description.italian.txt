@@ -11,6 +11,7 @@ Include anche uno scambio di perk opzionale, disattivato di default, per chi vuo
 [list]
 [*][b]Evidenzia i perk casuali.[/b] Nella schermata di progressione delle abilità, le celle del ramo personale il cui perk è stato estratto casualmente ricevono una tinta blu, così capisci a colpo d'occhio cosa proviene dall'estrazione casuale e cosa dal ramo di classe fisso.
 [*][b]Finestra «wiki» dei candidati.[/b] Passa il cursore su un perk estratto casualmente (in blu) e [b]fai clic con il tasto destro[/b] su di esso per aprire una finestra che elenca [i]ogni[/i] perk che avrebbe potuto cadere in quello slot, ciascuno con l'icona e il tooltip nativi del gioco. La finestra non cambia nulla; fai di nuovo clic con il tasto destro per chiuderla.
+[*][b]Anteprima delle sottoclassi.[/b] Nella schermata di selezione della sottoclasse vedi [i]tutte[/i] le sottoclassi a colpo d'occhio, comprese quelle non ricercate (mostrate in grigio), con un tooltip per ogni perk. Prima di confermare, una finestra di conferma mostra i perk della sottoclasse scelta con le icone e i tooltip nativi del gioco.
 [/list]
 
 [h1]Opzionale: Scambio dei perk (disattivato di default)[/h1]

@@ -11,6 +11,7 @@ Il propose aussi un échange de perks optionnel, désactivé par défaut, pour l
 [list]
 [*][b]Met en évidence les perks tirés au sort.[/b] Sur l'écran de progression des compétences, les cases de la voie personnelle dont le perk a été tiré au sort reçoivent une teinte bleue, pour distinguer d'un coup d'œil ce qui vient du tirage aléatoire et ce qui vient de la voie de classe fixe.
 [*][b]Fenêtre « wiki » des candidats.[/b] Survolez un perk tiré au sort (en bleu) et [b]faites un clic droit[/b] dessus pour ouvrir une fenêtre listant [i]chaque[/i] perk qui aurait pu tomber dans cet emplacement, chacun avec l'icône et l'infobulle natives du jeu. La fenêtre ne change rien ; faites un nouveau clic droit pour la fermer.
+[*][b]Aperçu des sous-classes.[/b] Sur l'écran de sélection de sous-classe, voyez [i]toutes[/i] les sous-classes d'un coup d'œil, y compris celles non recherchées (affichées en grisé), avec une infobulle par perk. Avant de valider, une fenêtre de confirmation affiche les perks de la sous-classe choisie avec les icônes et infobulles natives du jeu.
 [/list]
 
 [h1]Optionnel : Échange de perks (désactivé par défaut)[/h1]

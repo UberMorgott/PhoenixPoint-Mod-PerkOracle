@@ -11,6 +11,7 @@ Es gibt außerdem einen optionalen Perk-Tausch, standardmäßig aus, für Spiele
 [list]
 [*][b]Hebt ausgewürfelte Perks hervor.[/b] Im Fähigkeiten-Fortschrittsbildschirm erhalten Zellen der persönlichen Spur, deren Perk zufällig ausgewürfelt wurde, einen blauen Farbton, sodass du auf einen Blick erkennst, was aus dem Zufall stammt und was aus der festen Klassenspur.
 [*][b]Kandidaten-„Wiki“-Popup.[/b] Bewege den Mauszeiger über einen ausgewürfelten (blauen) Perk und [b]klicke ihn mit der rechten Maustaste an[/b], um ein Popup zu öffnen, das [i]jeden[/i] Perk auflistet, der in diesen Slot hätte fallen können, jeweils mit dem eigenen Symbol und Tooltip des Spiels. Das Popup ändert nichts; klicke erneut mit der rechten Maustaste, um es zu schließen.
+[*][b]Unterklassen-Vorschau.[/b] Im Unterklassen-Auswahlbildschirm siehst du [i]alle[/i] Unterklassen auf einen Blick, auch unerforschte (ausgegraut dargestellt), mit Tooltips pro Perk. Bevor du dich festlegst, zeigt ein Bestätigungsdialog die Perks der gewählten Unterklasse mit den eigenen Symbolen und Tooltips des Spiels.
 [/list]
 
 [h1]Optional: Perk-Tausch (standardmäßig aus)[/h1]

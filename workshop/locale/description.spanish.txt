@@ -11,6 +11,7 @@ También incluye un intercambio de perks opcional, desactivado por defecto, para
 [list]
 [*][b]Resalta los perks aleatorios.[/b] En la pantalla de progresión de habilidades, las celdas de la vía personal cuyo perk se obtuvo al azar reciben un tinte azul, para que veas de un vistazo qué proviene del azar y qué de la vía de clase fija.
 [*][b]Ventana «wiki» de candidatos.[/b] Pasa el cursor sobre un perk obtenido al azar (en azul) y haz [b]clic derecho[/b] sobre él para abrir una ventana que enumera [i]todos[/i] los perks que podrían haber caído en esa ranura, cada uno con el icono y la información emergente nativos del juego. La ventana no cambia nada; haz clic derecho de nuevo para cerrarla.
+[*][b]Vista previa de subclases.[/b] En la pantalla de selección de subclase, ve [i]todas[/i] las subclases de un vistazo, incluidas las no investigadas (mostradas en gris), con información emergente por perk. Antes de confirmar, un diálogo muestra los perks de la subclase elegida con los iconos e información emergente nativos del juego.
 [/list]
 
 [h1]Opcional: Intercambio de perks (desactivado por defecto)[/h1]

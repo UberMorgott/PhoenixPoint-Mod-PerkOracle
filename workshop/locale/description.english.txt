@@ -11,6 +11,7 @@ There is also an optional perk swap, off by default, for players who want more c
 [list]
 [*][b]Highlights rolled perks.[/b] On the ability-progression screen, personal-track cells whose perk was randomly rolled get a blue tint, so you can tell at a glance which ones came from the random roll and which from the fixed class track.
 [*][b]Candidate "wiki" popup.[/b] Hover a rolled (blue) perk and [b]right-click[/b] it to open a popup listing [i]every[/i] perk that could have landed in that slot, each with the game's own icon and tooltip. The popup changes nothing; right-click again to close it.
+[*][b]Subclass preview.[/b] On the subclass selection screen, see [i]all[/i] subclasses at a glance, including unresearched ones (shown greyed out), with per-perk tooltips. Before you commit, a confirmation dialog previews the chosen subclass's perks with the game's native icons and tooltips.
 [/list]
 
 [h1]Optional: Perk Swap (off by default)[/h1]
