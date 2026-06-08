@@ -23,5 +23,7 @@
     <Compile Include="..\..\src\PerkPoolResolver.cs" Link="PerkPoolResolver.cs" />
     <!-- PerkSwapDecision is the pure allow/deny gate for perk swaps (no Unity/TFTV types). -->
     <Compile Include="..\..\src\PerkSwapDecision.cs" Link="PerkSwapDecision.cs" />
+    <!-- ClassPerkResolver is the pure class-track ordering/dedup core (no Unity/TFTV types). -->
+    <Compile Include="..\..\src\ClassPerkResolver.cs" Link="ClassPerkResolver.cs" />
   </ItemGroup>
 </Project>
