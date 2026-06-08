@@ -64,10 +64,13 @@ namespace Morgott.PerkOracle
 
                 SpecializationDef spec = element.SpecializationDef;
 
-                // (1) Open the view-only class-perk banner for this subclass (best-effort).
-                OpenPreview(__instance, spec);
+                // The class-perk row is embedded INTO the message box itself (see
+                // SubclassConfirmPopupDecorator) rather than shown as a separate floating banner, so the
+                // perks and the question read as one cohesive dialog. We pass the resolved perk defs as the
+                // prompt's UserData marker; the decorator's Show postfix injects the icon row when it sees it.
+                List<TacticalAbilityDef> perks = ClassPerkProvider.GetClassPerks(spec);
+                var marker = new SubclassConfirmPromptData(perks);
 
-                // (2) Native Yes/No confirmation, name interpolated into the localized question.
                 string className = ResolveClassName(spec);
                 string question = string.Format(Loc.Get(ConfirmTerm, ConfirmFallback), className);
                 box.ShowSimplePrompt(question, MessageBoxIcon.Question, MessageBoxButtons.YesNo,
@@ -81,17 +84,15 @@ namespace Morgott.PerkOracle
                                 _confirmedElement = element;
                                 __instance.SelectSpecializationElement(element);
                             }
-                            else
-                            {
-                                // NO / cancel: drop the preview, stay in the picker, select nothing.
-                                PerkWikiPanel.Close();
-                            }
+                            // NO / cancel: nothing to do — the embedded row dies with the message box,
+                            // the picker stays open, and no subclass is selected.
                         }
                         catch (Exception ex)
                         {
                             Debug.Log("[PerkOracle] SelectSpecialization confirm callback failed: " + ex.Message);
                         }
-                    });
+                    },
+                    sender: null, userData: marker);
 
                 return false; // suppress the immediate native selection; the callback decides.
             }
@@ -100,30 +101,6 @@ namespace Morgott.PerkOracle
                 Debug.Log("[PerkOracle] SelectSpecializationElement prefix failed: " + ex.Message);
                 _confirmedElement = null;
                 return true; // never brick the picker -> let native selection proceed
-            }
-        }
-
-        /// <summary>Open the read-only CLASS PERKS banner for <paramref name="spec"/>. Best-effort.</summary>
-        private static void OpenPreview(SelectSpecializationDataBind instance, SpecializationDef spec)
-        {
-            try
-            {
-                List<TacticalAbilityDef> defs = ClassPerkProvider.GetClassPerks(spec);
-                if (defs == null || defs.Count == 0)
-                {
-                    return;
-                }
-                Canvas canvas = ((Component)instance).GetComponentInParent<Canvas>();
-                if ((UnityEngine.Object)(object)canvas == (UnityEngine.Object)null)
-                {
-                    return;
-                }
-                PerkWikiPanel.Open(canvas, defs, null,
-                    SubclassWikiClickHandler.ClassTitleTerm, SubclassWikiClickHandler.ClassTitleFallback);
-            }
-            catch (Exception ex)
-            {
-                Debug.Log("[PerkOracle] SelectSpecialization preview open failed: " + ex.Message);
             }
         }
 
