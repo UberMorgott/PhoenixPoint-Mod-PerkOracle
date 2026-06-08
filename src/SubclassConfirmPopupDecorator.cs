@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Base.Core;
 using Base.UI.MessageBox.PromptControllers;
 using HarmonyLib;
+using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Geoscape.View.ViewControllers.Roster;
 using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
@@ -55,6 +57,16 @@ namespace Morgott.PerkOracle
                 if (marker == null || marker.Perks == null || marker.Perks.Count == 0)
                 {
                     return; // not our prompt (or nothing to show) -> leave the native box untouched
+                }
+
+                // CONTEXT GUARD (defense in depth): the message box is a DontDestroyOnLoad singleton shared
+                // with the main menu. Our marker can only be set from the geoscape dual-class flow, but never
+                // decorate unless a geoscape level is actually active — so nothing of ours can render in the
+                // menu's reuse of this box.
+                if ((UnityEngine.Object)(object)(GameUtl.CurrentLevel()?.GetComponent<GeoLevelController>())
+                    == (UnityEngine.Object)null)
+                {
+                    return;
                 }
 
                 SnapshotTextHost host = ResolveTextHost(__instance);
@@ -277,15 +289,34 @@ namespace Morgott.PerkOracle
         }
     }
 
-    /// <summary>Destroys the popup's tooltip clone when the embedded perk row is torn down.</summary>
+    /// <summary>
+    /// Owns the lifecycle of the injected perk row + its tooltip clone. CRITICAL: the message box ('Dialog'
+    /// under the DontDestroyOnLoad Game / SystemMessageCanvas) is a PERSISTENT singleton reused for prompts
+    /// in EVERY scene incl. the main menu (GameUtl.GetMessageBox -> Game which is DontDestroyOnLoad). On
+    /// close the box only SetActive(false)s — so without this, our row would survive as a child of the
+    /// persistent Dialog and reappear (icons + GraphicRaycaster) on the next menu prompt. We therefore
+    /// DESTROY the whole row (and its tooltip) the moment the dialog hides; it is rebuilt fresh next time.
+    /// </summary>
     internal sealed class ConfirmRowCleanup : MonoBehaviour
     {
         public GameObject TooltipGo;
+        private bool _destroying;
 
-        private void OnDisable() { Cleanup(); }
-        private void OnDestroy() { Cleanup(); }
+        // Dialog closed (SetActive(false)) -> destroy the row so nothing leaks onto the persistent box.
+        private void OnDisable()
+        {
+            DestroyTooltip();
+            if (!_destroying)
+            {
+                _destroying = true;
+                try { UnityEngine.Object.Destroy(((Component)this).gameObject); }
+                catch (Exception ex) { PerkOracleLog.Debug("[PerkOracle] ConfirmRowCleanup destroy failed: " + ex.Message); }
+            }
+        }
 
-        private void Cleanup()
+        private void OnDestroy() { DestroyTooltip(); }
+
+        private void DestroyTooltip()
         {
             try
             {
