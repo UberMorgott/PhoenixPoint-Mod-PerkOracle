@@ -21,6 +21,9 @@ namespace Morgott.PerkOracle
     [HarmonyPatch(typeof(SelectSpecializationDataBind), "ModalShowHandler")]
     internal static class SelectSpecializationDataBindPatch
     {
+        /// <summary>Name stamped on every greyed clone we inject, so we can find + dedup them.</summary>
+        private const string GreyedCloneName = "PerkOracleGreyedSubclass";
+
         private static void Postfix(SelectSpecializationDataBind __instance, Transform ___DualClassButtonContainer)
         {
             try
@@ -29,6 +32,11 @@ namespace Morgott.PerkOracle
                 {
                     return;
                 }
+
+                // The modal is REUSED across level-ups (_shown resets on hide) and this container is
+                // persistent, so clones from a prior show survive. Destroy them NOW (DestroyImmediate so
+                // the scan below cannot re-pick stale clones this same frame) before injecting fresh ones.
+                DestroyStaleClones(___DualClassButtonContainer);
 
                 SpecializationOptionElementController[] elements =
                     ((Component)___DualClassButtonContainer)
@@ -41,6 +49,12 @@ namespace Morgott.PerkOracle
                 {
                     if ((UnityEngine.Object)(object)el == (UnityEngine.Object)null
                         || !((Component)el).gameObject.activeSelf)
+                    {
+                        continue;
+                    }
+                    // Belt-and-suspenders: never treat one of our own clones as a native shown entry
+                    // (covers any clone that escaped DestroyImmediate, e.g. a Destroy left pending).
+                    if (((Component)el).gameObject.name == GreyedCloneName)
                     {
                         continue;
                     }
@@ -72,6 +86,23 @@ namespace Morgott.PerkOracle
             }
         }
 
+        /// <summary>
+        /// Destroy any greyed clones we injected on a previous show. Uses DestroyImmediate so the
+        /// caller's same-frame component scan cannot re-pick them. Iterate a snapshot of child names
+        /// (DestroyImmediate mutates the child list).
+        /// </summary>
+        private static void DestroyStaleClones(Transform container)
+        {
+            for (int i = container.childCount - 1; i >= 0; i--)
+            {
+                Transform child = container.GetChild(i);
+                if (((Component)child).gameObject.name == GreyedCloneName)
+                {
+                    UnityEngine.Object.DestroyImmediate(((Component)child).gameObject);
+                }
+            }
+        }
+
         /// <summary>Attach (or refresh) the right-click preview handler with the button's spec.</summary>
         private static void AttachHandler(GameObject go, SpecializationDef spec)
         {
@@ -91,17 +122,17 @@ namespace Morgott.PerkOracle
         private static void InjectGreyedEntry(SpecializationOptionElementController template,
             Transform container, SpecializationDef spec)
         {
+            if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null
+                || (UnityEngine.Object)(object)spec.GetSpecProficiency() == (UnityEngine.Object)null)
+            {
+                return; // InitSpecialization dereferences the proficiency view element
+            }
+
+            GameObject cloneGo = UnityEngine.Object.Instantiate(
+                ((Component)template).gameObject, container, false);
+            cloneGo.name = GreyedCloneName;
             try
             {
-                if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null
-                    || (UnityEngine.Object)(object)spec.GetSpecProficiency() == (UnityEngine.Object)null)
-                {
-                    return; // InitSpecialization dereferences the proficiency view element
-                }
-
-                GameObject cloneGo = UnityEngine.Object.Instantiate(
-                    ((Component)template).gameObject, container, false);
-                cloneGo.name = "PerkOracleGreyedSubclass";
                 cloneGo.SetActive(true);
 
                 var cloneEl = cloneGo.GetComponent<SpecializationOptionElementController>();
@@ -135,6 +166,12 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
+                // Destroy the half-built clone so no orphan is left parented in the container, then
+                // continue with the next omitted subclass (outer postfix catch still guards the screen).
+                if ((UnityEngine.Object)(object)cloneGo != (UnityEngine.Object)null)
+                {
+                    UnityEngine.Object.DestroyImmediate(cloneGo);
+                }
                 Debug.Log("[PerkOracle] InjectGreyedEntry failed for "
                           + ((UnityEngine.Object)(object)spec != (UnityEngine.Object)null
                              ? ((UnityEngine.Object)spec).name : "<null>")
