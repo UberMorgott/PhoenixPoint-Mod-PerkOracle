@@ -121,6 +121,17 @@ namespace Morgott.PerkOracle
                 rowLe.minHeight = CellSize + 2f * RowGap;
                 rowLe.preferredHeight = CellSize + 2f * RowGap;
 
+                // Z-ORDER + RAYCAST: as sibling-0 of the Dialog the row would render BEHIND the dialog's
+                // background/scrim (icons look dimmed) and stop receiving pointer events (no tooltip). Give
+                // the row its OWN sorting context ABOVE the dialog scrim but BELOW the tooltip, plus its own
+                // GraphicRaycaster so the icons are hit again. Final chain: dialog bg (130) < icons (180) <
+                // tooltip (230). The row keeps its layout position (sibling-0, top), only its draw/raycast
+                // context changes — the Dialog VLG + ContentSizeFitter still place + grow it normally.
+                var rowCanvas = rowGo.AddComponent<Canvas>();
+                rowCanvas.overrideSorting = true;
+                rowCanvas.sortingOrder = dialogSortingOrder + 50;
+                rowGo.AddComponent<GraphicRaycaster>();
+
                 foreach (TacticalAbilityDef def in marker.Perks)
                 {
                     GameObject cell = WikiIconFactory.Make(rowGo.transform, def, tooltip, canvasRect, rootCanvas, null);
