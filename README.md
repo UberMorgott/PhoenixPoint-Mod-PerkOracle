@@ -27,6 +27,19 @@ PerkOracle works standalone with the base game, is compatible with [Terror From 
 - **Optional research gate.** A one-time **"Operative Reconditioning"** geoscape research can be required before retraining is allowed. It ships with its own custom illustration and fully localized in-universe text. Toggle it in settings (`RequirePerkSwapResearch`).
 - **Eight languages.** The UI, the in-game mod name, and the Steam Workshop description are all localized.
 
+## Roadmap
+
+Done:
+
+- [x] Rolled-perk highlight and candidate wiki, with native icons and tooltips, on the ability-progression screen
+- [x] Perk Swap (research-gated)
+- [x] Subclass selection screen: highlight and preview of **all** subclasses, including unresearched ones (shown greyed out), with per-perk tooltips; a confirmation dialog that previews the subclass's perks (icons + native tooltips) before you commit to it
+
+Planned:
+
+- [ ] Recruiting on the global map: a full read-only preview of a recruit before you hire them — 3D model, stats, perks, and equipment
+- [ ] Unique mercenaries: their full unique description and signature gimmick, plus a preview of their perks, model, and equipment
+
 ## Requirements
 
 - **Phoenix Point** (base game) is all you need.
@@ -107,6 +120,19 @@ PerkOracle работает автономно с базовой игрой, с�
 - **Опциональная замена перков.** По умолчанию выключена (`AllowPerkSwap`). Когда включена, левый клик по перку в вики заменяет уже выученный перк бойца в этом слоте на другой существующий перк. Новых перков не создаёт. Для тех, кто любит игру попроще.
 - **Опциональное гейтирование исследованием.** Можно потребовать одноразовое исследование на геоскейпе **«Operative Reconditioning»** до переобучения. Оно идёт со своей кастомной иллюстрацией и полностью локализованным внутриигровым текстом. Включается в настройках (`RequirePerkSwapResearch`).
 - **Восемь языков.** Локализованы интерфейс, название мода в игре и описание в Steam Workshop.
+
+### Дорожная карта
+
+Готово:
+
+- [x] Подсветка роленых перков и вики кандидатов с нативными иконками и подсказками на экране прогрессии навыков
+- [x] Замена перков (с гейтом по исследованию)
+- [x] Экран выбора подкласса: подсветка и предпросмотр **всех** подклассов, включая неисследованные (показаны затенёнными), с подсказками по каждому перку; диалог подтверждения, который показывает перки подкласса (иконки + нативные подсказки) до того, как вы его возьмёте
+
+В планах:
+
+- [ ] Найм на глобальной карте: полный предпросмотр рекрута до найма, только для чтения — 3D-модель, характеристики, перки и снаряжение
+- [ ] Уникальные наёмники: их полное уникальное описание и фирменная фишка, а также предпросмотр перков, модели и снаряжения
 
 ### Требования
 
