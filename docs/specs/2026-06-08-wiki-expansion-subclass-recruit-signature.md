@@ -1,20 +1,24 @@
-# PerkOracle — Wiki expansion: subclass preview, recruit full-page preview & merc gimmick in biography
+# PerkOracle — Wiki expansion: subclass preview, recruit full-page preview & merc gimmick in merc-shop description
 
-Date: 2026-06-08 · Status: **road map — key design decisions resolved; Phase 1 spike next** (not yet scheduled) · Mod: PerkOracle (standalone, ns `Morgott.PerkOracle`, Dependencies `[]`)
+Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 investigation spike COMPLETE; implementation plans next** (not yet scheduled) · Mod: PerkOracle (standalone, ns `Morgott.PerkOracle`, Dependencies `[]`)
 
-> Road map for future updates, all shipping inside the **one** PerkOracle mod. Grounds three new surfaces in the mod's existing architecture, built strictly from **native game components, surgically modified** (clone/Harmony-patch native elements — no bespoke UI). API anchors taken from the current codebase are marked **[confirmed]**; anchors still to be located in the game/TFTV decompile before implementation are marked **[verify]**. Nothing here is locked — a starting point for the author to review.
+> Road map for future updates, all shipping inside the **one** PerkOracle mod. Grounds three new surfaces in the mod's existing architecture, built strictly from **native game components, surgically modified** (clone/Harmony-patch native elements — no bespoke UI). API anchors taken from the current codebase are marked **[confirmed]**; anchors located during the Phase-1 investigation spike (against the game/TFTV decompile + reference mods) are marked **[verified — spike]** with the concrete type/path/symbol grounding. The Phase-1 spike is **complete** — all `[verify]` anchors are now resolved; implementation plans/specs per remaining feature come next.
 
 ## Process / resources
 
 - **All work is delegated to sub-agents.** Investigation, decompile research, and implementation are performed by dispatched sub-agents returning compressed bullet reports; the author/LEAD stays out of the code to save context.
 - **Primary source for [verify] anchors = the workspace's own assets.** The workspace contains a **fully decompiled game code tree** plus a couple of good reference mods — use these (decompile + mod patterns) as the primary source for resolving every `[verify]` anchor below. Prefer real source over guessing.
+- **Concrete resource paths (used by the Phase-1 spike).**
+  - Decompiled game: `E:\DEV\PhoenixPoint\decompiled\AssemblyCSharp\Assembly-CSharp\src\` (namespaces = folders).
+  - Decompiled TFTV/Officer: `decompiled\TFTV\`, `decompiled\Officer\`.
+  - **REAL mod source (prefer over decompiled):** `refs\TFTV-src\TFTV\` — TFTV files are **FLAT** here (e.g. `MainSpecModification.cs`, `PersonalSpecModification.cs`, `TFTVMarketplace\TFTVMercenaries.cs`, `TFTVMarketplace\TFTVMarketPlaceUI.cs`, `TFTVMarketplace\Various.cs`); `refs\Officer-src\Officer\`.
 
 ## Goal
 
 - Extend the existing read-only perk wiki beyond the ability-progression screen onto three more surfaces, turning PerkOracle into a broader in-game "soldier wiki":
   - **Subclass preview (A)** — on the subclass-selection screen (when leveling a soldier), right-click any subclass to see its guaranteed perks; rolled cells stay highlighted with the existing candidate drill-down. Unresearched classes the game omits are shown **greyed** and stay clickable for preview.
   - **Recruit preview (B)** — on hiring/recruitment surfaces (haven recruits, base personnel), click a candidate soldier to open the **full character page** like the squad-management view, rendered **read-only** by stripping the mutation UI: only the 3D model, the progression panel, and the stat panels remain (no inventory/equipment/customization controls). The existing perk highlight + candidate wiki ride along on its progression screen.
-  - **Merc gimmick in bio (C)** — for unique mercenaries in the merc shop, append their bespoke gimmick to the soldier's existing **text biography** so the hook reads inline where the player already looks (no new UI).
+  - **Merc gimmick in description (C)** — for unique mercenaries in the merc shop, append their bespoke gimmick to the merc's existing **merc-shop description text** so the hook reads inline where the player already looks (no new UI). *(There is no vanilla soldier-biography prose surface; the merc-shop item description is the seam.)*
 - Keep the mod's identity intact: **read-only, additive, fail-safe, TFTV-optional, class-mod-compatible**. No new perks created, no game balance changed.
 
 ## Design principles (carried over from the current mod)
@@ -58,11 +62,13 @@ Date: 2026-06-08 · Status: **road map — key design decisions resolved; Phase 
   - The rolled-cell highlight + candidate banner come for free from the existing patches wherever the screen renders progression cells.
 - **Panel title term.** New I2 term, e.g. `PERKORACLE_WIKI_TITLE_CLASS` ("CLASS PERKS"), mirroring `PERKORACLE_WIKI_TITLE`.
 
-### Grounding needed before implementation (**[verify]**)
+### Resolved anchors (**[verified — spike]**)
 
-- Specialization/class def type and the accessor for its **class ability track** (the per-level fixed abilities). The current code only reads the **Personal** track (`AbilityTrack.GetAbilityLevel`, `CharacterProgressionData.PersonalTrackTags`) — the class-track equivalent is not yet touched in this repo.
-- The **subclass-selection UI controller** name + the per-subclass element/seam to (a) attach the right-click affordance and (b) clone for the greyed entries (vanilla and TFTV; TFTV's `PRMBetterClasses` reworks the class system, so the existing `TftvConfigBridge` reflection pattern is the model to follow).
-- How to enumerate the **full** class/subclass set and tell which ones the screen omitted (to know which to inject as greyed).
+- **Class-def type + class-track accessor.** `SpecializationDef.AbilityTrack` (an `AbilityTrackDef`); ordered class perks via `AbilityTrackDef.AbilitiesByLevel[]` (each `AbilityTrackSlot.Ability` is a `TacticalAbilityDef`); convenience helper `SpecializationDef.GetAbilitiesTillLevel(int)`. @ `PhoenixPoint.Common.Entities\SpecializationDef.cs`, `PhoenixPoint.Common.Entities.Characters\AbilityTrackDef.cs`. **[conf:H]** vanilla✓ / TFTV✓ — TFTV `MainSpecModification.GenerateMainSpec` rewrites the SAME `AbilityTrackDef.AbilitiesByLevel` in place, so the accessor is identical. (Current code only reads the **Personal** track via `AbilityTrack.GetAbilityLevel` / `CharacterProgressionData.PersonalTrackTags`; the class-track accessor above is the new read.)
+- **Subclass-selection UI.** Modal `ModalType.DualClassPicker`; controller `SelectSpecializationDataBind` (populate seam `ModalShowHandler`); per-subclass element `SpecializationOptionElementController` (carries `.SpecializationDef`, fields `ClassIcon` / `ClassTitleLabel` / `ClassDescriptionLabel`); opened from `UIStateEditSoldier.OnSelectSecondaryClass`. The right-click hook + greyed-clone attach to `SpecializationOptionElementController`. @ `PhoenixPoint.Geoscape.View.ViewControllers.Modal\SelectSpecializationDataBind.cs`, `PhoenixPoint.Geoscape.View.ViewControllers\SpecializationOptionElementController.cs`, `...ViewStates\UIStateEditSoldier.cs:605`. **[conf:H]**
+- **TFTV coverage CONFIRMED:** TFTV does **not** replace/patch the picker modal or its controllers — Feature A targets the **vanilla** types unchanged. The only TFTV touch is a transpiler on `UIStateEditSoldier.OnSelectSecondaryClass` (`refs\TFTV-src\TFTV\TFTVMarketplace\Various.cs:214`, helper `RemoveTech` :237/:250) that **trims** the input `List<SpecializationDef>` (removes Technician for the Slug-class). **Caveat:** Feature A clones whatever the modal actually displays, so it sees the **post-filter** set — do **not** assume raw `AvailableCharacterSpecializations` equals what's shown.
+- **Full set vs omitted (greyed).** Full = `DefRepository.GetAllDefs<SpecializationDef>()`; available/shown = `GeoFaction.AvailableCharacterSpecializations` (research-gated; the level-up picker further filters `!= MainSpecDef && !NotSecondClassSpecialization`, `UIStateEditSoldier.cs:608`). Greyed = full − available. @ `PhoenixPoint.Geoscape.Levels\GeoFaction.cs:209`. **[conf:H]**
+- **WARNING — wrong screen:** `SpecializationSelectorController` / `SpecializationTileController` (`...BaseRecruits\`) is a **different** screen (mutoid/class purchase), **NOT** the level-up subclass picker — do not target it for Feature A.
 
 ---
 
@@ -83,7 +89,8 @@ Date: 2026-06-08 · Status: **road map — key design decisions resolved; Phase 
 ### Approach
 
 - **GOAL: route the recruit into the full character/management view, rendered read-only.**
-  - Open the same character screen the roster uses, populated from the candidate soldier (not yet in the roster).
+  - **Base screen RESOLVED (spike):** build on **`UIStateEditSoldier` (the full management view) + strip the mutation UI** — the perk-highlight/wiki ride along on its progression ability-track cells (the whole point of the feature). The mutation-free `UIStateGeoCharacterStatus` path is **rejected** as the base because it lacks the progression ability-track cells (highlight/wiki would not ride along); keep it only as a footnote alternative. **[verified — spike]**
+  - Open the same character screen the roster uses (`UIStateEditSoldier`), populated from the candidate soldier (not yet in the roster).
   - **Read-only enforcement = hide/strip the mutation UI, not block it seam-by-seam.** On the cloned character screen, remove/disable the inventory & equipment widgets, the equip/unequip controls, the customization/repaint buttons, and any drag-drop affordances. Leave **only**: the character doll / 3D model (non-interactive, non-clickable), the perk/ability-progression panel, and the stat panels. Guiding principle: *everything is already native — we just need to surface it, not block it seam-by-seam.* The single source of truth is **"what to hide on the cloned screen"**, not a process-wide preview flag.
 - **Plan B (emergency fallback only):** the lightweight perk-wiki popup from the original proposal (class perks + personal pool in one `PerkWikiPanel`) — used only if the full screen proves unworkable.
 
@@ -93,23 +100,31 @@ Date: 2026-06-08 · Status: **road map — key design decisions resolved; Phase 
 - **Mutation-UI strip (new).** A single curated list of "what to hide on the cloned screen" — the inventory & equipment widgets, equip/unequip controls, customization/repaint buttons, and drag-drop affordances — removed/disabled when the preview screen is built. No process-wide flag and no per-handler no-op: if the mutating UI is not on screen, there is nothing to accidentally trigger. The list of stripped elements is the single source of truth.
 - **Teardown.** Closing the preview restores normal state and disposes the temp character/actor/model cleanly (no leaked roster entry, no leaked 3D actor).
 
-### Grounding needed before implementation (**[verify]**)
+### Resolved anchors (**[verified — spike]**)
 
-- The recruit/hire UI controller(s) + per-candidate element to hook on **all three** sources — global-map recruiting, in-base recruiting, merc shop — which are likely distinct screens needing separate hooks into one shared launcher.
-- The **character/management view controller** and how to open it for a soldier that is **not in the roster** (it may assume a squad/roster/base context — a temp/sandbox setup or a cloned controller may be needed).
-- **Every mutation-UI element** on that screen, so the strip list covers them all (inventory & equipment widgets, equip/unequip controls, customization/repaint buttons, drag-drop affordances) — leaving only the 3D model, progression panel, and stat panels.
-- **3D model / actor instantiation** for a non-hired candidate, and its clean teardown on close.
-- **Whether a recruit's personal perks are pre-rolled at list time or only at hire** **[verify — Phase-1 spike item]** — if pre-rolled, the progression screen shows exact perks; if not, unrolled slots fall back to the pool preview. This is the one remaining open design unknown; resolved during the Phase 1 investigation spike (decompile + reference mods).
+- **Roll timing — RESOLVED:** recruits are **PRE-ROLLED at generation, not at hire.** `GeoFaction.GenerateRecruits()` → `GeoHaven.SpawnNewRecruit`; `GeoUnitDescriptor.ProgressionDescriptor.PersonalAbilities` is a `[SerializeMember]` `Dictionary<int,TacticalAbilityDef>`; track built via `GeoUnitDescriptor.GetPersonalAbilityTrack()` (`AbilityTrack.CreateFromDictionary`). @ `PhoenixPoint.Geoscape.Levels\GeoFaction.cs:1555`, `PhoenixPoint.Geoscape.Entities\GeoUnitDescriptor.cs:410,107-126`. **[conf:H]** vanilla✓ / TFTV✓ — TFTV `TFTVHavenRecruitsGenerationAdjustments` only tweaks population, keeps the spawn-time roll. ⇒ the progression screen shows **exact** perks; pool-fallback rarely needed.
+- **Three recruit surfaces + per-candidate hook.**
+  1. **In-base:** `UIStateRosterRecruits` + `UIModuleRecruitsList` + row `RecruitsListElementController` (select handler `UIStateRosterRecruits.OnRecruitEntrySelected` → `_actorCycleModule.SelectSoldier(recruit.Recruit)`). @ `...BaseRecruits\RecruitsListElementController.cs`, `...ViewStates\UIStateRosterRecruits.cs:284`.
+  2. **Global-map haven:** `HavenInteractionController` (single `GeoHaven.AvailableRecruit`, `PurchaseRecruitButton` / `OnRecruitSoldier`). @ `...HavenDetails\HavenInteractionController.cs:21-167,255`.
+  3. **Merc shop:** `UIModuleTheMarketplace`.
+  - **[conf:H]** All three route into ONE shared launcher → open `UIStateEditSoldier` in preview for that `GeoUnitDescriptor`.
+- **Char view for a NON-roster soldier.** `UIStateEditSoldier` accepts a `GeoUnitDescriptor` but assumes roster/faction context, so the launcher must **supply that context** (implementation detail to confirm in build). 3D actor is native: `UIModuleActorCycle.DisplaySoldier(GeoUnitDescriptor,…)` (builds via `_charBuilder` + `CommonCharacterUtils.DisplayCharacter` / `RebuildCharacter`) — the recruit screen already renders the candidate this way; lifecycle native, no leaked roster entry. @ `PhoenixPoint.Common.View.ViewModules\UIModuleActorCycle.cs:597-700`. **[conf:H]**
+- **Mutation-UI strip list** **[conf:M — each needs in-game confirmation]:**
+  - **HIDE:** `UIModuleSoldierEquip` entirely (inventory/equip lists, drag-drop, `ScrapDialog`, manufacture); `EditUnitButtonsController.DismissButton` + augmentation/context buttons; set `_actorCycleModule.RenameEnabled = false`; suppress ability-BUY / stat-spend / dual-class-pick affordances in `UIModuleCharacterProgression` (keep DISPLAY).
+  - **KEEP:** `UIModuleActorCycle` (3D model, non-interactive) + `UIModuleCharacterProgression` ability tracks (display) + stat panels.
+  - @ `PhoenixPoint.Common.View.ViewModules\{UIModuleSoldierEquip,UIModuleActorCycle,EditUnitButtonsController,UIModuleCharacterProgression}.cs`, wiring in `UIStateEditSoldier.cs:115-185`.
 
 ---
 
-## Feature C — Append merc gimmick to the biography text
+## Feature C — Append merc gimmick to the merc-shop description text
+
+> **IMPORTANT REFRAME (spike):** there is **NO vanilla soldier biography/backstory prose surface** in Assembly-CSharp. The merc gimmick surface is the **merc-shop item description**, **not** a recruit/edit "biography". Feature C appends the gimmick to the **merc-shop description text**.
 
 ### What the player sees
 
 - Unique mercenaries (and other special soldiers) have a bespoke gimmick that defines them. Example: a half-robot engineer whose back-mounted mech-arms heal allies at the cost of **his own HP** instead of consumables.
-- These soldiers already get a **text biography / description** at hire (and on any other description surface). Feature C simply **appends the gimmick trait to that existing biography text** — so the special trait reads inline, where the player already looks. No new UI panel, no banner.
-- Surgical and minimal: extend the native biography/description string the game already renders, wherever it is shown (hire screen and any other description).
+- In the **merc shop**, each merc already gets a **text description** when offered for hire. Feature C simply **appends the gimmick trait to that existing merc-shop description text** — so the special trait reads inline, where the player already looks. No new UI panel, no banner.
+- Surgical and minimal: extend the native merc-shop description string the game already renders.
 
 ### Data source (hybrid — the game has no "signature" flag)
 
@@ -124,14 +139,15 @@ Date: 2026-06-08 · Status: **road map — key design decisions resolved; Phase 
 ### New pieces
 
 - **Gimmick registry (curated, mod-owned).** Small data table keyed by `characterDefId`, holding **either** an `abilityId` (preferred — sources the game's own localized description) **or** an authored CSV-blurb key when no single ability captures the gimmick. Primary source of truth; easy to extend. Populated from the Feature-C catalogue research (in-game data + community wikis + bundled reference mods).
-- **Biography-append hook — native, surgical.** Harmony-patch the biography/description text seam (hire screen + any other description surface): when the displayed soldier is in the registry, append the gimmick line to the native biography string. Modifies the game's own text element, builds nothing new.
+- **Description-append hook — native, surgical.** Harmony-POSTFIX the merc-shop description seam (`UIModuleTheMarketplace.SetupChoiceInfoBlock`): when the displayed merc is in the registry, append the gimmick line to the native `ResearchInfo.Description`. Modifies the game's own text element, builds nothing new.
 - **Localization.** Preferred path needs **no** new translation — the appended line is the game's own localized ability description, pulled via the mapped `abilityId`. Only the fallback blurbs need authored per-language rows in the existing 8-language CSV (`PERKORACLE_GIMMICK_<key>`). Optional small prefix label term (e.g. `PERKORACLE_GIMMICK_PREFIX` → "Special: ").
 
-### Grounding needed before implementation (**[verify]**)
+### Resolved anchors (**[verified — spike]**)
 
-- The **biography/description text seam(s)** to Harmony-patch (the control/getter that produces the displayed bio string) — at hire and any other description surface where these soldiers appear.
-- How unique mercs are keyed (`characterDefId` or equivalent) so the registry can match them (vanilla DLC mercs vs TFTV unique recruits vs class-mod additions).
-- Which gimmick belongs to each known merc — **catalogue research task** for the registry (the mapped `abilityId`, or an authored blurb where no single ability fits). Sourced during the Feature-C phase from in-game data, community wikis, and the bundled reference mods.
+- **Description seam.** `UIModuleTheMarketplace.SetupChoiceInfoBlock(GeoEventChoice)` writes the merc bio into `ResearchInfo` (`.Title` / `.Description`) from `tacCharacterDef.Data.ViewElementDef.Description.LocalizationKey`. **Plan:** Harmony-**POSTFIX** `SetupChoiceInfoBlock`, append the gimmick line to `ResearchInfo.Description`. @ vanilla `PhoenixPoint.Geoscape.View.ViewModules\UIModuleTheMarketplace.cs:258` (`ResearchInfo` ~L75). TFTV proves the seam: `refs\TFTV-src\TFTV\TFTVMarketplace\TFTVMarketPlaceUI.cs:76,92` patches the same method/field. **[conf:H]** TFTV✓.
+- **Merc keying.** `GeoUnitDescriptor.UnitType.TemplateDef` = a `TacCharacterDef`; key the registry by def name/GUID (e.g. `"Mercenary_Ghost"`) and/or the `Mercenary` GameTag (GUID `{49BDADBC-A411-48B2-8773-533EE9247F4C}`). @ `GeoUnitDescriptor.cs:34-86,177`; TFTV merc defs `refs\TFTV-src\TFTV\TFTVMarketplace\TFTVMercenaries.cs:142`. **[conf:H]** vanilla DLC mercs + TFTV uniques both = `TacCharacterDef`.
+- **abilityId → native-description path VIABLE [conf:H].** Pull `ability.ViewElementDef.GetInterpolatedDescription(ability)` (pattern from `UIStateGeoCharacterStatus.GetAbilityData`). Example: Slug (half-robot engineer) → `slugMechArms` + `SlugTechnicianRepair` / `SlugTechnicianHeal`, desc key `SLUG_KEY_MECH_ARMS_DESCRIPTION`. Seeded TFTV unique mercs (`Mercenary` tag): Ghost (priest), Doom/Heavy, Slug (technician), SpyMaster (infiltrator), Sectarian (berserker), Exile (assault), each + a `_Vet` lvl-5 variant; defs/loc keys @ `refs\...\TFTVMarketplace\TFTVMercenaries.cs:553,592-630,648-748,761-800`.
+- **Deferred to build phase (not a blocker):** the **full gimmick catalogue** — which merc → which `abilityId`/blurb (incl. vanilla DLC mercs + community-wiki cases). A Feature-C build-phase research task, not a spike anchor.
 
 ---
 
@@ -154,19 +170,25 @@ Date: 2026-06-08 · Status: **road map — key design decisions resolved; Phase 
 
 ## Open questions for the author
 
-- **Recruit personal perks:** confirm pre-rolled vs rolled-at-hire — drives exact-vs-pool preview on the progression screen (the single biggest unknown for Feature B). **The one remaining open `[verify]` item; owned by the Phase 1 spike** (decompile + reference mods).
+- **None remaining as blockers.** The Phase-1 spike resolved every prior open item: roll timing = **pre-rolled at generation** (Feature B), Feature B base screen = **`UIStateEditSoldier` + strip mutation UI**, Feature C surface = **merc-shop description** (no vanilla biography surface exists).
+- **Deferred (build-phase, not a blocker):** the **full merc gimmick catalogue** (which merc → `abilityId`/authored blurb) — sourced during the Feature-C build phase from in-game data, community wikis, and the bundled reference mods.
+- **Low-confidence items to confirm in-game during the build (flagged, not blockers):**
+  1. Feature-B **mutation-strip list is [conf:M]** — confirm each hidden element doesn't break the screen in-game.
+  2. Confirm `UIStateEditSoldier` can be opened for a **non-roster** `GeoUnitDescriptor` with a supplied faction/roster context.
 
 > **Resolved:** all three features ship inside the **one** PerkOracle mod as phased updates (no separate mods). This doc is the road map.
 > **Resolved (Feature A):** unresearched classes the game omits **are** injected into the list, shown **greyed/inactive**, and stay right-clickable for perk preview. No need to explain *why* a class is greyed — grey just means not yet available.
-> **Resolved (Feature B — scope):** the GOAL is the **full character page, read-only** (3D model + progression + stat panels). The lightweight perk-wiki popup is demoted to **Plan B, emergency fallback only**, not a co-equal option.
+> **Resolved (Feature B — scope):** the GOAL is the **full character page, read-only** (3D model + progression + stat panels), built on **`UIStateEditSoldier` + strip the mutation UI** (the mutation-free `UIStateGeoCharacterStatus` is rejected — no progression cells for highlight/wiki to ride). The lightweight perk-wiki popup is demoted to **Plan B, emergency fallback only**, not a co-equal option.
+> **Resolved (Feature B — roll timing):** recruits are **pre-rolled at generation** (`GeoFaction.GenerateRecruits` → `GeoHaven.SpawnNewRecruit`, `GeoUnitDescriptor.ProgressionDescriptor.PersonalAbilities`) — the progression screen shows **exact** perks; pool-fallback rarely needed.
 > **Resolved (Feature B — read-only mechanism):** read-only is achieved by **hiding/stripping the mutation UI** on the cloned screen (inventory/equipment widgets, equip/unequip controls, customization/repaint buttons, drag-drop), **not** a process-wide preview flag or per-seam mutation guards. *Everything is already native — we just surface it, not block it seam-by-seam.* This also covers the old "read-only strictness" question: there is no mutating UI present, so nothing to block selectively.
-> **Resolved (Feature C — gimmick source):** **hybrid** — prefer the native game ability description via a curated `characterDefId -> abilityId` map (auto-localized, zero translation) where the gimmick is one ability; fall back to an authored CSV blurb (`PERKORACLE_GIMMICK_<key>`, 8 languages) only when it is not. The gimmick **catalogue** (which merc has which gimmick) is a research task for the Feature-C phase, sourced from in-game data, community wikis, and the bundled reference mods.
+> **Resolved (Feature C — surface):** there is **no vanilla soldier biography prose surface**; the gimmick is appended to the **merc-shop description** via a POSTFIX on `UIModuleTheMarketplace.SetupChoiceInfoBlock` (writes `ResearchInfo.Description`). Mercs keyed by `TacCharacterDef` (def name/GUID and/or `Mercenary` GameTag).
+> **Resolved (Feature C — gimmick source):** **hybrid** — prefer the native game ability description (`ability.ViewElementDef.GetInterpolatedDescription(ability)`) via a curated `characterDefId -> abilityId` map (auto-localized, zero translation) where the gimmick is one ability; fall back to an authored CSV blurb (`PERKORACLE_GIMMICK_<key>`, 8 languages) only when it is not. The gimmick **catalogue** (which merc has which gimmick) is a build-phase research task for the Feature-C phase, sourced from in-game data, community wikis, and the bundled reference mods.
 
 ## Suggested phasing
 
-- **Phase 1 — investigation spike.** Resolve every **[verify]** anchor (class-track accessor, full subclass enumeration + which the screen omits, recruit + merc-shop UI controllers, recruit roll timing, character-view-for-non-roster-soldier, the mutation-UI elements to strip on the cloned screen, biography text seam, merc keying + per-merc gimmick ability/blurb catalogue). Done by dispatched sub-agents against the decompile + bundled reference mods. No feature code; output a follow-up locked spec per feature.
+- **Phase 1 — investigation spike. ✅ DONE.** Resolved every **[verify]** anchor (class-track accessor, full subclass enumeration + which the screen omits, recruit + merc-shop UI controllers, recruit roll timing, character-view-for-non-roster-soldier, the mutation-UI elements to strip on the cloned screen, merc-shop description seam, merc keying). All anchors above are now **[verified — spike]** with concrete type/path/symbol grounding; only the full per-merc gimmick catalogue is deferred to the Feature-C build phase. **Each remaining phase (A, C, B) gets its own implementation plan + spec as needed** before code.
 - **Phase 2 — Feature A (subclass preview).** Build `ClassPerkResolver` + right-click hook on the subclass screen + greyed-entry injection for omitted classes. Class perks are deterministic and the rolled-cell drill-down already exists, so this is low risk; the only new UI work is the greyed clones.
-- **Phase 3 — Feature C (merc gimmick in bio).** Smallest surface — one curated table + one Harmony patch appending to the native biography string. No new UI. Lowest risk after A.
+- **Phase 3 — Feature C (merc gimmick in merc-shop description).** Smallest surface — one curated table + one Harmony POSTFIX on `UIModuleTheMarketplace.SetupChoiceInfoBlock` appending to the native `ResearchInfo.Description`. No new UI. Lowest risk after A.
 - **Phase 4 — Feature B (recruit full-page preview).** Highest risk (opening a full management view for a non-roster soldier + correctly stripping the mutation UI to leave a read-only screen + 3D actor lifecycle). Do last, after the others prove the surrounding pieces. The perk highlight + wiki ride along inside it for free.
 
 ## Out of scope (this proposal)
