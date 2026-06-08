@@ -64,6 +64,8 @@ namespace Morgott.PerkOracle
                     return; // can't find a safe insert point -> show the plain box
                 }
 
+                DumpHierarchy(__instance, host); // TEMP diag: measure the real runtime layout
+
                 // Avoid a duplicate row if Show runs twice for the same window.
                 Transform existing = host.Parent.Find(RowName);
                 if ((UnityEngine.Object)(object)existing != (UnityEngine.Object)null)
@@ -156,6 +158,125 @@ namespace Morgott.PerkOracle
                 Debug.Log("[PerkOracle] SubclassConfirmPopupDecorator.ReadMarker failed: " + ex.Message);
                 return null;
             }
+        }
+
+        // TEMP diag (layout investigation): dump the full ancestor chain of TextContent up to the root
+        // Canvas, with RectTransform metrics + layout/sizing/canvas components, so we can build the correct
+        // layout from measured truth instead of guessing the prefab. Remove once the layout is finalized.
+        private static void DumpHierarchy(MessageBoxPromptController controller, SnapshotTextHost host)
+        {
+            try
+            {
+                RectTransform frame = host.Frame;
+                Debug.Log("[PerkOracle][diag] hierarchy: === confirm dialog dump START ===");
+                Debug.Log("[PerkOracle][diag] hierarchy: FindWindowRect(frame)="
+                    + ((UnityEngine.Object)(object)frame != (UnityEngine.Object)null
+                        ? (((UnityEngine.Object)frame).name + " rect=" + frame.rect.width + "x" + frame.rect.height)
+                        : "<null>"));
+
+                int depth = 0;
+                Transform t = host.TextRt;
+                while (t != null && depth < 16)
+                {
+                    Debug.Log("[PerkOracle][diag] hierarchy: [" + depth + "] " + DescribeNode(t));
+                    var c = t.GetComponent<Canvas>();
+                    if ((UnityEngine.Object)(object)c != (UnityEngine.Object)null)
+                    {
+                        // Reached a canvas in the chain — note it but keep walking to the very root.
+                    }
+                    t = t.parent;
+                    depth++;
+                }
+
+                // The Yes/No buttons live under the controller's Buttons linkers; log the first active one's
+                // container so we know where the button row sits relative to the text.
+                Transform btnContainer = FindButtonsContainer(controller);
+                Debug.Log("[PerkOracle][diag] hierarchy: buttonsContainer="
+                    + ((UnityEngine.Object)(object)btnContainer != (UnityEngine.Object)null
+                        ? DescribeNode(btnContainer) : "<null>"));
+                Debug.Log("[PerkOracle][diag] hierarchy: === confirm dialog dump END ===");
+            }
+            catch (Exception ex)
+            {
+                Debug.Log("[PerkOracle] SubclassConfirmPopupDecorator.DumpHierarchy failed: " + ex.Message);
+            }
+        }
+
+        private static string DescribeNode(Transform t)
+        {
+            try
+            {
+                var go = t.gameObject;
+                string s = "'" + go.name + "' active=" + go.activeSelf;
+                var rt = t as RectTransform;
+                if ((UnityEngine.Object)(object)rt != (UnityEngine.Object)null)
+                {
+                    s += " | anchMin=" + V(rt.anchorMin) + " anchMax=" + V(rt.anchorMax)
+                       + " pivot=" + V(rt.pivot) + " sizeDelta=" + V(rt.sizeDelta)
+                       + " anchPos=" + V(rt.anchoredPosition) + " rect=" + rt.rect.width + "x" + rt.rect.height;
+                }
+                // Layout / sizing components.
+                if ((UnityEngine.Object)(object)t.GetComponent<VerticalLayoutGroup>() != (UnityEngine.Object)null) s += " | VLG";
+                if ((UnityEngine.Object)(object)t.GetComponent<HorizontalLayoutGroup>() != (UnityEngine.Object)null) s += " | HLG";
+                if ((UnityEngine.Object)(object)t.GetComponent<GridLayoutGroup>() != (UnityEngine.Object)null) s += " | GLG";
+                var csf = t.GetComponent<ContentSizeFitter>();
+                if ((UnityEngine.Object)(object)csf != (UnityEngine.Object)null)
+                {
+                    s += " | CSF(h=" + csf.horizontalFit + ",v=" + csf.verticalFit + ")";
+                }
+                var le = t.GetComponent<LayoutElement>();
+                if ((UnityEngine.Object)(object)le != (UnityEngine.Object)null)
+                {
+                    s += " | LE(min=" + le.minWidth + "x" + le.minHeight
+                       + ",pref=" + le.preferredWidth + "x" + le.preferredHeight + ")";
+                }
+                if ((UnityEngine.Object)(object)t.GetComponent<Image>() != (UnityEngine.Object)null) s += " | Image";
+                var canvas = t.GetComponent<Canvas>();
+                if ((UnityEngine.Object)(object)canvas != (UnityEngine.Object)null)
+                {
+                    s += " | Canvas(order=" + canvas.sortingOrder + ",render=" + canvas.renderMode
+                       + ",override=" + canvas.overrideSorting + ")";
+                }
+                return s;
+            }
+            catch (Exception ex)
+            {
+                return "<describe failed: " + ex.Message + ">";
+            }
+        }
+
+        private static string V(Vector2 v)
+        {
+            return "(" + v.x + "," + v.y + ")";
+        }
+
+        /// <summary>Find the parent container of the dialog's Yes/No buttons via the controller's Buttons list.</summary>
+        private static Transform FindButtonsContainer(MessageBoxPromptController controller)
+        {
+            try
+            {
+                var buttonsField = AccessTools.Field(typeof(MessageBoxPromptController), "Buttons");
+                var buttons = buttonsField?.GetValue(controller) as System.Collections.IEnumerable;
+                if (buttons == null)
+                {
+                    return null;
+                }
+                foreach (object linker in buttons)
+                {
+                    if (linker == null) continue;
+                    var btnField = AccessTools.Field(linker.GetType(), "Button");
+                    var btn = btnField?.GetValue(linker) as Component;
+                    if ((UnityEngine.Object)(object)btn != (UnityEngine.Object)null)
+                    {
+                        return ((Component)btn).transform.parent; // the buttons row container
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log("[PerkOracle] SubclassConfirmPopupDecorator.FindButtonsContainer failed: " + ex.Message);
+            }
+            return null;
         }
 
         private struct SnapshotTextHost
