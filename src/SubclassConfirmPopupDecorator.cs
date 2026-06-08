@@ -37,9 +37,10 @@ namespace Morgott.PerkOracle
     internal static class SubclassConfirmPopupDecorator
     {
         private const string RowName = "PerkOracleConfirmPerkRow";
-        private const float CellSize = 64f;
-        private const float CellSpacing = 6f;
-        private const float MinWindowWidth = 560f;
+        private const float CellSize = 96f;
+        private const float CellSpacing = 8f;
+        private const float RowGap = 14f;        // gap between the icon row bottom and the question top
+        private const float MinWindowWidth = 640f;
 
         // MessageBox.ModalData is an internal type, so we read the controller's shown data + its UserData
         // via reflection (field names verified from the decompile: MessageBoxPromptController._shownData,
@@ -70,40 +71,43 @@ namespace Morgott.PerkOracle
                     UnityEngine.Object.DestroyImmediate(existing.gameObject);
                 }
 
-                // Root canvas for tooltip positioning (popup lives on the message-box canvas).
-                Canvas rootCanvas = ((Component)__instance).GetComponentInParent<Canvas>();
-                rootCanvas = (UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null
-                    ? rootCanvas.rootCanvas : null;
+                // The dialog's own canvas drives its sorting; the tooltip must beat it. Read the nearest
+                // canvas for both its sortingOrder (z-order) and its root (tooltip positioning space).
+                Canvas dialogCanvas = ((Component)__instance).GetComponentInParent<Canvas>();
+                int dialogSortingOrder = (UnityEngine.Object)(object)dialogCanvas != (UnityEngine.Object)null
+                    ? dialogCanvas.sortingOrder : 30000;
+                Canvas rootCanvas = (UnityEngine.Object)(object)dialogCanvas != (UnityEngine.Object)null
+                    ? dialogCanvas.rootCanvas : null;
                 RectTransform canvasRect = (UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null
                     ? rootCanvas.transform as RectTransform : null;
 
-                // One tooltip clone for this popup, parented to the root canvas; torn down with the row.
+                // One tooltip clone for this popup, parented to the root canvas; torn down with the row. Its
+                // own overrideSorting Canvas (set inside) renders it above the dialog (dialogSortingOrder+100).
                 GeoRosterAbilityDetailTooltip tooltip = CreateTooltip(
                     (UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null
                         ? rootCanvas.transform : host.Parent,
+                    dialogSortingOrder,
                     out GameObject tooltipGo);
 
-                // Build the row container: a horizontally-laid, self-sizing strip placed above the text.
+                // Build the row container: a horizontally-laid, self-sizing strip of large icons. The
+                // content panel is NOT a vertical layout group, so we place the row by EXPLICIT anchoring
+                // relative to the question text (guaranteed above it + horizontally centered) rather than
+                // by sibling order.
                 var rowGo = new GameObject(RowName, typeof(RectTransform));
-                rowGo.transform.SetParent(host.Parent, false);
-                rowGo.transform.SetSiblingIndex(host.TextRt.GetSiblingIndex()); // directly above the question
+                rowGo.transform.SetParent(host.Parent, false); // same coordinate space as the text
 
                 var hlg = rowGo.AddComponent<HorizontalLayoutGroup>();
                 hlg.spacing = CellSpacing;
-                hlg.childAlignment = TextAnchor.MiddleCenter;
+                hlg.childAlignment = TextAnchor.MiddleCenter; // center the icons within the row
                 hlg.childForceExpandWidth = false;
                 hlg.childForceExpandHeight = false;
                 hlg.childControlWidth = true;
                 hlg.childControlHeight = true;
 
+                // Self-size the row to its icons so the pivot-centered placement stays centered.
                 var fitter = rowGo.AddComponent<ContentSizeFitter>();
                 fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
                 fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-                // Reserve height in the (assumed vertical) content layout so the text is pushed down.
-                var rowLe = rowGo.AddComponent<LayoutElement>();
-                rowLe.minHeight = CellSize;
-                rowLe.preferredHeight = CellSize;
 
                 foreach (TacticalAbilityDef def in marker.Perks)
                 {
@@ -122,8 +126,10 @@ namespace Morgott.PerkOracle
                 var cleanup = rowGo.AddComponent<ConfirmRowCleanup>();
                 cleanup.TooltipGo = tooltipGo;
 
-                // Best-effort widen so the icon row fits harmoniously (guarded; never required for correctness).
-                TryWidenWindow(__instance, host);
+                // Grow the dialog frame (taller + wider) so the row has room above the text, then anchor
+                // the row centered just above the question. Both guarded; failure leaves the native box.
+                GrowFrame(host, marker.Perks.Count);
+                AnchorRowAboveText(rowGo.GetComponent<RectTransform>(), host.TextRt);
             }
             catch (Exception ex)
             {
@@ -156,9 +162,10 @@ namespace Morgott.PerkOracle
         {
             public RectTransform TextRt;
             public Transform Parent;
+            public RectTransform Frame;
         }
 
-        /// <summary>Resolve the dialog's question-text RectTransform + its parent content panel.</summary>
+        /// <summary>Resolve the question-text RectTransform, its parent, and the bounded dialog frame.</summary>
         private static SnapshotTextHost ResolveTextHost(MessageBoxPromptController controller)
         {
             var host = new SnapshotTextHost();
@@ -169,6 +176,7 @@ namespace Morgott.PerkOracle
                 {
                     host.TextRt = ((Component)text).GetComponent<RectTransform>();
                     host.Parent = host.TextRt != null ? host.TextRt.parent : null;
+                    host.Frame = FindWindowRect(host.Parent);
                 }
             }
             catch (Exception ex)
@@ -179,42 +187,69 @@ namespace Morgott.PerkOracle
         }
 
         /// <summary>
-        /// Best-effort widening: walk up from the content panel to the nearest ancestor with a sized
-        /// (non-stretched) RectTransform — the dialog frame — and raise its min width via a LayoutElement
-        /// (or sizeDelta). Wrapped: a failure just leaves the native width.
+        /// Grow the bounded dialog frame so a large centered icon row fits ABOVE the question without
+        /// crowding: widen to at least <see cref="MinWindowWidth"/> (scaled up for many icons) and add the
+        /// row's height to the frame. Best-effort; failure leaves the native size.
         /// </summary>
-        private static void TryWidenWindow(MessageBoxPromptController controller, SnapshotTextHost host)
+        private static void GrowFrame(SnapshotTextHost host, int iconCount)
         {
             try
             {
-                RectTransform window = FindWindowRect(host.Parent);
-                if ((UnityEngine.Object)(object)window == (UnityEngine.Object)null)
+                RectTransform frame = host.Frame;
+                if ((UnityEngine.Object)(object)frame == (UnityEngine.Object)null)
                 {
                     return;
                 }
-                if (window.rect.width >= MinWindowWidth)
-                {
-                    return; // already wide enough
-                }
-                var le = window.GetComponent<LayoutElement>();
-                if ((UnityEngine.Object)(object)le != (UnityEngine.Object)null)
-                {
-                    le.minWidth = Mathf.Max(le.minWidth, MinWindowWidth);
-                    le.preferredWidth = Mathf.Max(le.preferredWidth, MinWindowWidth);
-                }
-                else
-                {
-                    // No layout element: nudge sizeDelta width directly (works for a fixed-size frame).
-                    Vector2 sd = window.sizeDelta;
-                    if (sd.x > 0f && sd.x < MinWindowWidth)
-                    {
-                        window.sizeDelta = new Vector2(MinWindowWidth, sd.y);
-                    }
-                }
+
+                float neededWidth = Mathf.Max(MinWindowWidth,
+                    iconCount * CellSize + Mathf.Max(0, iconCount - 1) * CellSpacing + 80f);
+                float extraHeight = CellSize + RowGap + 12f;
+
+                Vector2 sd = frame.sizeDelta;
+                // Only adjust axes that are fixed (non-stretched); a stretched axis is driven by anchors.
+                bool widthFixed = !(frame.anchorMin.x == 0f && frame.anchorMax.x == 1f);
+                bool heightFixed = !(frame.anchorMin.y == 0f && frame.anchorMax.y == 1f);
+                float newW = widthFixed ? Mathf.Max(sd.x, neededWidth) : sd.x;
+                float newH = heightFixed ? sd.y + extraHeight : sd.y;
+                frame.sizeDelta = new Vector2(newW, newH);
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] SubclassConfirmPopupDecorator.TryWidenWindow failed: " + ex.Message);
+                Debug.Log("[PerkOracle] SubclassConfirmPopupDecorator.GrowFrame failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Anchor <paramref name="row"/> horizontally CENTERED on the question text and just ABOVE it,
+        /// using the text's own measured rect — independent of the prefab's (non-vertical) layout. Pivot is
+        /// bottom-center so the row sits on top of the text with a gap.
+        /// </summary>
+        private static void AnchorRowAboveText(RectTransform row, RectTransform text)
+        {
+            try
+            {
+                if ((UnityEngine.Object)(object)row == (UnityEngine.Object)null
+                    || (UnityEngine.Object)(object)text == (UnityEngine.Object)null)
+                {
+                    return;
+                }
+                // Share the text's anchor reference so anchoredPosition is in the same frame.
+                row.anchorMin = text.anchorMin;
+                row.anchorMax = text.anchorMax;
+                row.pivot = new Vector2(0.5f, 0f); // bottom-center: grows upward from its anchored point
+
+                float textTopFromCenter = text.rect.height * (1f - text.pivot.y);
+                if (textTopFromCenter <= 0f)
+                {
+                    textTopFromCenter = 20f; // fallback if the text rect is not laid out yet
+                }
+                row.anchoredPosition = new Vector2(
+                    text.anchoredPosition.x,
+                    text.anchoredPosition.y + textTopFromCenter + RowGap);
+            }
+            catch (Exception ex)
+            {
+                Debug.Log("[PerkOracle] SubclassConfirmPopupDecorator.AnchorRowAboveText failed: " + ex.Message);
             }
         }
 
@@ -245,7 +280,8 @@ namespace Morgott.PerkOracle
         /// locally so it never collides with a banner's static instance. Null on failure (icons just lose
         /// their tooltip; the dialog still works).
         /// </summary>
-        private static GeoRosterAbilityDetailTooltip CreateTooltip(Transform parent, out GameObject go)
+        private static GeoRosterAbilityDetailTooltip CreateTooltip(Transform parent, int dialogSortingOrder,
+            out GameObject go)
         {
             go = null;
             try
@@ -268,7 +304,16 @@ namespace Morgott.PerkOracle
                 cg.interactable = false;
                 go.name = "PerkOracleConfirmTooltip";
                 go.transform.localScale = Vector3.one;
-                go.transform.SetAsLastSibling(); // above the dialog
+                go.transform.SetAsLastSibling(); // above the dialog within the same parent
+
+                // Z-ORDER: the MessageBox overlay (and its prompt window) sorts high; a plain sibling still
+                // draws under it. Give the tooltip its OWN sorting context above the dialog's canvas so the
+                // ability description renders IN FRONT of the confirm window. No GraphicRaycaster is added
+                // (the CanvasGroup already blocks raycasts), so it stays purely visual + non-interactive.
+                var tipCanvas = go.GetComponent<Canvas>() ?? go.AddComponent<Canvas>();
+                tipCanvas.overrideSorting = true;
+                tipCanvas.sortingOrder = dialogSortingOrder + 100;
+
                 go.SetActive(false);
                 WikiAbilityTooltipTrigger.ResetPriming();
                 return go.GetComponent<GeoRosterAbilityDetailTooltip>();
