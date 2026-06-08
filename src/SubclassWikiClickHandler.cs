@@ -28,6 +28,10 @@ namespace Morgott.PerkOracle
         {
             try
             {
+                Debug.Log("[PerkOracle][diag] OnPointerClick entered; button=" // TEMP diag (Feature A)
+                    + (eventData != null ? eventData.button.ToString() : "<null evt>")
+                    + " spec=" + ((UnityEngine.Object)(object)Spec != (UnityEngine.Object)null
+                        ? ((UnityEngine.Object)Spec).name : "<null>"));
                 if (eventData == null || eventData.button != PointerEventData.InputButton.Right)
                 {
                     return; // only right-click opens the preview; left-click stays native
@@ -45,6 +49,7 @@ namespace Morgott.PerkOracle
                 }
 
                 List<TacticalAbilityDef> defs = ClassPerkProvider.GetClassPerks(Spec);
+                Debug.Log("[PerkOracle][diag] GetClassPerks count=" + (defs == null ? -1 : defs.Count)); // TEMP diag (Feature A)
                 if (defs == null || defs.Count == 0)
                 {
                     Debug.Log("[PerkOracle] subclass wiki: empty class-perk list for "
@@ -53,12 +58,15 @@ namespace Morgott.PerkOracle
                 }
 
                 Canvas canvas = ((Component)this).GetComponentInParent<Canvas>();
+                Debug.Log("[PerkOracle][diag] canvas found=" // TEMP diag (Feature A)
+                    + ((UnityEngine.Object)(object)canvas != (UnityEngine.Object)null));
                 if ((UnityEngine.Object)(object)canvas == (UnityEngine.Object)null)
                 {
                     return;
                 }
 
                 // View-only: swapContext = null. Custom title => "CLASS PERKS".
+                Debug.Log("[PerkOracle][diag] calling PerkWikiPanel.Open"); // TEMP diag (Feature A)
                 PerkWikiPanel.Open(canvas, defs, null, ClassTitleTerm, ClassTitleFallback);
             }
             catch (Exception ex)

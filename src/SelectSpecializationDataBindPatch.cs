@@ -41,9 +41,11 @@ namespace Morgott.PerkOracle
                 SpecializationOptionElementController[] elements =
                     ((Component)___DualClassButtonContainer)
                         .GetComponentsInChildren<SpecializationOptionElementController>(true);
+                Debug.Log("[PerkOracle][diag] postfix start; elements=" + elements.Length); // TEMP diag (Feature A)
 
                 // 1) Right-clickify every currently ACTIVE button + collect the shown specs.
                 var shown = new List<SpecializationDef>();
+                int attached = 0; // TEMP diag (Feature A)
                 SpecializationOptionElementController activeTemplate = null;
                 foreach (SpecializationOptionElementController el in elements)
                 {
@@ -63,6 +65,10 @@ namespace Morgott.PerkOracle
                         shown.Add(el.SpecializationDef);
                     }
                     AttachHandler(((Component)el).gameObject, el.SpecializationDef);
+                    attached++; // TEMP diag (Feature A)
+                    Debug.Log("[PerkOracle][diag] active button spec=" // TEMP diag (Feature A)
+                        + ((UnityEngine.Object)(object)el.SpecializationDef != (UnityEngine.Object)null
+                            ? ((UnityEngine.Object)el.SpecializationDef).name : "<null>"));
                     if (activeTemplate == null)
                     {
                         activeTemplate = el; // a live, populated button to clone for greyed entries
@@ -75,8 +81,13 @@ namespace Morgott.PerkOracle
                     return; // nothing populated to clone from; leave the screen as-is
                 }
                 List<SpecializationDef> omitted = ClassPerkProvider.GetOmittedSubclasses(shown);
+                Debug.Log("[PerkOracle][diag] shown=" + shown.Count + " attached=" + attached // TEMP diag (Feature A)
+                    + " omitted=" + omitted.Count);
                 foreach (SpecializationDef spec in omitted)
                 {
+                    Debug.Log("[PerkOracle][diag] omitted spec=" // TEMP diag (Feature A)
+                        + ((UnityEngine.Object)(object)spec != (UnityEngine.Object)null
+                            ? ((UnityEngine.Object)spec).name : "<null>"));
                     InjectGreyedEntry(activeTemplate, ___DualClassButtonContainer, spec);
                 }
             }
