@@ -16,7 +16,7 @@ Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 i
 ## Goal
 
 - Extend the existing read-only perk wiki beyond the ability-progression screen onto three more surfaces, turning PerkOracle into a broader in-game "soldier wiki":
-  - **Subclass preview (A)** — on the subclass-selection screen (when leveling a soldier), right-click any subclass to see its guaranteed perks; rolled cells stay highlighted with the existing candidate drill-down. Unresearched classes the game omits are shown **greyed** and stay clickable for preview.
+  - **Subclass preview (A)** — on the subclass-selection screen (when leveling a soldier), see each subclass's guaranteed perks before committing; rolled cells stay highlighted with the existing candidate drill-down. Unresearched classes the game omits are shown **greyed** and stay clickable for preview. **[SHIPPED — gesture diverged: greyed = LEFT-click banner; available = LEFT-click → native yes/no confirm with the perk row injected on top; RMB is the modal cancel. See the "AS SHIPPED" block in Feature A.]**
   - **Recruit preview (B)** — on hiring/recruitment surfaces (haven recruits, base personnel), click a candidate soldier to open the **full character page** like the squad-management view, rendered **read-only** by stripping the mutation UI: only the 3D model, the progression panel, and the stat panels remain (no inventory/equipment/customization controls). The existing perk highlight + candidate wiki ride along on its progression screen.
   - **Merc gimmick in description (C)** — for unique mercenaries in the merc shop, append their bespoke gimmick to the merc's existing **merc-shop description text** so the hook reads inline where the player already looks (no new UI). *(There is no vanilla soldier-biography prose surface; the merc-shop item description is the seam.)*
 - Keep the mod's identity intact: **read-only, additive, fail-safe, TFTV-optional, class-mod-compatible**. No new perks created, no game balance changed.
@@ -36,13 +36,43 @@ Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 i
 
 ## Feature A — Subclass selection perk preview (+ show unresearched classes greyed)
 
-### What the player sees
+> **STATUS: SHIPPED (HEAD 6e4678f).** The implemented gesture/flow **diverged from the original
+> right-click-banner design below**. The block immediately under this note is the authoritative
+> account of the shipped behavior; the older subsections are retained for design history but are
+> superseded where they conflict.
 
-- When leveling a soldier the player can add a **subclass** (subclasses are just regular classes). On the subclass-selection screen it is unclear what perks each one grants. This feature makes it clear:
-- **Right-click a subclass → banner of its guaranteed perks.** A wiki banner listing the fixed class-progression abilities that subclass grants, with the game's native icons and tooltips.
-- **Rolled cells highlighted + drill-down (reuses the existing feature).** The slots where perks are randomly rolled are highlighted, and clicking one opens the candidate banner showing what could roll there — this is exactly the mod's current rolled-perk highlight + candidate wiki, applied on this screen.
-- **Show unresearched classes too, greyed out.** Classes the game omits from the list because they are not researched yet are **still shown, in grey (inactive)** — and are **also right-clickable** to preview all their perks, same as available ones. (No need to explain *why* a class is greyed; grey = not yet available.)
-- Informational only — grants nothing, selects nothing.
+### What the player sees (AS SHIPPED)
+
+- When leveling a soldier the player adds a **subclass**. Feature A makes each subclass's guaranteed
+  perks visible **before** committing, and surfaces the classes the game hides:
+- **GREYED (locked / unresearched) subclasses → LEFT-click preview banner.** Subclasses the picker
+  omits (not yet researched) are injected as **greyed, non-selectable** clones. Their native `Button`
+  is disabled, so a left-click has no native action — we use it to open the floating "CLASS PERKS"
+  `PerkWikiPanel` banner of that subclass's guaranteed perks (native icons + tooltips). Left-click again
+  toggles the banner closed.
+- **AVAILABLE (selectable) subclasses → LEFT-click opens a NATIVE yes/no confirm.** A native
+  `MessageBox` Yes/No prompt ("Take {0} as a subclass?") is raised, with the subclass's **perk-icon row
+  injected on top of the dialog** (the icons read as part of the same window, not a separate banner). YES
+  re-runs the native selection (the modal confirms/closes); NO/cancel just dismisses the box and stays in
+  the picker — no subclass selected.
+- **Why LEFT-click for both, not right-click:** inside this modal **RMB is the geoscape cancel** — it is
+  routed through `UIStateGeoModal.OnCancel` and is **never** delivered as a UGUI pointer-click (confirmed
+  by runtime diag: only `button=Left` ever arrives). So right-click could not be the preview gesture; the
+  greyed clones use left-click (they have no native left action), and available buttons keep their native
+  left-click "select" but gate it through the confirm dialog.
+- **Two-stage cancel for the greyed-banner.** While the floating banner is open, the **first** cancel
+  (RMB/Esc) closes only the banner and keeps the picker open; a **second** cancel exits the picker. An
+  `ExitState` postfix is the orphan fail-safe — any still-open banner is torn down whenever the modal
+  closes by any route.
+- **Authoritative subclass universe.** The full set of player second-classes is
+  `GeoFactionDef.InitialSpecializationDefs` ∪ every `ClassResearchRewardDef.SpecializationDef` (the exact
+  set the game ever adds via `GeoFaction.AddSpecialization`). Greyed = that universe − already-shown −
+  already-unlocked (`GeoFaction.AvailableCharacterSpecializations`), minus `NotSecondClassSpecialization`
+  / no-track / no-proficiency entries. This **replaced** the earlier `GetAllDefs<SpecializationDef>` −
+  available heuristic, which over-filtered real classes and duplicated base classes.
+- **Logging.** All `[PerkOracle]` diagnostics now route through `PerkOracleLog.Debug`, gated by the
+  default-OFF `EnableDebugLogging` mod-config toggle — the shipped mod is silent unless the user opts in.
+- Informational/confirm only — preview grants nothing; the confirm just gates the native selection.
 
 ### Why this is a natural fit
 
@@ -57,8 +87,17 @@ Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 i
 - **Inject greyed entries for omitted classes.**
   - Enumerate all subclasses from `DefRepository` (data-driven → TFTV/class mods included); add the ones the screen omitted as **greyed, non-selectable** entries.
   - Build these greyed entries by cloning the screen's native subclass element and tinting it grey (native-components principle) — do not invent a new widget.
-- **UI hook.**
-  - Right-click any subclass entry (available **or** greyed) → open the guaranteed-perks banner via `PerkWikiPanel`. Reuse the right-click-to-open / right-click-to-close convention for muscle-memory consistency.
+- **UI hook (AS SHIPPED — differs from the right-click design here).**
+  - **Greyed clones:** `SubclassWikiClickHandler` (an `IPointerClickHandler` on the clone) opens the
+    floating "CLASS PERKS" `PerkWikiPanel` banner on **LEFT-click** (the clone has no native left action;
+    RMB never reaches a pointer-click inside this modal). Left-click again toggles it closed.
+  - **Available subclasses:** `SelectSpecializationConfirmPatch` (prefix on
+    `SelectSpecializationDataBind.SelectSpecializationElement`) intercepts the native select on the first
+    click and raises a native `MessageBox.ShowSimplePrompt` Yes/No; `SubclassConfirmPopupDecorator`
+    (postfix on `MessageBoxPromptController.Show`) injects the perk-icon row into the dialog. YES re-enters
+    the native selection through a one-shot guard.
+  - **Cancel:** `SelectSpecializationCancelPatch` gives the floating banner a two-stage cancel (first
+    cancel closes the banner, second exits the picker) plus an `ExitState` orphan fail-safe.
   - The rolled-cell highlight + candidate banner come for free from the existing patches wherever the screen renders progression cells.
 - **Panel title term.** New I2 term, e.g. `PERKORACLE_WIKI_TITLE_CLASS` ("CLASS PERKS"), mirroring `PERKORACLE_WIKI_TITLE`.
 
@@ -67,7 +106,7 @@ Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 i
 - **Class-def type + class-track accessor.** `SpecializationDef.AbilityTrack` (an `AbilityTrackDef`); ordered class perks via `AbilityTrackDef.AbilitiesByLevel[]` (each `AbilityTrackSlot.Ability` is a `TacticalAbilityDef`); convenience helper `SpecializationDef.GetAbilitiesTillLevel(int)`. @ `PhoenixPoint.Common.Entities\SpecializationDef.cs`, `PhoenixPoint.Common.Entities.Characters\AbilityTrackDef.cs`. **[conf:H]** vanilla✓ / TFTV✓ — TFTV `MainSpecModification.GenerateMainSpec` rewrites the SAME `AbilityTrackDef.AbilitiesByLevel` in place, so the accessor is identical. (Current code only reads the **Personal** track via `AbilityTrack.GetAbilityLevel` / `CharacterProgressionData.PersonalTrackTags`; the class-track accessor above is the new read.)
 - **Subclass-selection UI.** Modal `ModalType.DualClassPicker`; controller `SelectSpecializationDataBind` (populate seam `ModalShowHandler`); per-subclass element `SpecializationOptionElementController` (carries `.SpecializationDef`, fields `ClassIcon` / `ClassTitleLabel` / `ClassDescriptionLabel`); opened from `UIStateEditSoldier.OnSelectSecondaryClass`. The right-click hook + greyed-clone attach to `SpecializationOptionElementController`. @ `PhoenixPoint.Geoscape.View.ViewControllers.Modal\SelectSpecializationDataBind.cs`, `PhoenixPoint.Geoscape.View.ViewControllers\SpecializationOptionElementController.cs`, `...ViewStates\UIStateEditSoldier.cs:605`. **[conf:H]**
 - **TFTV coverage CONFIRMED:** TFTV does **not** replace/patch the picker modal or its controllers — Feature A targets the **vanilla** types unchanged. The only TFTV touch is a transpiler on `UIStateEditSoldier.OnSelectSecondaryClass` (`refs\TFTV-src\TFTV\TFTVMarketplace\Various.cs:214`, helper `RemoveTech` :237/:250) that **trims** the input `List<SpecializationDef>` (removes Technician for the Slug-class). **Caveat:** Feature A clones whatever the modal actually displays, so it sees the **post-filter** set — do **not** assume raw `AvailableCharacterSpecializations` equals what's shown.
-- **Full set vs omitted (greyed).** Full = `DefRepository.GetAllDefs<SpecializationDef>()`; available/shown = `GeoFaction.AvailableCharacterSpecializations` (research-gated; the level-up picker further filters `!= MainSpecDef && !NotSecondClassSpecialization`, `UIStateEditSoldier.cs:608`). Greyed = full − available. @ `PhoenixPoint.Geoscape.Levels\GeoFaction.cs:209`. **[conf:H]**
+- **Full set vs omitted (greyed) — AS SHIPPED.** ~~Full = `DefRepository.GetAllDefs<SpecializationDef>()`~~ The shipped universe is the **authoritative** player-second-class set: `GeoFactionDef.InitialSpecializationDefs` ∪ every `ClassResearchRewardDef.SpecializationDef` (the exact set the game adds via `GeoFaction.AddSpecialization`). Greyed = that universe − already-shown − already-unlocked (`GeoFaction.AvailableCharacterSpecializations`), minus `NotSecondClassSpecialization` / no-`AbilityTrack` / no-proficiency entries (mirrors `UIStateEditSoldier.cs:608` + the `InitSpecialization` requirements). The old `GetAllDefs − available` heuristic was dropped because it over-filtered real classes and pulled in non-player specs (Raider/Mutoid/Scum/Slug). See `ClassPerkProvider.GetSelectableSubclassUniverse` / `GetOmittedSubclasses`. @ `PhoenixPoint.Geoscape.Levels\GeoFaction.cs`, `...Research.Reward\ClassResearchRewardDef.cs`. **[shipped]**
 - **WARNING — wrong screen:** `SpecializationSelectorController` / `SpecializationTileController` (`...BaseRecruits\`) is a **different** screen (mutoid/class purchase), **NOT** the level-up subclass picker — do not target it for Feature A.
 
 ---
