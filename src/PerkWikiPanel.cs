@@ -296,8 +296,6 @@ namespace Morgott.PerkOracle
                         .FirstOrDefault(t => (UnityEngine.Object)(object)t != (UnityEngine.Object)null
                             && t.gameObject.scene.IsValid()); // a scene instance, not a prefab asset
                 }
-                Debug.Log("[PerkOracle][diag] tooltip template found=" // TEMP diag (Feature A)
-                    + ((UnityEngine.Object)(object)template != (UnityEngine.Object)null));
                 if ((UnityEngine.Object)(object)template == (UnityEngine.Object)null)
                 {
                     return;
