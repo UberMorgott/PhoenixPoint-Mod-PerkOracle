@@ -46,7 +46,8 @@ namespace Morgott.PerkOracle
         /// Rebuilds from scratch (idempotent): any prior instance is closed first. No-op if inputs are
         /// null/empty. Swallows and logs all errors so it can never break the host screen.
         /// </summary>
-        public static void Open(Canvas canvas, List<TacticalAbilityDef> defs, PerkSwapContext swapContext = null)
+        public static void Open(Canvas canvas, List<TacticalAbilityDef> defs, PerkSwapContext swapContext = null,
+            string titleTerm = TitleTerm, string titleFallback = TitleFallback)
         {
             try
             {
@@ -87,7 +88,7 @@ namespace Morgott.PerkOracle
                 backdropImg.raycastTarget = true;
                 backdropGo.GetComponent<Button>().onClick.AddListener(Close);
 
-                BuildPanel(_root.transform, defs, rootCanvas, swapContext);
+                BuildPanel(_root.transform, defs, rootCanvas, swapContext, titleTerm, titleFallback);
             }
             catch (Exception ex)
             {
@@ -118,7 +119,7 @@ namespace Morgott.PerkOracle
         }
 
         private static void BuildPanel(Transform parent, List<TacticalAbilityDef> defs, Canvas rootCanvas,
-            PerkSwapContext swapContext)
+            PerkSwapContext swapContext, string titleTerm, string titleFallback)
         {
             // Try to resolve a live native cell to clone (so cells look exactly like the game's). If found,
             // measure its on-screen size and render native clones; otherwise fall back to custom icons.
@@ -148,7 +149,7 @@ namespace Morgott.PerkOracle
             panelImg.raycastTarget = true; // eat clicks so they don't fall through to the backdrop
 
             // Fixed title strip across the panel top (does NOT scroll with the grid below it).
-            BuildTitle(panelGo.transform);
+            BuildTitle(panelGo.transform, titleTerm, titleFallback);
 
             // Viewport (mask) + scrollable content holding the grid; sits BELOW the title strip.
             var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(RectMask2D));
@@ -312,7 +313,7 @@ namespace Morgott.PerkOracle
         /// Fixed (non-scrolling) title bar pinned to the top of the panel. A thin dark header bar
         /// behind a centered game-styled label. Fully guarded; failure leaves the panel intact.
         /// </summary>
-        private static void BuildTitle(Transform panel)
+        private static void BuildTitle(Transform panel, string titleTerm, string titleFallback)
         {
             try
             {
@@ -333,7 +334,7 @@ namespace Morgott.PerkOracle
                 textGo.transform.SetParent(barGo.transform, false);
                 StretchFull(textGo.GetComponent<RectTransform>());
                 var text = textGo.GetComponent<Text>();
-                text.text = Loc.Get(TitleTerm, TitleFallback);
+                text.text = Loc.Get(titleTerm, titleFallback);
                 text.font = GetTitleFont();
                 text.fontSize = 22;
                 ((Graphic)text).color = Color.white;
