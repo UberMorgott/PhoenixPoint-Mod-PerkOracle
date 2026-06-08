@@ -9,11 +9,15 @@ using UnityEngine.UI;
 namespace Morgott.PerkOracle
 {
     /// <summary>
-    /// Attached to a subclass picker button (available OR greyed-injected). On right-click it opens the
-    /// view-only "CLASS PERKS" wiki banner for this button's <see cref="SpecializationDef"/>. Left-clicks
-    /// are ignored so the native "select this subclass" action is untouched on available buttons; greyed
-    /// buttons are non-selectable, so only the preview applies. Wrapped so a UI hiccup never throws into
-    /// the event system. Reuses the right-click-to-open convention from the progression screen.
+    /// Attached to a GREYED-injected subclass clone in the dual-class picker. The clone is non-selectable
+    /// (its native Button is disabled), so a LEFT-click there has no native action and we use it to open
+    /// the view-only "CLASS PERKS" wiki banner for the clone's <see cref="SpecializationDef"/> (clicking
+    /// again toggles it closed). We open on LEFT click because inside this MODAL right-click is routed to
+    /// the game's Cancel/input pipeline and is NEVER delivered as a UGUI pointer-click (confirmed by the
+    /// runtime diag log: only button=Left ever arrives) — the same reason the progression-screen wiki
+    /// hooks the cancel seam instead of an IPointerClickHandler. We deliberately do NOT attach this to the
+    /// native AVAILABLE buttons, so their left-click keeps the native "select this subclass" action intact.
+    /// Wrapped so a UI hiccup never throws into the event system.
     /// </summary>
     public sealed class SubclassWikiClickHandler : MonoBehaviour, IPointerClickHandler
     {
@@ -24,24 +28,38 @@ namespace Morgott.PerkOracle
         /// <summary>The subclass whose guaranteed perks this button previews.</summary>
         public SpecializationDef Spec;
 
+        /// <summary>
+        /// When true (greyed clones), a LEFT-click opens the preview. Set because right-click is consumed
+        /// by the modal's Cancel pipeline and never reaches this handler. Right-click is also accepted as a
+        /// trigger for robustness, in case a context ever does deliver it.
+        /// </summary>
+        public bool OpenOnLeftClick;
+
         public void OnPointerClick(PointerEventData eventData)
         {
             try
             {
                 Debug.Log("[PerkOracle][diag] OnPointerClick entered; button=" // TEMP diag (Feature A)
                     + (eventData != null ? eventData.button.ToString() : "<null evt>")
+                    + " openOnLeft=" + OpenOnLeftClick
                     + " spec=" + ((UnityEngine.Object)(object)Spec != (UnityEngine.Object)null
                         ? ((UnityEngine.Object)Spec).name : "<null>"));
-                if (eventData == null || eventData.button != PointerEventData.InputButton.Right)
+                if (eventData == null)
                 {
-                    return; // only right-click opens the preview; left-click stays native
+                    return;
+                }
+                bool isTrigger = eventData.button == PointerEventData.InputButton.Right
+                    || (OpenOnLeftClick && eventData.button == PointerEventData.InputButton.Left);
+                if (!isTrigger)
+                {
+                    return; // not our trigger button -> leave native handling (e.g. left-click select)
                 }
                 if ((UnityEngine.Object)(object)Spec == (UnityEngine.Object)null)
                 {
                     return;
                 }
 
-                // Wiki already open -> right-click toggles it closed (matches the progression screen).
+                // Wiki already open -> a trigger-click toggles it closed (matches the progression screen).
                 if (PerkWikiPanel.IsOpen)
                 {
                     PerkWikiPanel.Close();

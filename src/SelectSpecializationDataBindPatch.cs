@@ -11,10 +11,10 @@ namespace Morgott.PerkOracle
 {
     /// <summary>
     /// POSTFIX on the level-up subclass picker's populate seam. After the native code shows one button
-    /// per available subclass and hides the spare slots, this:
-    ///   1. makes every active subclass button right-clickable (preview its class perks);
-    ///   2. injects greyed, non-selectable clones for the subclasses the screen omitted (unresearched),
-    ///      also right-clickable for preview.
+    /// per available subclass and hides the spare slots, this injects greyed, non-selectable clones for
+    /// the genuinely-locked (unresearched) player subclasses the screen omitted, each left-clickable to
+    /// preview its class perks. The native available buttons are left untouched (their left-click keeps
+    /// the native select; right-click is unavailable inside this modal — consumed by the Cancel pipeline).
     /// Fully guarded so it can never break the picker; on any failure the native screen is untouched.
     /// Targets the VANILLA types (TFTV does not patch this modal). See spec 2026-06-08 Feature A.
     /// </summary>
@@ -43,9 +43,12 @@ namespace Morgott.PerkOracle
                         .GetComponentsInChildren<SpecializationOptionElementController>(true);
                 Debug.Log("[PerkOracle][diag] postfix start; elements=" + elements.Length); // TEMP diag (Feature A)
 
-                // 1) Right-clickify every currently ACTIVE button + collect the shown specs.
+                // 1) Collect the shown specs + a live template to clone. We do NOT attach our handler to
+                //    these native ACTIVE buttons: inside this modal right-click is consumed by the Cancel
+                //    pipeline (never delivered as a pointer-click), and a left-click here is the native
+                //    "select this subclass" action which must stay untouched. Preview is offered on the
+                //    greyed (locked) clones only, via left-click (see SubclassWikiClickHandler).
                 var shown = new List<SpecializationDef>();
-                int attached = 0; // TEMP diag (Feature A)
                 SpecializationOptionElementController activeTemplate = null;
                 foreach (SpecializationOptionElementController el in elements)
                 {
@@ -64,8 +67,6 @@ namespace Morgott.PerkOracle
                     {
                         shown.Add(el.SpecializationDef);
                     }
-                    AttachHandler(((Component)el).gameObject, el.SpecializationDef);
-                    attached++; // TEMP diag (Feature A)
                     Debug.Log("[PerkOracle][diag] active button spec=" // TEMP diag (Feature A)
                         + ((UnityEngine.Object)(object)el.SpecializationDef != (UnityEngine.Object)null
                             ? ((UnityEngine.Object)el.SpecializationDef).name : "<null>"));
@@ -81,7 +82,7 @@ namespace Morgott.PerkOracle
                     return; // nothing populated to clone from; leave the screen as-is
                 }
                 List<SpecializationDef> omitted = ClassPerkProvider.GetOmittedSubclasses(shown);
-                Debug.Log("[PerkOracle][diag] shown=" + shown.Count + " attached=" + attached // TEMP diag (Feature A)
+                Debug.Log("[PerkOracle][diag] shown=" + shown.Count // TEMP diag (Feature A)
                     + " omitted=" + omitted.Count);
                 foreach (SpecializationDef spec in omitted)
                 {
@@ -114,8 +115,12 @@ namespace Morgott.PerkOracle
             }
         }
 
-        /// <summary>Attach (or refresh) the right-click preview handler with the button's spec.</summary>
-        private static void AttachHandler(GameObject go, SpecializationDef spec)
+        /// <summary>
+        /// Attach (or refresh) the preview handler with the button's spec. <paramref name="openOnLeftClick"/>
+        /// is true for greyed clones (left-click opens, since right-click is consumed by the modal Cancel
+        /// pipeline and a clone has no native left action).
+        /// </summary>
+        private static void AttachHandler(GameObject go, SpecializationDef spec, bool openOnLeftClick)
         {
             var handler = go.GetComponent<SubclassWikiClickHandler>();
             if ((UnityEngine.Object)(object)handler == (UnityEngine.Object)null)
@@ -123,6 +128,7 @@ namespace Morgott.PerkOracle
                 handler = go.AddComponent<SubclassWikiClickHandler>();
             }
             handler.Spec = spec;
+            handler.OpenOnLeftClick = openOnLeftClick;
         }
 
         /// <summary>
@@ -157,8 +163,9 @@ namespace Morgott.PerkOracle
                 cloneEl.InitSpecialization(spec);
 
                 // Non-selectable: remove the native button's click listeners + disable interactability so
-                // a greyed (unresearched) class can never be picked. Right-click preview still works via
-                // our handler (which listens at the EventSystem level, not the Button).
+                // a greyed (unresearched) class can never be picked. The clone's Graphics keep their
+                // raycastTarget, so the EventSystem still delivers a LEFT-click to our handler below
+                // (verified by the runtime diag log) — that is what opens the preview.
                 var btn = cloneGo.GetComponent<Button>();
                 if ((UnityEngine.Object)(object)btn != (UnityEngine.Object)null)
                 {
@@ -173,7 +180,8 @@ namespace Morgott.PerkOracle
                     g.color = new Color(c.r * 0.5f, c.g * 0.5f, c.b * 0.5f, c.a * 0.6f);
                 }
 
-                AttachHandler(cloneGo, spec);
+                // Greyed clone has no native left action -> left-click opens the preview.
+                AttachHandler(cloneGo, spec, openOnLeftClick: true);
             }
             catch (Exception ex)
             {

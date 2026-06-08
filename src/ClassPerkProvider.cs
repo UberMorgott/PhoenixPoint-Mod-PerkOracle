@@ -5,6 +5,7 @@ using Base.Core;
 using Base.Defs;
 using PhoenixPoint.Common.Entities;
 using PhoenixPoint.Common.Entities.Characters;
+using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
 
@@ -95,6 +96,13 @@ namespace Morgott.PerkOracle
                 }
 
                 var shownSet = new HashSet<SpecializationDef>(shown ?? Enumerable.Empty<SpecializationDef>());
+
+                // Already-unlocked/researched player classes (incl. the soldier's own main class). The
+                // native picker offers a subset of these as the available SECOND classes; everything else
+                // in this set is researched-but-not-offered (e.g. the soldier's main) and must NOT be
+                // greyed-injected. Built from the faction's curated list; absent => empty (filter no-ops).
+                HashSet<SpecializationDef> unlocked = GetUnlockedSpecializations();
+
                 var omitted = new List<SpecializationDef>();
                 foreach (SpecializationDef spec in repo.GetAllDefs<SpecializationDef>())
                 {
@@ -102,11 +110,18 @@ namespace Morgott.PerkOracle
                     {
                         continue;
                     }
-                    // Only real, selectable subclasses: must have a class track and a proficiency, and
-                    // be usable as a second class (mirrors the picker's own filtering intent).
+                    // Only genuinely-locked PLAYER subclasses we should grey:
+                    //  - must have a class track + proficiency (native InitSpecialization dereferences both);
+                    //  - !NotSecondClassSpecialization (mirrors the native picker filter, UIStateEditSoldier:608);
+                    //  - !IsEliteUnit: the game's own player-vs-special discriminator (CharacterGenerationContext
+                    //    filters generatable classes by !IsEliteUnit) — excludes Raider/Mutoid/Scum/Slug specs
+                    //    whose proficiency icon/name visually duplicate the base classes (the reported "duplicates");
+                    //  - NOT already unlocked: leaves exactly the locked classes worth previewing.
                     if ((UnityEngine.Object)(object)spec.AbilityTrack == (UnityEngine.Object)null
                         || (UnityEngine.Object)(object)spec.GetSpecProficiency() == (UnityEngine.Object)null
-                        || spec.NotSecondClassSpecialization)
+                        || spec.NotSecondClassSpecialization
+                        || spec.IsEliteUnit
+                        || unlocked.Contains(spec))
                     {
                         continue;
                     }
@@ -119,6 +134,39 @@ namespace Morgott.PerkOracle
                 Debug.Log("[PerkOracle] ClassPerkProvider.GetOmittedSubclasses failed: " + ex.Message);
                 return new List<SpecializationDef>();
             }
+        }
+
+        /// <summary>
+        /// The player faction's currently unlocked/researched specializations (its curated
+        /// <c>AvailableCharacterSpecializations</c> list). Used to subtract already-available classes —
+        /// including the edited soldier's own main class — from the greyed-injection candidates. Returns
+        /// an empty set if the level/faction is not reachable (filter then simply does not subtract).
+        /// </summary>
+        private static HashSet<SpecializationDef> GetUnlockedSpecializations()
+        {
+            var set = new HashSet<SpecializationDef>();
+            try
+            {
+                GeoLevelController level = GameUtl.CurrentLevel()?.GetComponent<GeoLevelController>();
+                GeoFaction faction = (UnityEngine.Object)(object)level != (UnityEngine.Object)null
+                    ? level.PhoenixFaction
+                    : null;
+                if (faction != null && faction.AvailableCharacterSpecializations != null)
+                {
+                    foreach (SpecializationDef spec in faction.AvailableCharacterSpecializations)
+                    {
+                        if ((UnityEngine.Object)(object)spec != (UnityEngine.Object)null)
+                        {
+                            set.Add(spec);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log("[PerkOracle] ClassPerkProvider.GetUnlockedSpecializations failed: " + ex.Message);
+            }
+            return set;
         }
     }
 }
