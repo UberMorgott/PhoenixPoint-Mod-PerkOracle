@@ -89,7 +89,7 @@ namespace Morgott.PerkOracle
                         }
                         catch (Exception ex)
                         {
-                            Debug.Log("[PerkOracle] SelectSpecialization confirm callback failed: " + ex.Message);
+                            PerkOracleLog.Debug("[PerkOracle] SelectSpecialization confirm callback failed: " + ex.Message);
                         }
                     },
                     sender: null, userData: marker);
@@ -98,7 +98,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] SelectSpecializationElement prefix failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] SelectSpecializationElement prefix failed: " + ex.Message);
                 _confirmedElement = null;
                 return true; // never brick the picker -> let native selection proceed
             }

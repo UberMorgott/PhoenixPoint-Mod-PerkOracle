@@ -68,7 +68,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] SetSkillState postfix failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] SetSkillState postfix failed: " + ex.Message);
             }
         }
     }
@@ -85,7 +85,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] SetEmpty postfix failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] SetEmpty postfix failed: " + ex.Message);
             }
         }
     }

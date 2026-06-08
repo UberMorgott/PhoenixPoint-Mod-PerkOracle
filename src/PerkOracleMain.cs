@@ -60,15 +60,29 @@ namespace Morgott.PerkOracle
             }
         }
 
+        /// <summary>
+        /// Runtime read of the debug-logging toggle. Defaults to false when the config is unavailable,
+        /// so the mod stays silent unless the user explicitly opts in. Read by <see cref="PerkOracleLog"/>.
+        /// </summary>
+        public static bool DebugLoggingEnabled
+        {
+            get
+            {
+                PerkOracleMain inst = Instance;
+                PerkOracleConfig cfg = inst != null ? inst.Config : null;
+                return cfg != null && cfg.EnableDebugLogging;
+            }
+        }
+
         public override bool CanSafelyDisable => true;
 
         public override void OnModEnabled()
         {
             Instance = this;
-            Logger.LogInfo("[PerkOracle] OnModEnabled");
+            PerkOracleLog.Debug("[PerkOracle] OnModEnabled");
             var harmony = (Harmony)HarmonyInstance;
             harmony.PatchAll(Assembly.GetExecutingAssembly());
-            Logger.LogInfo("[PerkOracle] PatchAll done");
+            PerkOracleLog.Debug("[PerkOracle] PatchAll done");
             LoadLocalization();
             RegisterPerkSwapResearch();
         }
@@ -89,7 +103,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Logger.LogWarning("[PerkOracle] RegisterPerkSwapResearch failed: " + ex);
+                PerkOracleLog.Debug("[PerkOracle] RegisterPerkSwapResearch failed: " + ex);
             }
         }
 
@@ -109,7 +123,7 @@ namespace Morgott.PerkOracle
                 string path = Path.Combine(dir, "Assets", "Localization", "PerkOracle_Localization.csv");
                 if (!File.Exists(path))
                 {
-                    Logger.LogWarning("[PerkOracle] Localization CSV not found: " + path);
+                    PerkOracleLog.Debug("[PerkOracle] Localization CSV not found: " + path);
                     return;
                 }
 
@@ -121,23 +135,23 @@ namespace Morgott.PerkOracle
 
                 if (LocalizationManager.Sources == null || LocalizationManager.Sources.Count == 0)
                 {
-                    Logger.LogWarning("[PerkOracle] No I2 localization sources available; skipping CSV import.");
+                    PerkOracleLog.Debug("[PerkOracle] No I2 localization sources available; skipping CSV import.");
                     return;
                 }
 
                 LocalizationManager.Sources[0].Import_CSV(string.Empty, csv, eSpreadsheetUpdateMode.AddNewTerms, ',');
                 LocalizationManager.LocalizeAll(true);
-                Logger.LogInfo("[PerkOracle] Localization loaded from " + path);
+                PerkOracleLog.Debug("[PerkOracle] Localization loaded from " + path);
             }
             catch (Exception ex)
             {
-                Logger.LogWarning("[PerkOracle] Localization load failed: " + ex);
+                PerkOracleLog.Debug("[PerkOracle] Localization load failed: " + ex);
             }
         }
 
         public override void OnModDisabled()
         {
-            Logger.LogInfo("[PerkOracle] OnModDisabled");
+            PerkOracleLog.Debug("[PerkOracle] OnModDisabled");
         }
     }
 }

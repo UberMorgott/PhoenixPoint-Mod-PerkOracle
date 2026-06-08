@@ -52,7 +52,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] ResearchTooltipIconPatch.Postfix failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] ResearchTooltipIconPatch.Postfix failed: " + ex.Message);
             }
         }
     }

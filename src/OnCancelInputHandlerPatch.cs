@@ -58,7 +58,7 @@ namespace Morgott.PerkOracle
                 List<TacticalAbilityDef> defs = PerkWikiPool.ResolveForSlot(level0, className);
                 if (defs == null || defs.Count == 0)
                 {
-                    Debug.Log("[PerkOracle] perk wiki: empty pool for level0=" + level0
+                    PerkOracleLog.Debug("[PerkOracle] perk wiki: empty pool for level0=" + level0
                               + " class=" + (className ?? "<null>"));
                     return true; // nothing to show -> let normal back proceed
                 }
@@ -80,7 +80,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] OnCancelInputHandler prefix failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] OnCancelInputHandler prefix failed: " + ex.Message);
                 return true; // on any failure, never block the normal back action
             }
         }

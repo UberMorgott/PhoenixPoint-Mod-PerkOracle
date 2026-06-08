@@ -93,7 +93,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] WikiIconFactory.MakeNative failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] WikiIconFactory.MakeNative failed: " + ex.Message);
                 return null;
             }
         }
@@ -146,7 +146,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] WikiIconFactory.Make failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] WikiIconFactory.Make failed: " + ex.Message);
                 return null;
             }
         }
@@ -168,7 +168,7 @@ namespace Morgott.PerkOracle
             catch (Exception ex)
             {
                 // Tooltip/click is non-essential; the cell still shows.
-                Debug.Log("[PerkOracle] WikiIconFactory tooltip failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] WikiIconFactory tooltip failed: " + ex.Message);
             }
         }
     }

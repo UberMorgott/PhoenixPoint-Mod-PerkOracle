@@ -300,7 +300,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] vanilla personal pool query failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] vanilla personal pool query failed: " + ex.Message);
                 return new List<TacticalAbilityDef>();
             }
         }
@@ -346,14 +346,14 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] def-name index build failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] def-name index build failed: " + ex.Message);
             }
         }
 
         private static void LogOnce(string message)
         {
             // EnsureInitialized only runs the resolution path once, so this fires at most once.
-            Debug.Log(message);
+            PerkOracleLog.Debug(message);
         }
     }
 }

@@ -64,7 +64,7 @@ namespace Morgott.PerkOracle
                 List<TacticalAbilityDef> defs = ClassPerkProvider.GetClassPerks(Spec);
                 if (defs == null || defs.Count == 0)
                 {
-                    Debug.Log("[PerkOracle] subclass wiki: empty class-perk list for "
+                    PerkOracleLog.Debug("[PerkOracle] subclass wiki: empty class-perk list for "
                               + ((UnityEngine.Object)Spec).name);
                     return;
                 }
@@ -80,7 +80,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] SubclassWikiClickHandler.OnPointerClick failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] SubclassWikiClickHandler.OnPointerClick failed: " + ex.Message);
             }
         }
     }

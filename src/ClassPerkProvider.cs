@@ -76,7 +76,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] ClassPerkProvider.GetClassPerks failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] ClassPerkProvider.GetClassPerks failed: " + ex.Message);
                 return new List<TacticalAbilityDef>();
             }
         }
@@ -139,7 +139,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] ClassPerkProvider.GetOmittedSubclasses failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] ClassPerkProvider.GetOmittedSubclasses failed: " + ex.Message);
                 return new List<SpecializationDef>();
             }
         }
@@ -172,7 +172,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] ClassPerkProvider.GetUnlockedSpecializations failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] ClassPerkProvider.GetUnlockedSpecializations failed: " + ex.Message);
             }
             return set;
         }
@@ -222,7 +222,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] ClassPerkProvider.GetSelectableSubclassUniverse failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] ClassPerkProvider.GetSelectableSubclassUniverse failed: " + ex.Message);
             }
             return list;
         }

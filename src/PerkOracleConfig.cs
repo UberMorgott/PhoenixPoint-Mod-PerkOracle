@@ -33,6 +33,13 @@ namespace Morgott.PerkOracle
         public bool PerkSwapCostsResources = false;
 
         /// <summary>
+        /// When true, the mod writes its <c>[PerkOracle] ...</c> diagnostic lines to the player log
+        /// (routed through <see cref="PerkOracleLog"/>). Default OFF: a shipped mod is silent. Turn this
+        /// on only to diagnose an issue, then send the log.
+        /// </summary>
+        public bool EnableDebugLogging = false;
+
+        /// <summary>
         /// Localize the in-game options UI for <see cref="AllowPerkSwap"/>. The base implementation builds
         /// one <see cref="ModConfigField"/> per public field; we keep those (so value get/set still work)
         /// and only override the <c>GetText</c>/<c>GetDescription</c> delegates of the AllowPerkSwap field
@@ -64,6 +71,13 @@ namespace Morgott.PerkOracle
                     field.GetDescription = () => Loc.Get(
                         "PERKORACLE_PerkSwapCostsResources_DESCRIPTION",
                         "Placeholder for a future update: make perk swapping cost resources. Currently has no effect.");
+                }
+                else if (field.ID == nameof(EnableDebugLogging))
+                {
+                    field.GetText = () => Loc.Get("PERKORACLE_EnableDebugLogging", "Enable PerkOracle debug logging");
+                    field.GetDescription = () => Loc.Get(
+                        "PERKORACLE_EnableDebugLogging_DESCRIPTION",
+                        "When on, PerkOracle writes diagnostic messages to the player log. Leave off for normal play; turn on only to help diagnose an issue.");
                 }
             }
             return fields;

@@ -35,7 +35,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] UIStateGeoModal.OnCancel prefix failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] UIStateGeoModal.OnCancel prefix failed: " + ex.Message);
             }
             return true; // banner not open -> let the native cancel exit the modal as normal
         }
@@ -56,7 +56,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] UIStateGeoModal.ExitState postfix failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] UIStateGeoModal.ExitState postfix failed: " + ex.Message);
             }
         }
     }

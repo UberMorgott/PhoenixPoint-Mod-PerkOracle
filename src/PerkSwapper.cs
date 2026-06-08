@@ -78,7 +78,7 @@ namespace Morgott.PerkOracle
                 {
                     if (verdict == PerkSwapVerdict.DenyAlreadyOwned)
                     {
-                        Debug.Log("[PerkOracle] PerkSwap skipped: "
+                        PerkOracleLog.Debug("[PerkOracle] PerkSwap skipped: "
                                   + DefName(chosenDef) + " already owned by soldier.");
                     }
                     // Not-learned / same-as-current / invalid: silent no-op per design.
@@ -90,14 +90,14 @@ namespace Morgott.PerkOracle
                     Traverse.Create(progression).Field("_abilities").GetValue<List<TacticalAbilityDef>>();
                 if (abilities == null)
                 {
-                    Debug.Log("[PerkOracle] PerkSwap aborted: could not reflect _abilities.");
+                    PerkOracleLog.Debug("[PerkOracle] PerkSwap aborted: could not reflect _abilities.");
                     return false;
                 }
                 // If the old def is not actually in _abilities the swap would leave the slot pointing at a
                 // def the soldier doesn't own. Abort BEFORE mutating slot.Ability so nothing is half-done.
                 if (!abilities.Remove(oldDef))
                 {
-                    Debug.Log("[PerkOracle] PerkSwap aborted: old def "
+                    PerkOracleLog.Debug("[PerkOracle] PerkSwap aborted: old def "
                               + DefName(oldDef) + " was not in _abilities (nothing mutated).");
                     return false;
                 }
@@ -128,7 +128,7 @@ namespace Morgott.PerkOracle
                     catch (Exception ex)
                     {
                         // Data swap already committed; only the recompute failed. Log and carry on.
-                        Debug.Log("[PerkOracle] PerkSwap stat recompute (UpdateStats) failed: " + ex.Message);
+                        PerkOracleLog.Debug("[PerkOracle] PerkSwap stat recompute (UpdateStats) failed: " + ex.Message);
                     }
 
                     // step 5: repaint the progression grid via reflection (private SetAbilityTracks).
@@ -140,7 +140,7 @@ namespace Morgott.PerkOracle
                     {
                         // The data swap already succeeded; only the immediate repaint failed. Log and carry on
                         // (the grid refreshes on the next natural redraw).
-                        Debug.Log("[PerkOracle] PerkSwap repaint (SetAbilityTracks) failed: " + ex.Message);
+                        PerkOracleLog.Debug("[PerkOracle] PerkSwap repaint (SetAbilityTracks) failed: " + ex.Message);
                     }
                 }
                 catch (Exception ex)
@@ -164,19 +164,19 @@ namespace Morgott.PerkOracle
                     }
                     catch (Exception rollbackEx)
                     {
-                        Debug.Log("[PerkOracle] PerkSwap rollback failed: " + rollbackEx.Message);
+                        PerkOracleLog.Debug("[PerkOracle] PerkSwap rollback failed: " + rollbackEx.Message);
                     }
-                    Debug.Log("[PerkOracle] PerkSwap failed mid-sequence, rolled back: " + ex.Message);
+                    PerkOracleLog.Debug("[PerkOracle] PerkSwap failed mid-sequence, rolled back: " + ex.Message);
                     return false;
                 }
 
-                Debug.Log("[PerkOracle] PerkSwap: " + DefName(oldDef) + " -> " + DefName(chosenDef)
+                PerkOracleLog.Debug("[PerkOracle] PerkSwap: " + DefName(oldDef) + " -> " + DefName(chosenDef)
                           + " @ level " + LevelLabel(ctx));
                 return true;
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] PerkSwapper.TrySwap failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] PerkSwapper.TrySwap failed: " + ex.Message);
                 return false;
             }
         }

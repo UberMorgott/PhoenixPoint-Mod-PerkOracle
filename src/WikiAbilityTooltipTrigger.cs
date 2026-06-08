@@ -92,7 +92,7 @@ namespace Morgott.PerkOracle
                     string msg = Loc.Get(
                         "PERKORACLE_SwapResearchLocked",
                         "Perk reassignment requires the \"Operative Reconditioning\" research.");
-                    Debug.Log("[PerkOracle] PerkSwap denied (research locked): " + msg);
+                    PerkOracleLog.Debug("[PerkOracle] PerkSwap denied (research locked): " + msg);
                     ShowDenyMessage(msg);
                     return; // wiki stays open so the player sees the candidates again
                 }
@@ -110,7 +110,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] WikiAbilityTooltipTrigger.OnPointerClick failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] WikiAbilityTooltipTrigger.OnPointerClick failed: " + ex.Message);
             }
         }
 
@@ -134,7 +134,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] WikiAbilityTooltipTrigger.ShowDenyMessage failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] WikiAbilityTooltipTrigger.ShowDenyMessage failed: " + ex.Message);
             }
         }
 
@@ -165,7 +165,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] WikiAbilityTooltipTrigger.OnPointerEnter failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] WikiAbilityTooltipTrigger.OnPointerEnter failed: " + ex.Message);
             }
         }
 
@@ -181,7 +181,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] WikiAbilityTooltipTrigger.OnPointerExit failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] WikiAbilityTooltipTrigger.OnPointerExit failed: " + ex.Message);
             }
         }
 
@@ -227,7 +227,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] WikiAbilityTooltipTrigger.Position failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] WikiAbilityTooltipTrigger.Position failed: " + ex.Message);
             }
         }
     }

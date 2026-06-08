@@ -92,7 +92,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] PerkWikiPanel.Open failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] PerkWikiPanel.Open failed: " + ex.Message);
                 Close();
             }
         }
@@ -244,7 +244,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] PerkWikiPanel.ResolveTemplateCell failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] PerkWikiPanel.ResolveTemplateCell failed: " + ex.Message);
                 return null;
             }
         }
@@ -271,7 +271,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] PerkWikiPanel.MeasureCellSize failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] PerkWikiPanel.MeasureCellSize failed: " + ex.Message);
             }
             return CellSize;
         }
@@ -312,7 +312,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] PerkWikiPanel.CreateTooltipClone failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] PerkWikiPanel.CreateTooltipClone failed: " + ex.Message);
                 _tooltipGo = null;
                 _tooltip = null;
             }
@@ -354,7 +354,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] PerkWikiPanel.BuildTitle failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] PerkWikiPanel.BuildTitle failed: " + ex.Message);
             }
         }
 
@@ -377,7 +377,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] PerkWikiPanel.GetTitleFont failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] PerkWikiPanel.GetTitleFont failed: " + ex.Message);
             }
             if ((UnityEngine.Object)(object)_titleFont == (UnityEngine.Object)null)
             {

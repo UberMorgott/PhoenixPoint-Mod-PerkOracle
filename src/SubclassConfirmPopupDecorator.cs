@@ -151,7 +151,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] SubclassConfirmPopupDecorator postfix failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] SubclassConfirmPopupDecorator postfix failed: " + ex.Message);
             }
         }
 
@@ -171,7 +171,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] SubclassConfirmPopupDecorator.ReadMarker failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] SubclassConfirmPopupDecorator.ReadMarker failed: " + ex.Message);
                 return null;
             }
         }
@@ -195,7 +195,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] SubclassConfirmPopupDecorator.ResolveTextHost failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] SubclassConfirmPopupDecorator.ResolveTextHost failed: " + ex.Message);
             }
             return host;
         }
@@ -266,7 +266,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] SubclassConfirmPopupDecorator.CreateTooltip failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] SubclassConfirmPopupDecorator.CreateTooltip failed: " + ex.Message);
                 if ((UnityEngine.Object)(object)go != (UnityEngine.Object)null)
                 {
                     UnityEngine.Object.Destroy(go);
@@ -298,7 +298,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] ConfirmRowCleanup failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] ConfirmRowCleanup failed: " + ex.Message);
             }
         }
     }

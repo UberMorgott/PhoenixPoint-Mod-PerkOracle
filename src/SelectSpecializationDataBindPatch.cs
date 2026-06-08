@@ -85,7 +85,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] SelectSpecializationDataBind postfix failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] SelectSpecializationDataBind postfix failed: " + ex.Message);
             }
         }
 
@@ -182,7 +182,7 @@ namespace Morgott.PerkOracle
                 {
                     UnityEngine.Object.DestroyImmediate(cloneGo);
                 }
-                Debug.Log("[PerkOracle] InjectGreyedEntry failed for "
+                PerkOracleLog.Debug("[PerkOracle] InjectGreyedEntry failed for "
                           + ((UnityEngine.Object)(object)spec != (UnityEngine.Object)null
                              ? ((UnityEngine.Object)spec).name : "<null>")
                           + ": " + ex.Message);

@@ -93,7 +93,7 @@ namespace Morgott.PerkOracle
             {
                 if (repo == null)
                 {
-                    Debug.Log("[PerkOracle] PerkSwapResearch: null DefRepository, skipping.");
+                    PerkOracleLog.Debug("[PerkOracle] PerkSwapResearch: null DefRepository, skipping.");
                     return;
                 }
 
@@ -112,7 +112,7 @@ namespace Morgott.PerkOracle
                     ?? repo.GetAllDefs<ResearchDef>().FirstOrDefault(d => d.name == TemplateResearchName);
                 if ((UnityEngine.Object)(object)template == (UnityEngine.Object)null)
                 {
-                    Debug.Log("[PerkOracle] PerkSwapResearch: template '" + TemplateResearchName
+                    PerkOracleLog.Debug("[PerkOracle] PerkSwapResearch: template '" + TemplateResearchName
                               + "' not found; skipping registration.");
                     return;
                 }
@@ -120,7 +120,7 @@ namespace Morgott.PerkOracle
                 ResearchDbDef db = FindResearchDb(repo);
                 if ((UnityEngine.Object)(object)db == (UnityEngine.Object)null || db.Researches == null)
                 {
-                    Debug.Log("[PerkOracle] PerkSwapResearch: research DB '" + ResearchDbName
+                    PerkOracleLog.Debug("[PerkOracle] PerkSwapResearch: research DB '" + ResearchDbName
                               + "' not found; skipping registration.");
                     return;
                 }
@@ -129,7 +129,7 @@ namespace Morgott.PerkOracle
                 ResearchDef research = repo.CreateDef<ResearchDef>(ResearchId, template);
                 if ((UnityEngine.Object)(object)research == (UnityEngine.Object)null)
                 {
-                    Debug.Log("[PerkOracle] PerkSwapResearch: CreateDef returned null; skipping.");
+                    PerkOracleLog.Debug("[PerkOracle] PerkSwapResearch: CreateDef returned null; skipping.");
                     return;
                 }
 
@@ -158,14 +158,14 @@ namespace Morgott.PerkOracle
                 }
 
                 db.Researches.Add(research);
-                Debug.Log("[PerkOracle] PerkSwapResearch registered: " + ResearchId
+                PerkOracleLog.Debug("[PerkOracle] PerkSwapResearch registered: " + ResearchId
                           + " (cost " + ResearchPointCost + ") into " + ResearchDbName);
             }
             catch (Exception ex)
             {
                 // Never throw out of ApplyDefRepoPatches — a failure just leaves the gate's HasCompleted
                 // returning false, which the swap gate handles (deny + message) or the user disables.
-                Debug.Log("[PerkOracle] PerkSwapResearch.EnsureRegistered failed: " + ex);
+                PerkOracleLog.Debug("[PerkOracle] PerkSwapResearch.EnsureRegistered failed: " + ex);
             }
         }
 
@@ -192,7 +192,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] PerkSwapResearch.GateVerdict failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] PerkSwapResearch.GateVerdict failed: " + ex.Message);
             }
             return PerkSwapVerdict.DenyResearchLocked;
         }
@@ -232,7 +232,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] PerkSwapResearch: clearing requirements failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] PerkSwapResearch: clearing requirements failed: " + ex.Message);
             }
         }
 
@@ -272,7 +272,7 @@ namespace Morgott.PerkOracle
                 ResearchViewElementDef templateVed = template.ViewElementDef;
                 if ((UnityEngine.Object)(object)templateVed == (UnityEngine.Object)null)
                 {
-                    Debug.Log("[PerkOracle] PerkSwapResearch: template has no ViewElementDef; using none.");
+                    PerkOracleLog.Debug("[PerkOracle] PerkSwapResearch: template has no ViewElementDef; using none.");
                     return null;
                 }
 
@@ -300,7 +300,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] PerkSwapResearch.CreateViewElement failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] PerkSwapResearch.CreateViewElement failed: " + ex.Message);
                 return null;
             }
         }
@@ -371,7 +371,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] PerkSwapResearch.TryLoadCustomIconSprite failed: " + ex.Message);
+                PerkOracleLog.Debug("[PerkOracle] PerkSwapResearch.TryLoadCustomIconSprite failed: " + ex.Message);
                 return null;
             }
         }
