@@ -1,0 +1,124 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Base.Core;
+using Base.Defs;
+using PhoenixPoint.Common.Entities;
+using PhoenixPoint.Common.Entities.Characters;
+using PhoenixPoint.Tactical.Entities.Abilities;
+using UnityEngine;
+
+namespace Morgott.PerkOracle
+{
+    /// <summary>
+    /// Game-side adapter that turns a subclass <see cref="SpecializationDef"/> into the ordered,
+    /// de-duplicated list of its guaranteed class-track perks, and enumerates the full subclass set
+    /// so the picker patch can grey-inject the subclasses the screen omitted. The pure ordering/dedup
+    /// lives in <see cref="ClassPerkResolver"/>; this class only reads the game's defs and resolves
+    /// names. Every public method is guarded so a failure never breaks the host screen.
+    /// </summary>
+    public static class ClassPerkProvider
+    {
+        /// <summary>
+        /// Ordered, de-duplicated guaranteed class-track perks for <paramref name="spec"/> (level order:
+        /// the spec proficiency first, then each ability slot). Returns an empty list on null/missing
+        /// inputs or any error. The result feeds <see cref="PerkWikiPanel.Open"/> directly.
+        /// </summary>
+        public static List<TacticalAbilityDef> GetClassPerks(SpecializationDef spec)
+        {
+            try
+            {
+                if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null
+                    || (UnityEngine.Object)(object)spec.AbilityTrack == (UnityEngine.Object)null
+                    || spec.AbilityTrack.AbilitiesByLevel == null)
+                {
+                    return new List<TacticalAbilityDef>();
+                }
+
+                // Build the ordered ability list directly from the class track. Proficiency first
+                // (matches SpecializationDef.GetAbilitiesTillLevel), then each level slot's ability.
+                var ordered = new List<TacticalAbilityDef>();
+                ClassProficiencyAbilityDef prof = spec.GetSpecProficiency();
+                if ((UnityEngine.Object)(object)prof != (UnityEngine.Object)null)
+                {
+                    ordered.Add(prof);
+                }
+                foreach (AbilityTrackSlot slot in spec.AbilityTrack.AbilitiesByLevel)
+                {
+                    if (slot != null && (UnityEngine.Object)(object)slot.Ability != (UnityEngine.Object)null)
+                    {
+                        ordered.Add(slot.Ability);
+                    }
+                }
+
+                // Index the ordered defs by name, then run the pure resolver over the name order so the
+                // dedup/skip logic stays in the tested core. name -> def via this local map.
+                var byName = new Dictionary<string, TacticalAbilityDef>(StringComparer.Ordinal);
+                var names = new List<string>(ordered.Count);
+                foreach (TacticalAbilityDef def in ordered)
+                {
+                    string n = ((UnityEngine.Object)def).name;
+                    if (string.IsNullOrEmpty(n))
+                    {
+                        continue;
+                    }
+                    if (!byName.ContainsKey(n))
+                    {
+                        byName[n] = def;
+                    }
+                    names.Add(n);
+                }
+
+                return ClassPerkResolver.Resolve(names,
+                    n => byName.TryGetValue(n, out TacticalAbilityDef d) ? d : null);
+            }
+            catch (Exception ex)
+            {
+                Debug.Log("[PerkOracle] ClassPerkProvider.GetClassPerks failed: " + ex.Message);
+                return new List<TacticalAbilityDef>();
+            }
+        }
+
+        /// <summary>
+        /// Subclasses present in the full game def set but NOT in <paramref name="shown"/> (the specs the
+        /// picker actually displays). These are the "greyed/unresearched" entries to inject. Compared by
+        /// reference. Returns an empty list on any error.
+        /// </summary>
+        public static List<SpecializationDef> GetOmittedSubclasses(IEnumerable<SpecializationDef> shown)
+        {
+            try
+            {
+                DefRepository repo = GameUtl.GameComponent<DefRepository>();
+                if (repo == null)
+                {
+                    return new List<SpecializationDef>();
+                }
+
+                var shownSet = new HashSet<SpecializationDef>(shown ?? Enumerable.Empty<SpecializationDef>());
+                var omitted = new List<SpecializationDef>();
+                foreach (SpecializationDef spec in repo.GetAllDefs<SpecializationDef>())
+                {
+                    if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null || shownSet.Contains(spec))
+                    {
+                        continue;
+                    }
+                    // Only real, selectable subclasses: must have a class track and a proficiency, and
+                    // be usable as a second class (mirrors the picker's own filtering intent).
+                    if ((UnityEngine.Object)(object)spec.AbilityTrack == (UnityEngine.Object)null
+                        || (UnityEngine.Object)(object)spec.GetSpecProficiency() == (UnityEngine.Object)null
+                        || spec.NotSecondClassSpecialization)
+                    {
+                        continue;
+                    }
+                    omitted.Add(spec);
+                }
+                return omitted;
+            }
+            catch (Exception ex)
+            {
+                Debug.Log("[PerkOracle] ClassPerkProvider.GetOmittedSubclasses failed: " + ex.Message);
+                return new List<SpecializationDef>();
+            }
+        }
+    }
+}
