@@ -55,7 +55,7 @@ The easiest route is to **subscribe on the [Steam Workshop](https://steamcommuni
 
 To install by hand:
 
-1. Download the latest release ZIP from [GitHub Releases](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest) (current asset: `PerkOracle-v1.2.0.zip`).
+1. Download the `PerkOracle-*.zip` from the [latest release page](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest).
 2. Extract it. You get a `PerkOracle` folder containing `PerkOracle.dll`, `meta.json`, and an `Assets/` folder.
 3. Copy that folder into your Phoenix Point `Mods` folder. For a Steam install this is usually `…\steamapps\common\Phoenix Point\Mods\` (create `Mods` if it doesn't exist). The final path should be `Phoenix Point\Mods\PerkOracle\meta.json`.
 4. Launch Phoenix Point and enable **PerkOracle** in the in-game mod manager. If you run TFTV, let PerkOracle load after it.
@@ -145,7 +145,7 @@ PerkOracle работает автономно с базовой игрой, с�
 
 Для ручной установки:
 
-1. Скачайте ZIP последнего релиза со страницы [GitHub Releases](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest) (текущий файл: `PerkOracle-v1.2.0.zip`).
+1. Скачайте `PerkOracle-*.zip` со [страницы последнего релиза](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest).
 2. Распакуйте его. Вы получите папку `PerkOracle` с файлами `PerkOracle.dll`, `meta.json` и папкой `Assets/`.
 3. Скопируйте эту папку в каталог `Mods` игры Phoenix Point. Для установки через Steam это обычно `…\steamapps\common\Phoenix Point\Mods\` (создайте папку `Mods`, если её нет). Итоговый путь: `Phoenix Point\Mods\PerkOracle\meta.json`.
 4. Запустите Phoenix Point и включите **PerkOracle** во внутриигровом менеджере модов. Если используете TFTV, пусть PerkOracle загружается после него.
