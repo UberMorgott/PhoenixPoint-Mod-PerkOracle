@@ -1,0 +1,145 @@
+using System;
+using System.Collections.Generic;
+using HarmonyLib;
+using PhoenixPoint.Common.Entities;
+using PhoenixPoint.Geoscape.View.ViewControllers;
+using PhoenixPoint.Geoscape.View.ViewControllers.Modal;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace Morgott.PerkOracle
+{
+    /// <summary>
+    /// POSTFIX on the level-up subclass picker's populate seam. After the native code shows one button
+    /// per available subclass and hides the spare slots, this:
+    ///   1. makes every active subclass button right-clickable (preview its class perks);
+    ///   2. injects greyed, non-selectable clones for the subclasses the screen omitted (unresearched),
+    ///      also right-clickable for preview.
+    /// Fully guarded so it can never break the picker; on any failure the native screen is untouched.
+    /// Targets the VANILLA types (TFTV does not patch this modal). See spec 2026-06-08 Feature A.
+    /// </summary>
+    [HarmonyPatch(typeof(SelectSpecializationDataBind), "ModalShowHandler")]
+    internal static class SelectSpecializationDataBindPatch
+    {
+        private static void Postfix(SelectSpecializationDataBind __instance, Transform ___DualClassButtonContainer)
+        {
+            try
+            {
+                if ((UnityEngine.Object)(object)___DualClassButtonContainer == (UnityEngine.Object)null)
+                {
+                    return;
+                }
+
+                SpecializationOptionElementController[] elements =
+                    ((Component)___DualClassButtonContainer)
+                        .GetComponentsInChildren<SpecializationOptionElementController>(true);
+
+                // 1) Right-clickify every currently ACTIVE button + collect the shown specs.
+                var shown = new List<SpecializationDef>();
+                SpecializationOptionElementController activeTemplate = null;
+                foreach (SpecializationOptionElementController el in elements)
+                {
+                    if ((UnityEngine.Object)(object)el == (UnityEngine.Object)null
+                        || !((Component)el).gameObject.activeSelf)
+                    {
+                        continue;
+                    }
+                    if ((UnityEngine.Object)(object)el.SpecializationDef != (UnityEngine.Object)null)
+                    {
+                        shown.Add(el.SpecializationDef);
+                    }
+                    AttachHandler(((Component)el).gameObject, el.SpecializationDef);
+                    if (activeTemplate == null)
+                    {
+                        activeTemplate = el; // a live, populated button to clone for greyed entries
+                    }
+                }
+
+                // 2) Inject greyed clones for omitted subclasses. Need a live template to clone.
+                if (activeTemplate == null)
+                {
+                    return; // nothing populated to clone from; leave the screen as-is
+                }
+                List<SpecializationDef> omitted = ClassPerkProvider.GetOmittedSubclasses(shown);
+                foreach (SpecializationDef spec in omitted)
+                {
+                    InjectGreyedEntry(activeTemplate, ___DualClassButtonContainer, spec);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log("[PerkOracle] SelectSpecializationDataBind postfix failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>Attach (or refresh) the right-click preview handler with the button's spec.</summary>
+        private static void AttachHandler(GameObject go, SpecializationDef spec)
+        {
+            var handler = go.GetComponent<SubclassWikiClickHandler>();
+            if ((UnityEngine.Object)(object)handler == (UnityEngine.Object)null)
+            {
+                handler = go.AddComponent<SubclassWikiClickHandler>();
+            }
+            handler.Spec = spec;
+        }
+
+        /// <summary>
+        /// Clone the native button <paramref name="template"/>, populate it for <paramref name="spec"/>
+        /// via the native InitSpecialization, grey it out, strip its select affordance, and make it
+        /// right-clickable for preview. Non-fatal: a single bad clone is logged and skipped.
+        /// </summary>
+        private static void InjectGreyedEntry(SpecializationOptionElementController template,
+            Transform container, SpecializationDef spec)
+        {
+            try
+            {
+                if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null
+                    || (UnityEngine.Object)(object)spec.GetSpecProficiency() == (UnityEngine.Object)null)
+                {
+                    return; // InitSpecialization dereferences the proficiency view element
+                }
+
+                GameObject cloneGo = UnityEngine.Object.Instantiate(
+                    ((Component)template).gameObject, container, false);
+                cloneGo.name = "PerkOracleGreyedSubclass";
+                cloneGo.SetActive(true);
+
+                var cloneEl = cloneGo.GetComponent<SpecializationOptionElementController>();
+                if ((UnityEngine.Object)(object)cloneEl == (UnityEngine.Object)null)
+                {
+                    UnityEngine.Object.Destroy(cloneGo);
+                    return;
+                }
+
+                // Populate with the native path so icon/title/description look like a real entry.
+                cloneEl.InitSpecialization(spec);
+
+                // Non-selectable: remove the native button's click listeners + disable interactability so
+                // a greyed (unresearched) class can never be picked. Right-click preview still works via
+                // our handler (which listens at the EventSystem level, not the Button).
+                var btn = cloneGo.GetComponent<Button>();
+                if ((UnityEngine.Object)(object)btn != (UnityEngine.Object)null)
+                {
+                    btn.onClick.RemoveAllListeners();
+                    btn.interactable = false;
+                }
+
+                // Grey tint: dim every Graphic (icon + labels) so it reads as inactive.
+                foreach (Graphic g in cloneGo.GetComponentsInChildren<Graphic>(true))
+                {
+                    Color c = g.color;
+                    g.color = new Color(c.r * 0.5f, c.g * 0.5f, c.b * 0.5f, c.a * 0.6f);
+                }
+
+                AttachHandler(cloneGo, spec);
+            }
+            catch (Exception ex)
+            {
+                Debug.Log("[PerkOracle] InjectGreyedEntry failed for "
+                          + ((UnityEngine.Object)(object)spec != (UnityEngine.Object)null
+                             ? ((UnityEngine.Object)spec).name : "<null>")
+                          + ": " + ex.Message);
+            }
+        }
+    }
+}
