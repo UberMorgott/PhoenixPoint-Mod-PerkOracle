@@ -286,7 +286,18 @@ namespace Morgott.PerkOracle
         {
             try
             {
+                // Prefer a live (active) in-scene tooltip; if none is active (e.g. inside the dual-class
+                // MODAL the progression tooltip GO is inactive), fall back to Resources.FindObjectsOfTypeAll
+                // which also returns inactive scene instances so the class-perk banner still gets a tooltip.
                 var template = UnityEngine.Object.FindObjectsOfType<GeoRosterAbilityDetailTooltip>().FirstOrDefault();
+                if ((UnityEngine.Object)(object)template == (UnityEngine.Object)null)
+                {
+                    template = Resources.FindObjectsOfTypeAll<GeoRosterAbilityDetailTooltip>()
+                        .FirstOrDefault(t => (UnityEngine.Object)(object)t != (UnityEngine.Object)null
+                            && t.gameObject.scene.IsValid()); // a scene instance, not a prefab asset
+                }
+                Debug.Log("[PerkOracle][diag] tooltip template found=" // TEMP diag (Feature A)
+                    + ((UnityEngine.Object)(object)template != (UnityEngine.Object)null));
                 if ((UnityEngine.Object)(object)template == (UnityEngine.Object)null)
                 {
                     return;

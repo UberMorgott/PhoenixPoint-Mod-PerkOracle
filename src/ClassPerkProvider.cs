@@ -5,6 +5,7 @@ using Base.Core;
 using Base.Defs;
 using PhoenixPoint.Common.Entities;
 using PhoenixPoint.Common.Entities.Characters;
+using PhoenixPoint.Geoscape.Entities.Research.Reward;
 using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
@@ -103,53 +104,34 @@ namespace Morgott.PerkOracle
                 // greyed-injected. Built from the faction's curated list; absent => empty (filter no-ops).
                 HashSet<SpecializationDef> unlocked = GetUnlockedSpecializations();
 
-                // Distinct-by-CLASS so two specs of the same class can never both be greyed (e.g. the legit
-                // "Sniper" + its elite "SniperRaider" twin both render as Sniper). The IsEliteUnit filter
-                // below already drops the Raider/special twins; this is belt-and-suspenders against any
-                // remaining same-class collision or a duplicate yield from GetAllDefs. Key = ClassTag if
-                // present (the visual identity), else the def name.
-                var seenClasses = new HashSet<string>(StringComparer.Ordinal);
-                // Seed with the classes already SHOWN (active native buttons), so we never grey a class
-                // that is already on screen even if its def reference differs from the GetAllDefs entry.
-                foreach (SpecializationDef s in shownSet)
-                {
-                    string k = (UnityEngine.Object)(object)s != (UnityEngine.Object)null
-                        && (UnityEngine.Object)(object)s.ClassTag != (UnityEngine.Object)null
-                        ? ((UnityEngine.Object)s.ClassTag).name
-                        : ((UnityEngine.Object)(object)s != (UnityEngine.Object)null ? ((UnityEngine.Object)s).name : null);
-                    if (!string.IsNullOrEmpty(k))
-                    {
-                        seenClasses.Add(k);
-                    }
-                }
+                // AUTHORITATIVE universe of player second-class specializations: exactly the set the game
+                // can add to a faction via AddSpecialization — the faction's InitialSpecializationDefs plus
+                // every class-research reward (ClassResearchRewardDef.SpecializationDef). This is the same
+                // pool that feeds AvailableCharacterSpecializations as classes are unlocked, so it cleanly
+                // excludes non-player specs (Raider/Mutoid/Scum/Slug have neither initial nor research
+                // entry) — fixing both the missing-class over-filtering AND the base-class duplicates that
+                // the old GetAllDefs+heuristic approach produced.
+                List<SpecializationDef> universe = GetSelectableSubclassUniverse();
+
+                // Distinct by reference (singletons); the universe is already collision-free by class.
+                var seen = new HashSet<SpecializationDef>();
                 var omitted = new List<SpecializationDef>();
-                foreach (SpecializationDef spec in repo.GetAllDefs<SpecializationDef>())
+                foreach (SpecializationDef spec in universe)
                 {
-                    if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null || shownSet.Contains(spec))
+                    if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null
+                        || shownSet.Contains(spec)        // already an active button
+                        || unlocked.Contains(spec)        // researched (incl. the soldier's main) -> not "locked"
+                        || !seen.Add(spec))               // de-dup the universe itself
                     {
                         continue;
                     }
-                    // Only genuinely-locked PLAYER subclasses we should grey:
-                    //  - must have a class track + proficiency (native InitSpecialization dereferences both);
-                    //  - !NotSecondClassSpecialization (mirrors the native picker filter, UIStateEditSoldier:608);
-                    //  - !IsEliteUnit: the game's own player-vs-special discriminator (CharacterGenerationContext
-                    //    filters generatable classes by !IsEliteUnit) — excludes Raider/Mutoid/Scum/Slug specs
-                    //    whose proficiency icon/name visually duplicate the base classes (the reported "duplicates");
-                    //  - NOT already unlocked: leaves exactly the locked classes worth previewing.
-                    if ((UnityEngine.Object)(object)spec.AbilityTrack == (UnityEngine.Object)null
-                        || (UnityEngine.Object)(object)spec.GetSpecProficiency() == (UnityEngine.Object)null
-                        || spec.NotSecondClassSpecialization
-                        || spec.IsEliteUnit
-                        || unlocked.Contains(spec))
+                    // Mirror the native picker's filter (UIStateEditSoldier:608) + the InitSpecialization
+                    // requirements (it dereferences the proficiency view element).
+                    if (spec.NotSecondClassSpecialization
+                        || (UnityEngine.Object)(object)spec.AbilityTrack == (UnityEngine.Object)null
+                        || (UnityEngine.Object)(object)spec.GetSpecProficiency() == (UnityEngine.Object)null)
                     {
                         continue;
-                    }
-                    string classKey = (UnityEngine.Object)(object)spec.ClassTag != (UnityEngine.Object)null
-                        ? ((UnityEngine.Object)spec.ClassTag).name
-                        : ((UnityEngine.Object)spec).name;
-                    if (!string.IsNullOrEmpty(classKey) && !seenClasses.Add(classKey))
-                    {
-                        continue; // a spec of this class is already queued for greying
                     }
                     omitted.Add(spec);
                 }
@@ -193,6 +175,56 @@ namespace Morgott.PerkOracle
                 Debug.Log("[PerkOracle] ClassPerkProvider.GetUnlockedSpecializations failed: " + ex.Message);
             }
             return set;
+        }
+
+        /// <summary>
+        /// The authoritative universe of player-selectable second-class specializations: the faction's
+        /// <c>InitialSpecializationDefs</c> plus every <c>ClassResearchRewardDef.SpecializationDef</c>
+        /// (the classes a research can unlock). This is exactly the set the game ever adds to a faction via
+        /// <c>GeoFaction.AddSpecialization</c> (initial defs in Init + each <c>ClassResearchReward</c>),
+        /// so it contains all real player classes and no Raider/Mutoid/Scum/Slug specs. Returns whatever is
+        /// reachable; research rewards alone already cover every researchable class.
+        /// </summary>
+        private static List<SpecializationDef> GetSelectableSubclassUniverse()
+        {
+            var list = new List<SpecializationDef>();
+            try
+            {
+                DefRepository repo = GameUtl.GameComponent<DefRepository>();
+                if (repo != null)
+                {
+                    foreach (ClassResearchRewardDef rewardDef in repo.GetAllDefs<ClassResearchRewardDef>())
+                    {
+                        if (rewardDef != null
+                            && (UnityEngine.Object)(object)rewardDef.SpecializationDef != (UnityEngine.Object)null)
+                        {
+                            list.Add(rewardDef.SpecializationDef);
+                        }
+                    }
+                }
+
+                // Initial classes (unlocked from the campaign start) — included for completeness.
+                GeoLevelController level = GameUtl.CurrentLevel()?.GetComponent<GeoLevelController>();
+                GeoFaction faction = (UnityEngine.Object)(object)level != (UnityEngine.Object)null
+                    ? level.PhoenixFaction
+                    : null;
+                List<SpecializationDef> initial = faction?.Def?.InitialSpecializationDefs;
+                if (initial != null)
+                {
+                    foreach (SpecializationDef spec in initial)
+                    {
+                        if ((UnityEngine.Object)(object)spec != (UnityEngine.Object)null)
+                        {
+                            list.Add(spec);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log("[PerkOracle] ClassPerkProvider.GetSelectableSubclassUniverse failed: " + ex.Message);
+            }
+            return list;
         }
     }
 }

@@ -143,6 +143,9 @@ namespace Morgott.PerkOracle
             try
             {
                 GeoRosterAbilityDetailTooltip tip = Tooltip;
+                Debug.Log("[PerkOracle][diag] tooltip enter; tip=" // TEMP diag (Feature A)
+                    + ((UnityEngine.Object)(object)tip != (UnityEngine.Object)null)
+                    + " def=" + (Def != null ? ((UnityEngine.Object)Def).name : "<null>"));
                 if ((UnityEngine.Object)(object)tip == (UnityEngine.Object)null || Def == null
                     || (UnityEngine.Object)(object)Def.ViewElementDef == (UnityEngine.Object)null)
                 {
