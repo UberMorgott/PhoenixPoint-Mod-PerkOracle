@@ -39,8 +39,7 @@ namespace Morgott.PerkOracle
         private const string RowName = "PerkOracleConfirmPerkRow";
         private const float CellSize = 96f;
         private const float CellSpacing = 8f;
-        private const float RowGap = 14f;        // gap between the icon row bottom and the question top
-        private const float MinWindowWidth = 640f;
+        private const float RowGap = 14f;        // vertical padding around the icon row
 
         // MessageBox.ModalData is an internal type, so we read the controller's shown data + its UserData
         // via reflection (field names verified from the decompile: MessageBoxPromptController._shownData,
@@ -59,15 +58,25 @@ namespace Morgott.PerkOracle
                 }
 
                 SnapshotTextHost host = ResolveTextHost(__instance);
-                if (host.TextRt == null || host.Parent == null)
+                if (host.TextRt == null)
                 {
-                    return; // can't find a safe insert point -> show the plain box
+                    return; // no text element -> show the plain box
                 }
 
-                DumpHierarchy(__instance, host); // TEMP diag: measure the real runtime layout
+                // MEASURED layout (hierarchy dump): TextContent's parent 'Content' is a HorizontalLayoutGroup
+                // (that's why a sibling row landed to the RIGHT of the text); its grandparent 'Dialog' is a
+                // center-anchored VerticalLayoutGroup + ContentSizeFitter(v=PreferredSize) that stacks its
+                // children top-to-bottom and AUTO-GROWS its height. So we add the icon row as the FIRST child
+                // of the Dialog VLG -> it stacks ABOVE the question and the dialog grows to fit. No manual
+                // resizing (that would fight the ContentSizeFitter).
+                Transform dialog = FindVerticalLayoutAncestor(host.TextRt);
+                if ((UnityEngine.Object)(object)dialog == (UnityEngine.Object)null)
+                {
+                    return; // no vertical stack found -> leave the native box untouched
+                }
 
                 // Avoid a duplicate row if Show runs twice for the same window.
-                Transform existing = host.Parent.Find(RowName);
+                Transform existing = dialog.Find(RowName);
                 if ((UnityEngine.Object)(object)existing != (UnityEngine.Object)null)
                 {
                     UnityEngine.Object.DestroyImmediate(existing.gameObject);
@@ -87,29 +96,30 @@ namespace Morgott.PerkOracle
                 // own overrideSorting Canvas (set inside) renders it above the dialog (dialogSortingOrder+100).
                 GeoRosterAbilityDetailTooltip tooltip = CreateTooltip(
                     (UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null
-                        ? rootCanvas.transform : host.Parent,
+                        ? rootCanvas.transform : dialog,
                     dialogSortingOrder,
                     out GameObject tooltipGo);
 
-                // Build the row container: a horizontally-laid, self-sizing strip of large icons. The
-                // content panel is NOT a vertical layout group, so we place the row by EXPLICIT anchoring
-                // relative to the question text (guaranteed above it + horizontally centered) rather than
-                // by sibling order.
+                // Build the row: a child of the Dialog VLG, placed at the top (sibling 0 = above the text).
+                // The Dialog VLG stretches its children to full inner width (measured: Content/Buttons both
+                // 1486.3 wide), so our row spans the dialog and its own HLG(MiddleCenter) centers the icons.
                 var rowGo = new GameObject(RowName, typeof(RectTransform));
-                rowGo.transform.SetParent(host.Parent, false); // same coordinate space as the text
+                rowGo.transform.SetParent(dialog, false);
+                rowGo.transform.SetSiblingIndex(0); // top of the vertical stack -> above the question
 
                 var hlg = rowGo.AddComponent<HorizontalLayoutGroup>();
                 hlg.spacing = CellSpacing;
-                hlg.childAlignment = TextAnchor.MiddleCenter; // center the icons within the row
+                hlg.childAlignment = TextAnchor.MiddleCenter; // center the large icons across the dialog width
                 hlg.childForceExpandWidth = false;
                 hlg.childForceExpandHeight = false;
                 hlg.childControlWidth = true;
                 hlg.childControlHeight = true;
 
-                // Self-size the row to its icons so the pivot-centered placement stays centered.
-                var fitter = rowGo.AddComponent<ContentSizeFitter>();
-                fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-                fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+                // Reserve the row's height in the Dialog VLG so it grows the dialog to fit (height only;
+                // width is driven by the parent VLG which expands children to full width).
+                var rowLe = rowGo.AddComponent<LayoutElement>();
+                rowLe.minHeight = CellSize + 2f * RowGap;
+                rowLe.preferredHeight = CellSize + 2f * RowGap;
 
                 foreach (TacticalAbilityDef def in marker.Perks)
                 {
@@ -127,11 +137,6 @@ namespace Morgott.PerkOracle
                 // Tie the tooltip clone's lifetime to the row (row dies when the box SetActive(false)s).
                 var cleanup = rowGo.AddComponent<ConfirmRowCleanup>();
                 cleanup.TooltipGo = tooltipGo;
-
-                // Grow the dialog frame (taller + wider) so the row has room above the text, then anchor
-                // the row centered just above the question. Both guarded; failure leaves the native box.
-                GrowFrame(host, marker.Perks.Count);
-                AnchorRowAboveText(rowGo.GetComponent<RectTransform>(), host.TextRt);
             }
             catch (Exception ex)
             {
@@ -160,133 +165,12 @@ namespace Morgott.PerkOracle
             }
         }
 
-        // TEMP diag (layout investigation): dump the full ancestor chain of TextContent up to the root
-        // Canvas, with RectTransform metrics + layout/sizing/canvas components, so we can build the correct
-        // layout from measured truth instead of guessing the prefab. Remove once the layout is finalized.
-        private static void DumpHierarchy(MessageBoxPromptController controller, SnapshotTextHost host)
-        {
-            try
-            {
-                RectTransform frame = host.Frame;
-                Debug.Log("[PerkOracle][diag] hierarchy: === confirm dialog dump START ===");
-                Debug.Log("[PerkOracle][diag] hierarchy: FindWindowRect(frame)="
-                    + ((UnityEngine.Object)(object)frame != (UnityEngine.Object)null
-                        ? (((UnityEngine.Object)frame).name + " rect=" + frame.rect.width + "x" + frame.rect.height)
-                        : "<null>"));
-
-                int depth = 0;
-                Transform t = host.TextRt;
-                while (t != null && depth < 16)
-                {
-                    Debug.Log("[PerkOracle][diag] hierarchy: [" + depth + "] " + DescribeNode(t));
-                    var c = t.GetComponent<Canvas>();
-                    if ((UnityEngine.Object)(object)c != (UnityEngine.Object)null)
-                    {
-                        // Reached a canvas in the chain — note it but keep walking to the very root.
-                    }
-                    t = t.parent;
-                    depth++;
-                }
-
-                // The Yes/No buttons live under the controller's Buttons linkers; log the first active one's
-                // container so we know where the button row sits relative to the text.
-                Transform btnContainer = FindButtonsContainer(controller);
-                Debug.Log("[PerkOracle][diag] hierarchy: buttonsContainer="
-                    + ((UnityEngine.Object)(object)btnContainer != (UnityEngine.Object)null
-                        ? DescribeNode(btnContainer) : "<null>"));
-                Debug.Log("[PerkOracle][diag] hierarchy: === confirm dialog dump END ===");
-            }
-            catch (Exception ex)
-            {
-                Debug.Log("[PerkOracle] SubclassConfirmPopupDecorator.DumpHierarchy failed: " + ex.Message);
-            }
-        }
-
-        private static string DescribeNode(Transform t)
-        {
-            try
-            {
-                var go = t.gameObject;
-                string s = "'" + go.name + "' active=" + go.activeSelf;
-                var rt = t as RectTransform;
-                if ((UnityEngine.Object)(object)rt != (UnityEngine.Object)null)
-                {
-                    s += " | anchMin=" + V(rt.anchorMin) + " anchMax=" + V(rt.anchorMax)
-                       + " pivot=" + V(rt.pivot) + " sizeDelta=" + V(rt.sizeDelta)
-                       + " anchPos=" + V(rt.anchoredPosition) + " rect=" + rt.rect.width + "x" + rt.rect.height;
-                }
-                // Layout / sizing components.
-                if ((UnityEngine.Object)(object)t.GetComponent<VerticalLayoutGroup>() != (UnityEngine.Object)null) s += " | VLG";
-                if ((UnityEngine.Object)(object)t.GetComponent<HorizontalLayoutGroup>() != (UnityEngine.Object)null) s += " | HLG";
-                if ((UnityEngine.Object)(object)t.GetComponent<GridLayoutGroup>() != (UnityEngine.Object)null) s += " | GLG";
-                var csf = t.GetComponent<ContentSizeFitter>();
-                if ((UnityEngine.Object)(object)csf != (UnityEngine.Object)null)
-                {
-                    s += " | CSF(h=" + csf.horizontalFit + ",v=" + csf.verticalFit + ")";
-                }
-                var le = t.GetComponent<LayoutElement>();
-                if ((UnityEngine.Object)(object)le != (UnityEngine.Object)null)
-                {
-                    s += " | LE(min=" + le.minWidth + "x" + le.minHeight
-                       + ",pref=" + le.preferredWidth + "x" + le.preferredHeight + ")";
-                }
-                if ((UnityEngine.Object)(object)t.GetComponent<Image>() != (UnityEngine.Object)null) s += " | Image";
-                var canvas = t.GetComponent<Canvas>();
-                if ((UnityEngine.Object)(object)canvas != (UnityEngine.Object)null)
-                {
-                    s += " | Canvas(order=" + canvas.sortingOrder + ",render=" + canvas.renderMode
-                       + ",override=" + canvas.overrideSorting + ")";
-                }
-                return s;
-            }
-            catch (Exception ex)
-            {
-                return "<describe failed: " + ex.Message + ">";
-            }
-        }
-
-        private static string V(Vector2 v)
-        {
-            return "(" + v.x + "," + v.y + ")";
-        }
-
-        /// <summary>Find the parent container of the dialog's Yes/No buttons via the controller's Buttons list.</summary>
-        private static Transform FindButtonsContainer(MessageBoxPromptController controller)
-        {
-            try
-            {
-                var buttonsField = AccessTools.Field(typeof(MessageBoxPromptController), "Buttons");
-                var buttons = buttonsField?.GetValue(controller) as System.Collections.IEnumerable;
-                if (buttons == null)
-                {
-                    return null;
-                }
-                foreach (object linker in buttons)
-                {
-                    if (linker == null) continue;
-                    var btnField = AccessTools.Field(linker.GetType(), "Button");
-                    var btn = btnField?.GetValue(linker) as Component;
-                    if ((UnityEngine.Object)(object)btn != (UnityEngine.Object)null)
-                    {
-                        return ((Component)btn).transform.parent; // the buttons row container
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.Log("[PerkOracle] SubclassConfirmPopupDecorator.FindButtonsContainer failed: " + ex.Message);
-            }
-            return null;
-        }
-
         private struct SnapshotTextHost
         {
             public RectTransform TextRt;
-            public Transform Parent;
-            public RectTransform Frame;
         }
 
-        /// <summary>Resolve the question-text RectTransform, its parent, and the bounded dialog frame.</summary>
+        /// <summary>Resolve the dialog's question-text RectTransform.</summary>
         private static SnapshotTextHost ResolveTextHost(MessageBoxPromptController controller)
         {
             var host = new SnapshotTextHost();
@@ -296,8 +180,6 @@ namespace Morgott.PerkOracle
                 if ((UnityEngine.Object)(object)text != (UnityEngine.Object)null)
                 {
                     host.TextRt = ((Component)text).GetComponent<RectTransform>();
-                    host.Parent = host.TextRt != null ? host.TextRt.parent : null;
-                    host.Frame = FindWindowRect(host.Parent);
                 }
             }
             catch (Exception ex)
@@ -308,87 +190,19 @@ namespace Morgott.PerkOracle
         }
 
         /// <summary>
-        /// Grow the bounded dialog frame so a large centered icon row fits ABOVE the question without
-        /// crowding: widen to at least <see cref="MinWindowWidth"/> (scaled up for many icons) and add the
-        /// row's height to the frame. Best-effort; failure leaves the native size.
+        /// The dialog's vertical-stack container = nearest ancestor of the text that has a
+        /// <see cref="VerticalLayoutGroup"/>. Measured hierarchy: 'Snapshot Text' -> 'Content' (HLG) ->
+        /// 'Dialog' (VLG + ContentSizeFitter v=PreferredSize) — adding a first child there stacks it above
+        /// the question and the dialog auto-grows. Returns null if none found (then we leave the box plain).
         /// </summary>
-        private static void GrowFrame(SnapshotTextHost host, int iconCount)
+        private static Transform FindVerticalLayoutAncestor(Transform start)
         {
-            try
-            {
-                RectTransform frame = host.Frame;
-                if ((UnityEngine.Object)(object)frame == (UnityEngine.Object)null)
-                {
-                    return;
-                }
-
-                float neededWidth = Mathf.Max(MinWindowWidth,
-                    iconCount * CellSize + Mathf.Max(0, iconCount - 1) * CellSpacing + 80f);
-                float extraHeight = CellSize + RowGap + 12f;
-
-                Vector2 sd = frame.sizeDelta;
-                // Only adjust axes that are fixed (non-stretched); a stretched axis is driven by anchors.
-                bool widthFixed = !(frame.anchorMin.x == 0f && frame.anchorMax.x == 1f);
-                bool heightFixed = !(frame.anchorMin.y == 0f && frame.anchorMax.y == 1f);
-                float newW = widthFixed ? Mathf.Max(sd.x, neededWidth) : sd.x;
-                float newH = heightFixed ? sd.y + extraHeight : sd.y;
-                frame.sizeDelta = new Vector2(newW, newH);
-            }
-            catch (Exception ex)
-            {
-                Debug.Log("[PerkOracle] SubclassConfirmPopupDecorator.GrowFrame failed: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Anchor <paramref name="row"/> horizontally CENTERED on the question text and just ABOVE it,
-        /// using the text's own measured rect — independent of the prefab's (non-vertical) layout. Pivot is
-        /// bottom-center so the row sits on top of the text with a gap.
-        /// </summary>
-        private static void AnchorRowAboveText(RectTransform row, RectTransform text)
-        {
-            try
-            {
-                if ((UnityEngine.Object)(object)row == (UnityEngine.Object)null
-                    || (UnityEngine.Object)(object)text == (UnityEngine.Object)null)
-                {
-                    return;
-                }
-                // Share the text's anchor reference so anchoredPosition is in the same frame.
-                row.anchorMin = text.anchorMin;
-                row.anchorMax = text.anchorMax;
-                row.pivot = new Vector2(0.5f, 0f); // bottom-center: grows upward from its anchored point
-
-                float textTopFromCenter = text.rect.height * (1f - text.pivot.y);
-                if (textTopFromCenter <= 0f)
-                {
-                    textTopFromCenter = 20f; // fallback if the text rect is not laid out yet
-                }
-                row.anchoredPosition = new Vector2(
-                    text.anchoredPosition.x,
-                    text.anchoredPosition.y + textTopFromCenter + RowGap);
-            }
-            catch (Exception ex)
-            {
-                Debug.Log("[PerkOracle] SubclassConfirmPopupDecorator.AnchorRowAboveText failed: " + ex.Message);
-            }
-        }
-
-        /// <summary>Nearest ancestor that looks like the bounded dialog frame (not a full-stretch container).</summary>
-        private static RectTransform FindWindowRect(Transform start)
-        {
-            Transform t = start;
+            Transform t = start != null ? start.parent : null; // skip the text node itself
             for (int i = 0; i < 6 && t != null; i++)
             {
-                var rt = t as RectTransform;
-                if ((UnityEngine.Object)(object)rt != (UnityEngine.Object)null)
+                if ((UnityEngine.Object)(object)t.GetComponent<VerticalLayoutGroup>() != (UnityEngine.Object)null)
                 {
-                    // A bounded frame has a finite, non-trivial width and is not anchored full-stretch.
-                    bool stretched = rt.anchorMin.x == 0f && rt.anchorMax.x == 1f;
-                    if (!stretched && rt.rect.width > 1f)
-                    {
-                        return rt;
-                    }
+                    return t;
                 }
                 t = t.parent;
             }
