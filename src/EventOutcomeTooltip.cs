@@ -15,9 +15,9 @@ namespace Morgott.Oracle
     /// <see cref="PerkWikiPanel.CreateTooltipClone"/>) so we inherit its real frame sprite, font,
     /// fontSize, padding and content-size fitting for free. Instead of calling the widget's data-bound
     /// <c>Show(abilityDef, view, ...)</c> -- which strictly requires a ViewElementDef and cannot accept
-    /// arbitrary rows -- we repurpose its existing text fields: the ability-title line becomes the
-    /// "Outcome" header and the ability-description becomes the composed, sign-coloured row list. The
-    /// icon and skill-cost groups are deactivated. One live instance owned statically: <see cref="Show"/>
+    /// arbitrary rows -- we repurpose its ability-description field as the composed, sign-coloured row list.
+    /// The ability title (no native header exists for the encounter reward UI, so we show none rather than
+    /// invent one), icon and skill-cost groups are deactivated. One live instance owned statically: <see cref="Show"/>
     /// builds it under the supplied root canvas; <see cref="Hide"/> tears it down. Every public entry
     /// point is wrapped in try/catch + <see cref="OracleLog"/> so a UI hiccup can never throw back into
     /// the event screen. Mirrors the try/catch + cursor->canvas-local positioning + CanvasGroup
@@ -54,8 +54,8 @@ namespace Morgott.Oracle
         /// <summary>
         /// Build + show the tooltip for <paramref name="rows"/> parented to <paramref name="anchorCanvas"/>'s
         /// root canvas, positioned at the current mouse position. No-op (and hides any prior instance) when
-        /// rows is null/empty, the canvas is missing, or no native tooltip template can be cloned.
-        /// Localizes any label that is an <c>ORACLE_*</c> key.
+        /// rows is null/empty, the canvas is missing, or no native tooltip template can be cloned. Every row
+        /// label is already-localized native game text (resolved by <see cref="EventOutcomeAdapter"/>).
         /// </summary>
         public static void Show(List<EventOutcomeRow> rows, Canvas anchorCanvas)
         {
@@ -184,22 +184,21 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Repurpose the cloned widget's text fields for the outcome preview instead of an ability:
-        /// the title line shows the localized "Outcome" header and the description line shows the
-        /// composed, sign-coloured rows. The ability icon and the SP/AP/WP skill-cost groups are
-        /// deactivated so only the framed title + body remain.
+        /// Repurpose the cloned widget's text fields for the outcome preview instead of an ability: the
+        /// description line shows the composed, sign-coloured rows. There is NO header — the native encounter
+        /// reward UI (UIModuleSiteEncounters.ShowReward -> AddRewardText) simply appends reward lines with no
+        /// heading, and the game has no "Outcome"/"Rewards" loc term for one, so we drop the title rather than
+        /// invent a label. The ability title, icon and SP/AP/WP skill-cost groups are deactivated so only the
+        /// framed body remains.
         /// </summary>
         private static void PopulateTooltip(GeoRosterAbilityDetailTooltip tip, List<EventOutcomeRow> rows)
         {
-            if ((UnityEngine.Object)(object)tip.AbilityTitleText != (UnityEngine.Object)null)
-            {
-                tip.AbilityTitleText.text = Loc.Get("ORACLE_OUTCOME_HEADER", "Outcome");
-            }
             if ((UnityEngine.Object)(object)tip.AbilityDescription != (UnityEngine.Object)null)
             {
                 tip.AbilityDescription.text = ComposeBody(rows);
             }
 
+            SetActiveSafe(tip.AbilityTitleText);
             SetActiveSafe(tip.AbilityIcon);
             SetActiveSafe(tip.AbilitySkillCostGroup);
             SetActiveSafe(tip.AbilitySkillCostText);
@@ -277,12 +276,12 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Compose the body text: one line per row as "label   value". The label is wrapped in the native
-        /// reward gold colour and the value in the native positive ("+") / negative ("-") colour; other
-        /// values (ranges, "xN", "N%") and name-only rows keep the gold label but leave the value plain.
-        /// A label that begins with "ORACLE_" is treated as a loc key and resolved via <see cref="Loc"/>
-        /// (the pure formatter emits raw keys for fixed scalar rows); any other label is already-localized
-        /// text from <see cref="EventOutcomeAdapter"/>.
+        /// Compose the body text: one line per row as "label   value". Every label is already-localized game
+        /// text from <see cref="EventOutcomeAdapter"/> — a native resource/item/faction name, or a complete
+        /// native reward sentence — so nothing is resolved here. The label is wrapped in the native reward gold
+        /// colour and the value in the native positive ("+") / negative ("-") colour; other values (ranges,
+        /// "xN", "N%") and name-only rows (incl. the native sentence rows) keep the gold label but leave the
+        /// value plain.
         /// </summary>
         private static string ComposeBody(List<EventOutcomeRow> rows)
         {
@@ -291,10 +290,6 @@ namespace Morgott.Oracle
             {
                 EventOutcomeRow row = rows[i];
                 string label = row.Label ?? string.Empty;
-                if (label.StartsWith("ORACLE_"))
-                {
-                    label = Loc.Get(label, FallbackLabel(label));
-                }
 
                 if (i > 0)
                 {
@@ -325,23 +320,6 @@ namespace Morgott.Oracle
                 return "<color=" + _negativeColor + ">" + value + "</color>";
             }
             return value;
-        }
-
-        /// <summary>English fallback strings for the fixed-scalar ORACLE_ row keys (CSV provides translations).</summary>
-        private static string FallbackLabel(string key)
-        {
-            switch (key)
-            {
-                case "ORACLE_OUTCOME_HP": return "Soldier HP";
-                case "ORACLE_OUTCOME_HP_ALL": return "All Soldiers HP";
-                case "ORACLE_OUTCOME_STAMINA": return "Soldier Stamina";
-                case "ORACLE_OUTCOME_STAMINA_ALL": return "All Soldiers Stamina";
-                case "ORACLE_OUTCOME_AIRCRAFT": return "Aircraft";
-                case "ORACLE_OUTCOME_SKILLPOINTS": return "Skill Points";
-                case "ORACLE_OUTCOME_HAVENPOP": return "Haven Population";
-                case "ORACLE_OUTCOME_SDI": return "SDI";
-                default: return key;
-            }
         }
 
         /// <summary>Position the tooltip near the cursor (mirrors WikiAbilityTooltipTrigger.Position).</summary>

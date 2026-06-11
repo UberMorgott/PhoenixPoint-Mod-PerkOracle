@@ -37,7 +37,11 @@ namespace Morgott.Oracle
                     {
                         if (d.Value != 0)
                         {
-                            data.Diplomacy.Add(new EventOutcomeData.DiplomacyEntry(FactionLabel(d.TargetFaction), d.Value));
+                            string label = FactionLabel(d.TargetFaction);
+                            if (!string.IsNullOrEmpty(label))
+                            {
+                                data.Diplomacy.Add(new EventOutcomeData.DiplomacyEntry(label, d.Value));
+                            }
                         }
                     }
                 }
@@ -117,8 +121,12 @@ namespace Morgott.Oracle
                 {
                     foreach (OutcomeFactionMissionWeightChange mw in o.SubfactionFactionMissionWeight)
                     {
-                        data.MissionWeightChanges.Add(new EventOutcomeData.RangeEntry(
-                            SubFactionLabel(mw.SubFaction), mw.Value.Min, mw.Value.Max));
+                        string label = SubFactionLabel(mw.SubFaction);
+                        if (!string.IsNullOrEmpty(label))
+                        {
+                            data.MissionWeightChanges.Add(new EventOutcomeData.RangeEntry(
+                                label, mw.Value.Min, mw.Value.Max));
+                        }
                     }
                 }
 
@@ -135,15 +143,31 @@ namespace Morgott.Oracle
                     }
                 }
 
-                // Flat scalars (real field names per decompile).
-                data.DamageCurrentSoldiers = o.DamageCurrentSoldiers;
-                data.DamageAllSoldiers = o.DamageAllSoldiers;
-                data.TireCurrentSoldiers = o.TireCurrentSoldiers;
-                data.TireAllSoldiers = o.TireAllSoldiers;
-                data.DamageCurrentAircraft = o.DamageCurrentAircraft;
-                data.FactionSkillPoints = o.FactionSkillPoints;
-                data.HavenPopulationChange = o.HavenPopulationChange;
-                data.SdiChange = o.SDIChange;
+                // Flat scalar effects: render each as the EXACT native reward sentence the encounter UI
+                // shows (UIModuleSiteEncounters.ShowReward), sourced from the live module's own
+                // LocalizedTextBind keys so the text + language are the game's own. Native passes the raw
+                // magnitude into a full "lost/gained {0}" sentence (no separate label/value column, no +/-
+                // colour), so we mirror that: format key.Localize() with the magnitude. Field->key mapping
+                // (decompile UIModuleSiteEncounters.cs lines in brackets):
+                //   DamageCurrentSoldiers -> AircraftSoldiersInjuredTextKey [440]
+                //   DamageAllSoldiers     -> AllSoldierInjuredTextKey       [451]
+                //   TireCurrentSoldiers   -> AircraftSoldiersTiredTextKey   [446]
+                //   TireAllSoldiers       -> AllSoldierTiredTextKey         [456]
+                //   DamageCurrentAircraft -> AircraftDamageTextKey          [434]
+                //   FactionSkillPoints    -> AddSkillPointsTextKey          [466]
+                // HavenPopulationChange (HavenPopulationChangeTextKey needs the haven name we don't have in a
+                // static preview) and SDIChange (no native reward line at all) are intentionally SKIPPED
+                // rather than rendered with an invented label.
+                UIModuleSiteEncounters mod = FindEncounterModule();
+                if ((UnityEngine.Object)(object)mod != (UnityEngine.Object)null)
+                {
+                    AddNativeLine(data, mod.AircraftSoldiersInjuredTextKey, o.DamageCurrentSoldiers);
+                    AddNativeLine(data, mod.AllSoldierInjuredTextKey, o.DamageAllSoldiers);
+                    AddNativeLine(data, mod.AircraftSoldiersTiredTextKey, o.TireCurrentSoldiers);
+                    AddNativeLine(data, mod.AllSoldierTiredTextKey, o.TireAllSoldiers);
+                    AddNativeLine(data, mod.AircraftDamageTextKey, o.DamageCurrentAircraft);
+                    AddNativeLine(data, mod.AddSkillPointsTextKey, o.FactionSkillPoints);
+                }
             }
             catch (Exception ex)
             {
@@ -151,6 +175,63 @@ namespace Morgott.Oracle
             }
 
             return data;
+        }
+
+        /// <summary>
+        /// Locate the live <see cref="UIModuleSiteEncounters"/> instance whose serialized LocalizedTextBind
+        /// keys + ResourcesList we read to source native strings: prefer an active in-scene module, else any
+        /// inactive scene instance (never a prefab asset). Returns null when none is present.
+        /// </summary>
+        private static UIModuleSiteEncounters FindEncounterModule()
+        {
+            try
+            {
+                UIModuleSiteEncounters module = UnityEngine.Object.FindObjectOfType<UIModuleSiteEncounters>();
+                if ((UnityEngine.Object)(object)module != (UnityEngine.Object)null)
+                {
+                    return module;
+                }
+                foreach (UIModuleSiteEncounters m in UnityEngine.Resources.FindObjectsOfTypeAll<UIModuleSiteEncounters>())
+                {
+                    if ((UnityEngine.Object)(object)m != (UnityEngine.Object)null && m.gameObject.scene.IsValid())
+                    {
+                        return m;
+                    }
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.FindEncounterModule failed: " + ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Append one native reward sentence for a flat scalar effect, sourced from the encounter module's own
+        /// <paramref name="key"/> (a serialized <c>LocalizedTextBind</c>) with <paramref name="value"/>
+        /// substituted via <c>string.Format</c> — identical text + language to the native line. No row is
+        /// added when the value is 0 or the key is missing/empty (we never invent a label).
+        /// </summary>
+        private static void AddNativeLine(EventOutcomeData data, Base.UI.LocalizedTextBind key, int value)
+        {
+            try
+            {
+                if (value == 0 || key == null || string.IsNullOrEmpty(key.LocalizationKey))
+                {
+                    return;
+                }
+                string pattern = key.Localize();
+                if (string.IsNullOrEmpty(pattern))
+                {
+                    return;
+                }
+                data.NativeLines.Add(string.Format(pattern, value));
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddNativeLine failed: " + ex.Message);
+            }
         }
 
         /// <summary>
@@ -169,7 +250,7 @@ namespace Morgott.Oracle
             // Primary: same NamedListDef + ViewElementDef.DisplayName1 the native reward text uses.
             try
             {
-                UIModuleSiteEncounters module = UnityEngine.Object.FindObjectOfType<UIModuleSiteEncounters>();
+                UIModuleSiteEncounters module = FindEncounterModule();
                 if ((UnityEngine.Object)(object)module != (UnityEngine.Object)null
                     && (UnityEngine.Object)(object)module.ResourcesList != (UnityEngine.Object)null)
                 {
@@ -242,7 +323,9 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.FactionLabel failed: " + ex.Message);
             }
-            return Loc.Get("ORACLE_OUTCOME_REPUTATION", "Reputation");
+            // No invented label: if the faction can't be named from the game's own data, return empty so the
+            // row is skipped rather than show a crutch string.
+            return string.Empty;
         }
 
         private static string SubFactionLabel(PhoenixPoint.Geoscape.Levels.Factions.GeoSubFactionDef sub)
@@ -258,7 +341,8 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.SubFactionLabel failed: " + ex.Message);
             }
-            return Loc.Get("ORACLE_OUTCOME_MISSIONWEIGHT", "Mission Weight");
+            // No invented label: empty -> row skipped, never a crutch string.
+            return string.Empty;
         }
 
         private static string ItemName(ItemUnit iu)

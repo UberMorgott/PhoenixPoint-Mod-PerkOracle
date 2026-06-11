@@ -53,15 +53,14 @@ namespace Morgott.Oracle
         /// <summary>Site reveals: (localized site label, count).</summary>
         public List<ItemEntry> RevealSites = new List<ItemEntry>();
 
-        // Flat scalars (0 = absent → no row).
-        public int DamageCurrentSoldiers;
-        public int DamageAllSoldiers;
-        public int TireCurrentSoldiers;
-        public int TireAllSoldiers;
-        public int DamageCurrentAircraft;
-        public int FactionSkillPoints;
-        public int HavenPopulationChange;
-        public int SdiChange;
+        /// <summary>
+        /// Fully-formatted, already-localized native reward sentences (soldier/aircraft damage, tiredness,
+        /// faction skill points). Each string is produced by <see cref="EventOutcomeAdapter"/> from the live
+        /// encounter module's own <c>LocalizedTextBind</c> keys with the magnitude already substituted, so it
+        /// reads identically to the game's native post-choice reward line in any language. Rendered verbatim as
+        /// a name-only row (no separate value column) by <see cref="EventOutcomePreview"/>.
+        /// </summary>
+        public List<string> NativeLines = new List<string>();
 
         public struct DiplomacyEntry
         {

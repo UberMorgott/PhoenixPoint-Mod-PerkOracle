@@ -8,7 +8,8 @@ namespace Morgott.Oracle.Tests
     /// <summary>
     /// Unit tests for the pure outcome-preview formatter. Outcome data is fabricated as plain
     /// <see cref="EventOutcomeData"/> (no engine types), mirroring how PerkPoolResolver is tested.
-    /// Verifies one-row-per-effect, signed formatting "+#;-#", Min-Max ranges, % for zone damage,
+    /// Verifies one-row-per-effect, signed formatting "+#;-#" for diplomacy/resources, "xN" for items,
+    /// Min-Max ranges, % for zone damage, verbatim pass-through of pre-localized native reward sentences,
     /// and the empty-outcome -> no-rows case.
     /// </summary>
     public class EventOutcomePreviewTests
@@ -56,22 +57,30 @@ namespace Morgott.Oracle.Tests
         }
 
         [Fact]
-        public void SoldierHpLoss_Renders_Negative()
+        public void NativeLines_Pass_Through_As_NameOnly_Rows()
         {
-            var data = new EventOutcomeData { DamageCurrentSoldiers = 15, DamageAllSoldiers = 5 };
-            var rows = EventOutcomePreview.Build(data).Select(Render).ToList();
-            // Damage is rendered as a loss (negative).
-            Assert.Contains(rows, s => s.EndsWith("-15"));
-            Assert.Contains(rows, s => s.EndsWith("-5"));
+            // Soldier/aircraft/skill-point effects arrive from the adapter as fully-formatted, already-localized
+            // native reward sentences; the pure formatter emits each verbatim as a label with no value column.
+            var data = new EventOutcomeData();
+            data.NativeLines.Add("Your soldiers lost stamina: 7");
+            data.NativeLines.Add("Aircraft took 12 damage");
+
+            var rows = EventOutcomePreview.Build(data);
+
+            Assert.Equal(2, rows.Count);
+            Assert.Equal("Your soldiers lost stamina: 7", rows[0].Label);
+            Assert.Equal(string.Empty, rows[0].Value);
+            Assert.Equal("Aircraft took 12 damage", rows[1].Label);
+            Assert.Equal(string.Empty, rows[1].Value);
         }
 
         [Fact]
-        public void StaminaLoss_Renders_Negative()
+        public void Empty_NativeLines_Are_Skipped()
         {
-            var data = new EventOutcomeData { TireCurrentSoldiers = 7, TireAllSoldiers = 3 };
-            var rows = EventOutcomePreview.Build(data).Select(Render).ToList();
-            Assert.Contains(rows, s => s.EndsWith("-7"));
-            Assert.Contains(rows, s => s.EndsWith("-3"));
+            var data = new EventOutcomeData();
+            data.NativeLines.Add(string.Empty);
+            data.NativeLines.Add(null);
+            Assert.Empty(EventOutcomePreview.Build(data));
         }
 
         [Fact]
@@ -117,38 +126,6 @@ namespace Morgott.Oracle.Tests
             data.ZoneDamages.Add(new EventOutcomeData.ZoneDamageEntry("Living Quarters", 25));
             var rows = EventOutcomePreview.Build(data).Select(Render).ToList();
             Assert.Contains(rows, s => s.Contains("Living Quarters") && s.Contains("25%"));
-        }
-
-        [Fact]
-        public void Aircraft_SkillPoints_HavenPop_Sdi_Render_Signed()
-        {
-            var data = new EventOutcomeData
-            {
-                DamageCurrentAircraft = 12,
-                FactionSkillPoints = 4,
-                HavenPopulationChange = -3,
-                SdiChange = 2,
-            };
-            var rows = EventOutcomePreview.Build(data).Select(Render).ToList();
-            Assert.Contains(rows, s => s.EndsWith("-12")); // aircraft damage = loss
-            Assert.Contains(rows, s => s.EndsWith("+4"));  // skill points
-            Assert.Contains(rows, s => s.EndsWith("-3"));  // haven pop
-            Assert.Contains(rows, s => s.EndsWith("+2"));  // SDI
-        }
-
-        [Fact]
-        public void ZeroScalars_Produce_No_Rows()
-        {
-            var data = new EventOutcomeData
-            {
-                DamageCurrentSoldiers = 0,
-                TireAllSoldiers = 0,
-                FactionSkillPoints = 0,
-                SdiChange = 0,
-                HavenPopulationChange = 0,
-                DamageCurrentAircraft = 0,
-            };
-            Assert.Empty(EventOutcomePreview.Build(data));
         }
 
         [Fact]

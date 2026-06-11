@@ -6,10 +6,12 @@ namespace Morgott.Oracle
     /// <summary>
     /// Pure, engine-free formatter that turns a previewable <see cref="EventOutcomeData"/> into an
     /// ordered list of display rows. One row per non-empty effect; zero/empty fields are skipped.
-    /// Fixed scalars render signed ("+#"/"-#"); the two range-rolled fields render "Min-Max"; zone
-    /// damage renders "N%". Damage/tiredness/aircraft-damage are losses, rendered negative. No Unity,
-    /// engine, Harmony or I2 dependency, so it unit-tests under net8 like PerkPoolResolver. Labels are
-    /// already localized by <see cref="EventOutcomeAdapter"/>; this class only orders + number-formats.
+    /// Diplomacy/resources render signed ("+#"/"-#"); items/site-reveals render "xN"; the two range-rolled
+    /// fields render "Min-Max"; zone damage renders "N%". Soldier/aircraft/skill-point effects arrive as
+    /// fully-formed native reward sentences in <see cref="EventOutcomeData.NativeLines"/> (localized +
+    /// number-substituted by <see cref="EventOutcomeAdapter"/>) and are emitted verbatim as name-only rows.
+    /// No Unity, engine, Harmony or I2 dependency, so it unit-tests under net8 like PerkPoolResolver. All
+    /// labels are already localized by <see cref="EventOutcomeAdapter"/>; this class only orders + number-formats.
     /// </summary>
     public static class EventOutcomePreview
     {
@@ -70,48 +72,15 @@ namespace Morgott.Oracle
                 rows.Add(new EventOutcomeRow(s.Name, s.Count > 0 ? "x" + s.Count.ToString(CultureInfo.InvariantCulture) : string.Empty));
             }
 
-            // Soldier HP loss (rendered as negative).
-            if (data.DamageCurrentSoldiers != 0)
+            // Native reward sentences (soldier/aircraft damage, tiredness, faction skill points): already
+            // localized + number-substituted from the game's own loc keys by EventOutcomeAdapter, so they are
+            // rendered verbatim as a name-only row (the sentence already contains its value).
+            foreach (string line in data.NativeLines)
             {
-                rows.Add(new EventOutcomeRow("ORACLE_OUTCOME_HP", Signed(-data.DamageCurrentSoldiers)));
-            }
-            if (data.DamageAllSoldiers != 0)
-            {
-                rows.Add(new EventOutcomeRow("ORACLE_OUTCOME_HP_ALL", Signed(-data.DamageAllSoldiers)));
-            }
-
-            // Soldier stamina/tiredness loss (negative).
-            if (data.TireCurrentSoldiers != 0)
-            {
-                rows.Add(new EventOutcomeRow("ORACLE_OUTCOME_STAMINA", Signed(-data.TireCurrentSoldiers)));
-            }
-            if (data.TireAllSoldiers != 0)
-            {
-                rows.Add(new EventOutcomeRow("ORACLE_OUTCOME_STAMINA_ALL", Signed(-data.TireAllSoldiers)));
-            }
-
-            // Aircraft damage (loss, negative).
-            if (data.DamageCurrentAircraft != 0)
-            {
-                rows.Add(new EventOutcomeRow("ORACLE_OUTCOME_AIRCRAFT", Signed(-data.DamageCurrentAircraft)));
-            }
-
-            // Faction skill points (signed).
-            if (data.FactionSkillPoints != 0)
-            {
-                rows.Add(new EventOutcomeRow("ORACLE_OUTCOME_SKILLPOINTS", Signed(data.FactionSkillPoints)));
-            }
-
-            // Haven population (signed).
-            if (data.HavenPopulationChange != 0)
-            {
-                rows.Add(new EventOutcomeRow("ORACLE_OUTCOME_HAVENPOP", Signed(data.HavenPopulationChange)));
-            }
-
-            // SDI (signed).
-            if (data.SdiChange != 0)
-            {
-                rows.Add(new EventOutcomeRow("ORACLE_OUTCOME_SDI", Signed(data.SdiChange)));
+                if (!string.IsNullOrEmpty(line))
+                {
+                    rows.Add(new EventOutcomeRow(line, string.Empty));
+                }
             }
 
             // Range-rolled variable changes ("Min-Max").
