@@ -13,14 +13,14 @@ Oracle has two helpers:
 
 > **Steam Workshop:** <https://steamcommunity.com/sharedfiles/filedetails/?id=3739613434>
 
-## Upgrading from PerkOracle (v1.3.0)
+## Upgrading from PerkOracle (v1.4.0)
 
-This mod used to be called **PerkOracle**. Version 1.3.0 renames it to **Oracle** on the **same Steam page** (same item, same subscription). Two one-time things happen when you update; both are harmless and never repeat on future updates:
+This mod used to be called **PerkOracle**. Version 1.4.0 renames it to **Oracle** on the **same Steam page** (same item, same subscription). Two one-time things happen when you update; both are harmless and never repeat on future updates:
 
 1. **Mods may appear disabled after the update.** Because the mod's internal id changed (`PerkOracle` to `Oracle`), you may need to open the in-game **Mods** menu once and re-enable your mods. This is a one-time activation refresh; nothing is lost.
 2. **The mod's own in-game research resets once.** The optional "perk swap" unlock will show as not-yet-researched again. To restore it, either research it again in-game or simply turn that feature off in the mod settings (it is optional). **Your resources, perks, and soldiers are not affected.** Only the mod's own research-unlock flag resets, this one time. Future updates will not do this again (the research save key is now a stable neutral id).
 
-## What's new in v1.3.0
+## What's new in v1.4.0
 
 - **Renamed from PerkOracle to Oracle** (same Steam page, same item).
 - **New: event choice outcome preview.** A framed tooltip on each event answer, built from the game's own native localized reward strings, with values accurate to the real grant (TFTV multipliers included).
@@ -125,14 +125,14 @@ Oracle читает то, что игра уже знает, и показыва
 
 > **Steam Workshop:** <https://steamcommunity.com/sharedfiles/filedetails/?id=3739613434>
 
-### Обновление с PerkOracle (v1.3.0)
+### Обновление с PerkOracle (v1.4.0)
 
-Раньше мод назывался **PerkOracle**. В версии 1.3.0 он переименован в **Oracle** на той же странице Steam (тот же предмет, та же подписка). При обновлении происходят две разовые вещи; обе безвредны и в будущих обновлениях не повторятся:
+Раньше мод назывался **PerkOracle**. В версии 1.4.0 он переименован в **Oracle** на той же странице Steam (тот же предмет, та же подписка). При обновлении происходят две разовые вещи; обе безвредны и в будущих обновлениях не повторятся:
 
 1. **После обновления моды могут показаться отключёнными.** Из-за смены внутреннего идентификатора (`PerkOracle` в `Oracle`), возможно, потребуется один раз открыть внутриигровое меню **«Моды»** и заново включить ваши моды. Это разовая переактивация; ничего не теряется.
 2. **Собственное внутриигровое исследование мода сбросится один раз.** Опциональная разблокировка «замены перков» снова покажется неисследованной. Чтобы вернуть её, либо исследуйте её заново в игре, либо просто отключите эту функцию в настройках мода (она необязательная). **Ваши ресурсы, перки и бойцы не затрагиваются.** Сбрасывается только флаг исследования самого мода, и только в этот раз. В будущих обновлениях такого не повторится (ключ сохранения исследования теперь стабильный нейтральный идентификатор).
 
-### Что нового в v1.3.0
+### Что нового в v1.4.0
 
 - **Переименование из PerkOracle в Oracle** (та же страница Steam, тот же предмет).
 - **Новое: предпросмотр исхода выбора в событиях.** Оформленная подсказка на каждом варианте ответа, собранная из родных локализованных строк наград игры, со значениями, точными для реальной выдачи (с учётом множителей TFTV).
