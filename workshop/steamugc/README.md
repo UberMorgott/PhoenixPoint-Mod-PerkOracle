@@ -1,6 +1,6 @@
 # Headless Steam Workshop publisher (SteamworksPy)
 
-Publishes / updates the PerkOracle Workshop item by riding the **already-running,
+Publishes / updates the Oracle Workshop item by riding the **already-running,
 logged-in Steam client** — no username or password, exactly like the official
 PPWorkshopTool. Auth = your active Steam session.
 

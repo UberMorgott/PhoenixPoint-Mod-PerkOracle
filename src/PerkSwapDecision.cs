@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Outcome of evaluating whether a perk swap is permitted, before any reflection/Unity work.

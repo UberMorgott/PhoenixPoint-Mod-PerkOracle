@@ -2,7 +2,7 @@ using PhoenixPoint.Geoscape.View.ViewControllers;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Find-or-create a single dark child Image covering a progression cell, drawn just BELOW the

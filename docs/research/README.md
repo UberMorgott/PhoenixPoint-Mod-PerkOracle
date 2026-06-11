@@ -1,4 +1,4 @@
-# PerkOracle — research notes index
+# Oracle — research notes index
 
 Reusable engine findings about Phoenix Point internals discovered while building the mod. Each note is
 compressed bullets with `type` / `path:line` anchors, grounded in the game decompile and the shipped

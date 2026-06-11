@@ -1,16 +1,16 @@
-![PerkOracle](image/banner.png)
+![Oracle](image/banner.png)
 
-# PerkOracle
+# Oracle
 
 > A read-only in-game preview of which random "personal" perks a soldier could have rolled. For Phoenix Point, standalone or with TFTV.
 
 <!-- screenshot placeholder -->
 
-That randomness is the game's own system (vanilla and TFTV), not something the mod adds. PerkOracle only reads it and shows it to you. It does not create, add, or change any perks.
+That randomness is the game's own system (vanilla and TFTV), not something the mod adds. Oracle only reads it and shows it to you. It does not create, add, or change any perks.
 
 On the ability-progression screen, rolled perks get a blue tint. Right-click a rolled (blue) perk to open a wiki popup of every perk that could have landed in that slot, shown with the game's native icons and tooltips. The popup changes nothing.
 
-PerkOracle works standalone with the base game, is compatible with [Terror From The Void (TFTV)](https://github.com/Voland163/TFTV), and works alongside class-adding mods (for example an Officer or new-class mod). When TFTV is present, PerkOracle reads its per-slot data so the preview is exact; without it, the preview uses the base game's personal-perk pool.
+Oracle works standalone with the base game, is compatible with [Terror From The Void (TFTV)](https://github.com/Voland163/TFTV), and works alongside class-adding mods (for example an Officer or new-class mod). When TFTV is present, Oracle reads its per-slot data so the preview is exact; without it, the preview uses the base game's personal-perk pool.
 
 > **Steam Workshop:** <https://steamcommunity.com/sharedfiles/filedetails/?id=3739613434>
 
@@ -43,7 +43,7 @@ Planned:
 ## Requirements
 
 - **Phoenix Point** (base game) is all you need.
-- **Terror From The Void (TFTV)** is optional and compatible. With it installed, PerkOracle reads TFTV's per-slot data; without it, the base personal-perk pool. Also compatible with class-adding mods (for example Officer or new-class mods).
+- **Terror From The Void (TFTV)** is optional and compatible. With it installed, Oracle reads TFTV's per-slot data; without it, the base personal-perk pool. Also compatible with class-adding mods (for example Officer or new-class mods).
 
 ## Supported languages
 
@@ -55,12 +55,12 @@ The easiest route is to **subscribe on the [Steam Workshop](https://steamcommuni
 
 To install by hand:
 
-1. Download the `PerkOracle-*.zip` from the [latest release page](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest).
-2. Extract it. You get a `PerkOracle` folder containing `PerkOracle.dll`, `meta.json`, and an `Assets/` folder.
-3. Copy that folder into your Phoenix Point `Mods` folder. For a Steam install this is usually `…\steamapps\common\Phoenix Point\Mods\` (create `Mods` if it doesn't exist). The final path should be `Phoenix Point\Mods\PerkOracle\meta.json`.
-4. Launch Phoenix Point and enable **PerkOracle** in the in-game mod manager. If you run TFTV, let PerkOracle load after it.
+1. Download the `Oracle-*.zip` from the [latest release page](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest).
+2. Extract it. You get a `Oracle` folder containing `Oracle.dll`, `meta.json`, and an `Assets/` folder.
+3. Copy that folder into your Phoenix Point `Mods` folder. For a Steam install this is usually `…\steamapps\common\Phoenix Point\Mods\` (create `Mods` if it doesn't exist). The final path should be `Phoenix Point\Mods\Oracle\meta.json`.
+4. Launch Phoenix Point and enable **Oracle** in the in-game mod manager. If you run TFTV, let Oracle load after it.
 
-TFTV is optional. If you play with it, install it too (by any method); PerkOracle works standalone either way.
+TFTV is optional. If you play with it, install it too (by any method); Oracle works standalone either way.
 
 ## Configuration
 
@@ -86,7 +86,7 @@ dotnet test
 
 ## License
 
-PerkOracle © 2026 Morgott. Licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/): free to use and modify for non-commercial purposes with attribution.
+Oracle © 2026 Morgott. Licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/): free to use and modify for non-commercial purposes with attribution.
 
 ## Credits
 
@@ -100,11 +100,11 @@ PerkOracle © 2026 Morgott. Licensed under [CC BY-NC 4.0](https://creativecommon
 
 > Внутриигровой предпросмотр того, какие случайные «персональные» перки мог получить боец. Только для чтения. Для Phoenix Point, автономно или вместе с TFTV.
 
-Эта случайность есть собственная механика игры (ваниль и TFTV), а не что-то добавленное модом. PerkOracle лишь читает её и показывает вам. Он не создаёт, не добавляет и не меняет перки.
+Эта случайность есть собственная механика игры (ваниль и TFTV), а не что-то добавленное модом. Oracle лишь читает её и показывает вам. Он не создаёт, не добавляет и не меняет перки.
 
 На экране прогрессии навыков роленые перки подсвечиваются синим. Кликните по роленому (синему) перку правой кнопкой мыши, чтобы открыть окно-вики со всеми перками, которые могли выпасть в этот слот, с нативными иконками и подсказками игры. Окно ничего не меняет.
 
-PerkOracle работает автономно с базовой игрой, совместим с [Terror From The Void (TFTV)](https://github.com/Voland163/TFTV) и работает вместе с модами, добавляющими классы (например, Officer или другой мод на класс). Если установлен TFTV, PerkOracle читает его данные по слотам, и предпросмотр точен; без него используется базовый пул персональных перков.
+Oracle работает автономно с базовой игрой, совместим с [Terror From The Void (TFTV)](https://github.com/Voland163/TFTV) и работает вместе с модами, добавляющими классы (например, Officer или другой мод на класс). Если установлен TFTV, Oracle читает его данные по слотам, и предпросмотр точен; без него используется базовый пул персональных перков.
 
 > **Steam Workshop:** <https://steamcommunity.com/sharedfiles/filedetails/?id=3739613434>
 
@@ -137,7 +137,7 @@ PerkOracle работает автономно с базовой игрой, с�
 ### Требования
 
 - **Phoenix Point** (базовая игра). Это всё, что нужно.
-- **Terror From The Void (TFTV)** опционален и совместим. С ним PerkOracle читает данные TFTV по слотам, без него использует базовый пул персональных перков. Также совместим с модами, добавляющими классы (например, Officer).
+- **Terror From The Void (TFTV)** опционален и совместим. С ним Oracle читает данные TFTV по слотам, без него использует базовый пул персональных перков. Также совместим с модами, добавляющими классы (например, Officer).
 
 ### Установка
 
@@ -145,12 +145,12 @@ PerkOracle работает автономно с базовой игрой, с�
 
 Для ручной установки:
 
-1. Скачайте `PerkOracle-*.zip` со [страницы последнего релиза](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest).
-2. Распакуйте его. Вы получите папку `PerkOracle` с файлами `PerkOracle.dll`, `meta.json` и папкой `Assets/`.
-3. Скопируйте эту папку в каталог `Mods` игры Phoenix Point. Для установки через Steam это обычно `…\steamapps\common\Phoenix Point\Mods\` (создайте папку `Mods`, если её нет). Итоговый путь: `Phoenix Point\Mods\PerkOracle\meta.json`.
-4. Запустите Phoenix Point и включите **PerkOracle** во внутриигровом менеджере модов. Если используете TFTV, пусть PerkOracle загружается после него.
+1. Скачайте `Oracle-*.zip` со [страницы последнего релиза](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest).
+2. Распакуйте его. Вы получите папку `Oracle` с файлами `Oracle.dll`, `meta.json` и папкой `Assets/`.
+3. Скопируйте эту папку в каталог `Mods` игры Phoenix Point. Для установки через Steam это обычно `…\steamapps\common\Phoenix Point\Mods\` (создайте папку `Mods`, если её нет). Итоговый путь: `Phoenix Point\Mods\Oracle\meta.json`.
+4. Запустите Phoenix Point и включите **Oracle** во внутриигровом менеджере модов. Если используете TFTV, пусть Oracle загружается после него.
 
-TFTV опционален. Если играете с ним, установите его тоже (любым способом); PerkOracle в любом случае работает автономно.
+TFTV опционален. Если играете с ним, установите его тоже (любым способом); Oracle в любом случае работает автономно.
 
 ### Настройка
 
@@ -162,4 +162,4 @@ TFTV опционален. Если играете с ним, установит
 
 ### Лицензия
 
-PerkOracle © 2026 Morgott. Лицензия [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/): свободно использовать и изменять в некоммерческих целях с указанием авторства.
+Oracle © 2026 Morgott. Лицензия [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/): свободно использовать и изменять в некоммерческих целях с указанием авторства.

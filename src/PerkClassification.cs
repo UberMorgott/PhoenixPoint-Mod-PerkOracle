@@ -1,7 +1,7 @@
 using System;
 using PhoenixPoint.Common.Entities.Characters;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     public enum PerkKind
     {

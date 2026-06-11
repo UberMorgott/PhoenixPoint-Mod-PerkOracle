@@ -1,6 +1,6 @@
-# PerkOracle — Research-gated perk swap (+ stub cost toggle)
+# Oracle — Research-gated perk swap (+ stub cost toggle)
 
-Date: 2026-06-06 · Status: approved, implementing · Mod: PerkOracle (standalone, ns `Morgott.PerkOracle`, Dependencies `[]`)
+Date: 2026-06-06 · Status: approved, implementing · Mod: Oracle (standalone, ns `Morgott.Oracle`, Dependencies `[]`)
 
 ## Goal
 
@@ -16,7 +16,7 @@ Gate the existing (currently free) perk-swap behind a custom geoscape research p
 - Custom **icon**: user supplies a PNG (see Image spec). Code loads PNG → Sprite at runtime. If the Addressable `ResearchIcon` field cannot accept a runtime Sprite, fall back to the template's stock icon for v1 and report the blocker.
 - Autonomy boundary: implement → build-verify → commit → **push to GitHub main**. Do **NOT** republish to Steam Workshop (held for user's in-game test).
 
-## Config (`PerkOracleConfig`)
+## Config (`OracleConfig`)
 
 | Field | Type | Default | Status |
 |---|---|---|---|
@@ -28,7 +28,7 @@ Master logic unchanged: nothing happens unless `AllowPerkSwap` is ON. When ON, s
 
 ## Custom ResearchDef
 
-- Id: `PERKORACLE_PerkSwap_ResearchDef`.
+- Id: `ORACLE_PerkSwap_ResearchDef`.
 - Registration: `PerkSwapResearch.EnsureRegistered(DefRepository repo)` called from `OnModEnabled` in the mod main class, resolving the repo via `GameUtl.GameComponent<DefRepository>()` (idempotent). NOTE: the spec originally cited `override ApplyDefRepoPatches(DefRepository)`, but that virtual exists only in the full game decompile, NOT on the ModSDK `ModMain` we compile against — confirmed by reflecting the ModSDK assembly. `OnModEnabled` + `GameComponent<DefRepository>()` is the verified pattern the Officer mod uses on this same SDK.
 - Creation (vanilla, no TFTV): `repo.CreateDef<ResearchDef>(id, templateOriginal)` — clones, sets Guid=id, adds to `AllDefs` (tree sees it). Template: `PX_AtmosphericAnalysis_ResearchDef`.
 - After clone: set `Faction` (keep cloned), `Id`, `ResearchCost`, clear `Unlocks = new ...[0]`, `Tags = new ...[0]`, clear requirement containers, set all `InitialStates[*].State = Unlocked`, attach `ViewElementDef`.
@@ -56,8 +56,8 @@ At the swap entry point (`WikiAbilityTooltipTrigger.OnPointerClick` → `PerkSwa
 
 ## Localization
 
-- Add rows to the existing 8-lang CSV (imported via `Import_CSV`/`AddNewTerms`, PerkOracleMain.cs:50-84) — **no new loading code**.
-- New keys: `PERKORACLE_Research_Name`, `PERKORACLE_Research_Description`, `PERKORACLE_Research_Benefits`, `PERKORACLE_Research_Complete`, `PERKORACLE_SwapResearchLocked` (deny message), `PERKORACLE_PerkSwapCostsResources` + `_DESCRIPTION`, `PERKORACLE_RequirePerkSwapResearch` + `_DESCRIPTION`.
+- Add rows to the existing 8-lang CSV (imported via `Import_CSV`/`AddNewTerms`, OracleMain.cs:50-84) — **no new loading code**.
+- New keys: `ORACLE_Research_Name`, `ORACLE_Research_Description`, `ORACLE_Research_Benefits`, `ORACLE_Research_Complete`, `ORACLE_SwapResearchLocked` (deny message), `ORACLE_PerkSwapCostsResources` + `_DESCRIPTION`, `ORACLE_RequirePerkSwapResearch` + `_DESCRIPTION`.
 - Langs: english, russian, german, french, spanish, italian, polish, schinese.
 - EN + RU source text below is authored (anti-AI tone). The other 6 are machine-translated by the implementer and **flagged for user review**.
 
@@ -66,7 +66,7 @@ At the swap entry point (`WikiAbilityTooltipTrigger.OnPointerClick` → `PerkSwa
 - Description: `Phoenix Project drill records survived the collapse. They describe how a trained operative can be put back through conditioning and brought out the other side with a different specialty. Old reflexes are not added to, they are overwritten. The work is dull and the soldier is off the line while it runs, but a squad is no longer stuck with the specialists it was handed.`
 - Benefits: `Retrains a soldier so a personal perk gained at random can be relearned as a different one.`
 - Complete: `Reconditioning protocols restored. Operatives can be retrained.`
-- Deny message (`PERKORACLE_SwapResearchLocked`): `Soldiers can only be retrained once the "Operative Reconditioning" research is complete.`
+- Deny message (`ORACLE_SwapResearchLocked`): `Soldiers can only be retrained once the "Operative Reconditioning" research is complete.`
 
 ### Research text — RU (source)
 - Name: `Переподготовка оперативников`

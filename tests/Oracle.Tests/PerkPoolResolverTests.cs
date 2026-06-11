@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Morgott.PerkOracle;
+using Morgott.Oracle;
 using Xunit;
 
-namespace Morgott.PerkOracle.Tests
+namespace Morgott.Oracle.Tests
 {
     /// <summary>
     /// Unit tests for the pure pool core. Defs are faked with strings ("name" -> "DEF:name") so the

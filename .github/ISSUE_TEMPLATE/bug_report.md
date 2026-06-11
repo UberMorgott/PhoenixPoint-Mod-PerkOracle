@@ -1,6 +1,6 @@
 ---
 name: Bug report / Сообщение об ошибке
-about: Report a bug in PerkOracle. Please attach your Player.log, your mod list, and reproduction steps.
+about: Report a bug in Oracle. Please attach your Player.log, your mod list, and reproduction steps.
 title: "[Bug] "
 labels: bug
 assignees: ''
@@ -38,6 +38,6 @@ List **all** mods you have installed and enabled (with versions if possible). St
 
 ## Environment / Окружение
 - Game version / Версия игры:
-- PerkOracle version / Версия PerkOracle:
+- Oracle version / Версия Oracle:
 - Standalone or with TFTV? / Отдельно или с TFTV?
 - AllowPerkSwap on/off? / AllowPerkSwap вкл/выкл?

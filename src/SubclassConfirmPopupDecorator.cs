@@ -11,7 +11,7 @@ using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Marker passed as the native message box's <c>UserData</c> for OUR "take this subclass?" confirm
@@ -38,7 +38,7 @@ namespace Morgott.PerkOracle
     [HarmonyPatch(typeof(MessageBoxPromptController), "Show")]
     internal static class SubclassConfirmPopupDecorator
     {
-        private const string RowName = "PerkOracleConfirmPerkRow";
+        private const string RowName = "OracleConfirmPerkRow";
         private const float CellSize = 96f;
         private const float CellSpacing = 8f;
         private const float RowGap = 14f;        // vertical padding around the icon row
@@ -163,7 +163,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] SubclassConfirmPopupDecorator postfix failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] SubclassConfirmPopupDecorator postfix failed: " + ex.Message);
             }
         }
 
@@ -183,7 +183,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] SubclassConfirmPopupDecorator.ReadMarker failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] SubclassConfirmPopupDecorator.ReadMarker failed: " + ex.Message);
                 return null;
             }
         }
@@ -207,7 +207,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] SubclassConfirmPopupDecorator.ResolveTextHost failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] SubclassConfirmPopupDecorator.ResolveTextHost failed: " + ex.Message);
             }
             return host;
         }
@@ -260,7 +260,7 @@ namespace Morgott.PerkOracle
                 var cg = go.GetComponent<CanvasGroup>() ?? go.AddComponent<CanvasGroup>();
                 cg.blocksRaycasts = false;
                 cg.interactable = false;
-                go.name = "PerkOracleConfirmTooltip";
+                go.name = "OracleConfirmTooltip";
                 go.transform.localScale = Vector3.one;
                 go.transform.SetAsLastSibling(); // above the dialog within the same parent
 
@@ -278,7 +278,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] SubclassConfirmPopupDecorator.CreateTooltip failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] SubclassConfirmPopupDecorator.CreateTooltip failed: " + ex.Message);
                 if ((UnityEngine.Object)(object)go != (UnityEngine.Object)null)
                 {
                     UnityEngine.Object.Destroy(go);
@@ -310,7 +310,7 @@ namespace Morgott.PerkOracle
             {
                 _destroying = true;
                 try { UnityEngine.Object.Destroy(((Component)this).gameObject); }
-                catch (Exception ex) { PerkOracleLog.Debug("[PerkOracle] ConfirmRowCleanup destroy failed: " + ex.Message); }
+                catch (Exception ex) { OracleLog.Debug("[Oracle] ConfirmRowCleanup destroy failed: " + ex.Message); }
             }
         }
 
@@ -329,7 +329,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] ConfirmRowCleanup failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] ConfirmRowCleanup failed: " + ex.Message);
             }
         }
     }

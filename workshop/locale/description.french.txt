@@ -1,7 +1,7 @@
-[h1]PerkOracle[/h1]
+[h1]Oracle[/h1]
 [b]Un aperçu en jeu, en lecture seule, des perks « personnels » qu'un soldat aurait pu tirer au sort. Pour Phoenix Point, seul ou avec TFTV.[/b]
 
-Dans Phoenix Point, certains perks de la voie « personnelle » sont tirés au sort pour chaque soldat. Ce hasard est le système propre au jeu (vanilla et TFTV), pas une fonction ajoutée par ce mod. PerkOracle se contente de lire ces données et de les afficher. Il ne génère, n'ajoute ni ne modifie aucun perk.
+Dans Phoenix Point, certains perks de la voie « personnelle » sont tirés au sort pour chaque soldat. Ce hasard est le système propre au jeu (vanilla et TFTV), pas une fonction ajoutée par ce mod. Oracle se contente de lire ces données et de les afficher. Il ne génère, n'ajoute ni ne modifie aucun perk.
 
 Il propose aussi un échange de perks optionnel, désactivé par défaut, pour les joueurs qui veulent plus de contrôle.
 
@@ -16,7 +16,7 @@ Il propose aussi un échange de perks optionnel, désactivé par défaut, pour l
 
 [h1]Optionnel : Échange de perks (désactivé par défaut)[/h1]
 [list]
-[*][b]AllowPerkSwap[/b] est [b]DÉSACTIVÉ[/b] de base, donc PerkOracle reste strictement en lecture seule. Activez-le dans les Paramètres du mod, et un [b]clic gauche[/b] sur un perk dans le wiki remplace un perk déjà appris dans cet emplacement par un autre perk existant. Cela change seulement quel perk existant occupe un emplacement que vous avez déjà débloqué.
+[*][b]AllowPerkSwap[/b] est [b]DÉSACTIVÉ[/b] de base, donc Oracle reste strictement en lecture seule. Activez-le dans les Paramètres du mod, et un [b]clic gauche[/b] sur un perk dans le wiki remplace un perk déjà appris dans cet emplacement par un autre perk existant. Cela change seulement quel perk existant occupe un emplacement que vous avez déjà débloqué.
 [*][b]Verrou de recherche optionnel.[/b] Vous pouvez exiger une recherche unique « Reconditionnement des opérateurs » avant que les soldats puissent être réentraînés. Activez-le ou désactivez-le dans les paramètres du mod.
 [/list]
 
@@ -32,8 +32,8 @@ English, 简体中文 (chinois simplifié), Français, Deutsch, Italiano, Polski
 
 [h1]Comment l'utiliser[/h1]
 [list=1]
-[*][b]Abonnez-vous[/b] à PerkOracle sur le Workshop. (Si vous utilisez TFTV, installez-le aussi ; PerkOracle se charge après lui.)
-[*]Lancez Phoenix Point et [b]activez PerkOracle[/b] dans le gestionnaire de mods en jeu.
+[*][b]Abonnez-vous[/b] à Oracle sur le Workshop. (Si vous utilisez TFTV, installez-le aussi ; Oracle se charge après lui.)
+[*]Lancez Phoenix Point et [b]activez Oracle[/b] dans le gestionnaire de mods en jeu.
 [*]Ouvrez l'écran de progression des compétences d'un soldat, survolez un perk tiré au sort (en bleu) et [b]faites un clic droit[/b] dessus.
 [/list]
 

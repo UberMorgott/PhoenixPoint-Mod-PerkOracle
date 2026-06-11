@@ -1,6 +1,6 @@
 # Drafting Workshop comment replies
 
-A lightweight workflow for answering PerkOracle Workshop comments in the mod's
+A lightweight workflow for answering Oracle Workshop comments in the mod's
 voice, in English and Russian.
 
 ## Workflow
@@ -33,7 +33,7 @@ voice, in English and Russian.
 - **Bug reports:** ask for the specifics needed to reproduce —
   - a **save file** at/just before the issue,
   - the **`Player.log`** (Phoenix Point output log),
-  - the **mod load order** (confirm TFTV is installed and PerkOracle loads after it),
+  - the **mod load order** (confirm TFTV is installed and Oracle loads after it),
   - exact **steps** and what they expected vs. saw.
 - **Set expectations honestly.** If something is by design (e.g. fixed/class cells
   are never highlighted, or `AllowPerkSwap` is off by default), say so kindly.
@@ -44,10 +44,10 @@ voice, in English and Russian.
 ## Reusable snippets
 
 - EN bug-ask: "Thanks for the report! Could you share your `Player.log` and a save
-  from just before it happens, plus confirm TFTV is installed and PerkOracle loads
+  from just before it happens, plus confirm TFTV is installed and Oracle loads
   after it? That'll help me reproduce it."
 - RU bug-ask: «Спасибо за репорт! Можете приложить `Player.log` и сейв прямо перед
-  проблемой, а также подтвердить, что TFTV установлен и PerkOracle грузится после
+  проблемой, а также подтвердить, что TFTV установлен и Oracle грузится после
   него? Так я смогу воспроизвести.»
-- EN thanks: "Glad it's useful — thanks for trying PerkOracle!"
-- RU thanks: «Рад, что пригодилось — спасибо, что попробовали PerkOracle!»
+- EN thanks: "Glad it's useful — thanks for trying Oracle!"
+- RU thanks: «Рад, что пригодилось — спасибо, что попробовали Oracle!»

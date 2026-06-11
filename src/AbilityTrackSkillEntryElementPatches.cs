@@ -4,7 +4,7 @@ using PhoenixPoint.Common.Entities.Characters;
 using PhoenixPoint.Geoscape.View.ViewControllers;
 using UnityEngine;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Postfix on the cell's populate seam: classify the perk and show our dark background only
@@ -68,7 +68,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] SetSkillState postfix failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] SetSkillState postfix failed: " + ex.Message);
             }
         }
     }
@@ -85,7 +85,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] SetEmpty postfix failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] SetEmpty postfix failed: " + ex.Message);
             }
         }
     }

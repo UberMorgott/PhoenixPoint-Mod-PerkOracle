@@ -10,7 +10,7 @@ using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// A self-contained UGUI overlay listing candidate perk icons in a scrollable grid. Owns a single
@@ -27,7 +27,7 @@ namespace Morgott.PerkOracle
         private const float TitleHeight = 44f;
 
         // I2 term for the wiki title; the literal is the English fallback when the term is missing.
-        private const string TitleTerm = "PERKORACLE_WIKI_TITLE";
+        private const string TitleTerm = "ORACLE_WIKI_TITLE";
         private const string TitleFallback = "POSSIBLE SKILLS";
 
         private static GameObject _root;
@@ -92,7 +92,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] PerkWikiPanel.Open failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] PerkWikiPanel.Open failed: " + ex.Message);
                 Close();
             }
         }
@@ -244,7 +244,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] PerkWikiPanel.ResolveTemplateCell failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] PerkWikiPanel.ResolveTemplateCell failed: " + ex.Message);
                 return null;
             }
         }
@@ -271,7 +271,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] PerkWikiPanel.MeasureCellSize failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] PerkWikiPanel.MeasureCellSize failed: " + ex.Message);
             }
             return CellSize;
         }
@@ -312,7 +312,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] PerkWikiPanel.CreateTooltipClone failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] PerkWikiPanel.CreateTooltipClone failed: " + ex.Message);
                 _tooltipGo = null;
                 _tooltip = null;
             }
@@ -354,7 +354,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] PerkWikiPanel.BuildTitle failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildTitle failed: " + ex.Message);
             }
         }
 
@@ -377,7 +377,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] PerkWikiPanel.GetTitleFont failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] PerkWikiPanel.GetTitleFont failed: " + ex.Message);
             }
             if ((UnityEngine.Object)(object)_titleFont == (UnityEngine.Object)null)
             {

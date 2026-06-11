@@ -1,7 +1,7 @@
-[h1]PerkOracle[/h1]
+[h1]Oracle[/h1]
 [b]A read-only in-game preview of which random "personal" perks a soldier could have rolled. For Phoenix Point, standalone or with TFTV.[/b]
 
-In Phoenix Point, some perks on the "personal" track are rolled randomly for each soldier. That randomness is the game's own system (vanilla and TFTV), not something this mod adds. PerkOracle only reads that data and shows it to you. It does not generate, add, or change any perks.
+In Phoenix Point, some perks on the "personal" track are rolled randomly for each soldier. That randomness is the game's own system (vanilla and TFTV), not something this mod adds. Oracle only reads that data and shows it to you. It does not generate, add, or change any perks.
 
 There is also an optional perk swap, off by default, for players who want more control.
 
@@ -16,7 +16,7 @@ There is also an optional perk swap, off by default, for players who want more c
 
 [h1]Optional: Perk Swap (off by default)[/h1]
 [list]
-[*][b]AllowPerkSwap[/b] is [b]OFF[/b] out of the box, so PerkOracle stays strictly read-only. Turn it on in the mod's Settings, and [b]left-clicking[/b] a perk in the wiki replaces an already-learned perk in that slot with another existing perk. It only swaps which existing perk occupies a slot you have already unlocked.
+[*][b]AllowPerkSwap[/b] is [b]OFF[/b] out of the box, so Oracle stays strictly read-only. Turn it on in the mod's Settings, and [b]left-clicking[/b] a perk in the wiki replaces an already-learned perk in that slot with another existing perk. It only swaps which existing perk occupies a slot you have already unlocked.
 [*][b]Optional research gate.[/b] You can require a one-time "Operative Reconditioning" research before soldiers can be retrained. Toggle it in the mod settings.
 [/list]
 
@@ -32,8 +32,8 @@ English, 简体中文 (Simplified Chinese), Français, Deutsch, Italiano, Polski
 
 [h1]How to use[/h1]
 [list=1]
-[*][b]Subscribe[/b] to PerkOracle on the Workshop. (If you use TFTV, install it too; PerkOracle loads after it.)
-[*]Launch Phoenix Point and [b]enable PerkOracle[/b] in the in-game mod manager.
+[*][b]Subscribe[/b] to Oracle on the Workshop. (If you use TFTV, install it too; Oracle loads after it.)
+[*]Launch Phoenix Point and [b]enable Oracle[/b] in the in-game mod manager.
 [*]Open a soldier's ability-progression screen, hover a rolled (blue) perk and [b]right-click[/b] it.
 [/list]
 

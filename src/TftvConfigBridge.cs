@@ -10,7 +10,7 @@ using PhoenixPoint.Common.Core;
 using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Reflection bridge into TFTV's PRMBetterClasses config. Resolves once, lazily, and caches
@@ -97,13 +97,13 @@ namespace Morgott.PerkOracle
                              && _perkKeys != null && _perkIsRandom != null;
                 if (!_available)
                 {
-                    LogOnce("[PerkOracle] TFTV config bridge resolved but data was empty; disabling highlight.");
+                    LogOnce("[Oracle] TFTV config bridge resolved but data was empty; disabling highlight.");
                 }
             }
             catch (Exception ex)
             {
                 _available = false;
-                LogOnce("[PerkOracle] TFTV config bridge unavailable: " + ex.Message);
+                LogOnce("[Oracle] TFTV config bridge unavailable: " + ex.Message);
             }
         }
 
@@ -300,7 +300,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] vanilla personal pool query failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] vanilla personal pool query failed: " + ex.Message);
                 return new List<TacticalAbilityDef>();
             }
         }
@@ -346,14 +346,14 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] def-name index build failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] def-name index build failed: " + ex.Message);
             }
         }
 
         private static void LogOnce(string message)
         {
             // EnsureInitialized only runs the resolution path once, so this fires at most once.
-            PerkOracleLog.Debug(message);
+            OracleLog.Debug(message);
         }
     }
 }

@@ -6,7 +6,7 @@ using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Builds one candidate cell for the wiki grid by CLONING a live native
@@ -93,7 +93,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] WikiIconFactory.MakeNative failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] WikiIconFactory.MakeNative failed: " + ex.Message);
                 return null;
             }
         }
@@ -146,7 +146,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] WikiIconFactory.Make failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] WikiIconFactory.Make failed: " + ex.Message);
                 return null;
             }
         }
@@ -168,7 +168,7 @@ namespace Morgott.PerkOracle
             catch (Exception ex)
             {
                 // Tooltip/click is non-essential; the cell still shows.
-                PerkOracleLog.Debug("[PerkOracle] WikiIconFactory tooltip failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] WikiIconFactory tooltip failed: " + ex.Message);
             }
         }
     }

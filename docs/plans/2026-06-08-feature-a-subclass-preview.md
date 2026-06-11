@@ -15,15 +15,15 @@
 | File | Create/Modify | Responsibility |
 | --- | --- | --- |
 | `src/ClassPerkResolver.cs` | Create | Pure core: ordered class-track ability names → de-duplicated `List<T>` of resolved defs; injected order-source + resolver, no Unity/TFTV/Harmony dependency. |
-| `tests/PerkOracle.Tests/ClassPerkResolverTests.cs` | Create | xUnit tests for `ClassPerkResolver.Resolve<T>` using string fakes, mirroring `PerkPoolResolverTests`. |
-| `tests/PerkOracle.Tests/PerkOracle.Tests.csproj` | Modify | Link-compile `..\..\src\ClassPerkResolver.cs` so the pure core unit-tests under net8. |
+| `tests/Oracle.Tests/ClassPerkResolverTests.cs` | Create | xUnit tests for `ClassPerkResolver.Resolve<T>` using string fakes, mirroring `PerkPoolResolverTests`. |
+| `tests/Oracle.Tests/Oracle.Tests.csproj` | Modify | Link-compile `..\..\src\ClassPerkResolver.cs` so the pure core unit-tests under net8. |
 | `src/ClassPerkProvider.cs` | Create | Game-side adapter (Unity-touching): given a `SpecializationDef`, build the ordered class-track name list from `AbilityTrack.AbilitiesByLevel[].Ability`, call `ClassPerkResolver.Resolve` with a name→def resolver, return `List<TacticalAbilityDef>`. Also enumerates the full subclass set from `DefRepository` and computes the omitted (greyed) set. |
 | `src/PerkWikiPanel.cs` | Modify | Add optional `titleTerm`/`titleFallback` params to `Open` and thread them through `BuildPanel` → `BuildTitle` so the banner can show "CLASS PERKS" instead of "POSSIBLE SKILLS". |
 | `src/SelectSpecializationDataBindPatch.cs` | Create | Harmony POSTFIX on `SelectSpecializationDataBind.ModalShowHandler`: attach a right-click handler to each active native subclass button, and clone+grey a native button for each omitted subclass, also right-clickable. Opens the wiki via `PerkWikiPanel.Open(canvas, defs, null, ClassTitleTerm, ClassTitleFallback)`. |
 | `src/SubclassWikiClickHandler.cs` | Create | Small `MonoBehaviour` (`IPointerClickHandler`) attached to each subclass button: on right-click, resolve that button's `SpecializationDef`'s class perks via `ClassPerkProvider` and open the view-only wiki banner. |
-| `Assets/Localization/PerkOracle_Localization.csv` | Modify | Add the `PERKORACLE_WIKI_TITLE_CLASS` row ("CLASS PERKS") across all 8 languages. |
+| `Assets/Localization/Oracle_Localization.csv` | Modify | Add the `ORACLE_WIKI_TITLE_CLASS` row ("CLASS PERKS") across all 8 languages. |
 
-**Note — rides along for free (no new code):** the rolled-cell highlight + candidate drill-down come from the existing `SetSkillStatePatch` / `OnCancelInputHandlerPatch` wherever progression cells render; the subclass picker shows class buttons (not progression cells), so on this screen the right-click banner is the new affordance and the highlight feature is untouched. No registration changes are needed in `PerkOracleMain` — `harmony.PatchAll(Assembly.GetExecutingAssembly())` (PerkOracleMain.cs:70) auto-discovers the new `[HarmonyPatch]` classes, and the CSV loads via the existing `LoadLocalization` (PerkOracleMain.cs:102).
+**Note — rides along for free (no new code):** the rolled-cell highlight + candidate drill-down come from the existing `SetSkillStatePatch` / `OnCancelInputHandlerPatch` wherever progression cells render; the subclass picker shows class buttons (not progression cells), so on this screen the right-click banner is the new affordance and the highlight feature is untouched. No registration changes are needed in `OracleMain` — `harmony.PatchAll(Assembly.GetExecutingAssembly())` (OracleMain.cs:70) auto-discovers the new `[HarmonyPatch]` classes, and the CSV loads via the existing `LoadLocalization` (OracleMain.cs:102).
 
 ---
 
@@ -31,20 +31,20 @@
 
 **Files:**
 - Create: `src/ClassPerkResolver.cs`
-- Test: `tests/PerkOracle.Tests/ClassPerkResolverTests.cs`
-- Modify: `tests/PerkOracle.Tests/PerkOracle.Tests.csproj`
+- Test: `tests/Oracle.Tests/ClassPerkResolverTests.cs`
+- Modify: `tests/Oracle.Tests/Oracle.Tests.csproj`
 
 - [ ] **Step 1: Write the failing test**
 
-Create `tests/PerkOracle.Tests/ClassPerkResolverTests.cs`:
+Create `tests/Oracle.Tests/ClassPerkResolverTests.cs`:
 
 ```csharp
 using System;
 using System.Collections.Generic;
-using Morgott.PerkOracle;
+using Morgott.Oracle;
 using Xunit;
 
-namespace Morgott.PerkOracle.Tests
+namespace Morgott.Oracle.Tests
 {
     /// <summary>
     /// Unit tests for the pure class-perk core. Defs are faked with strings ("name" -> "DEF:name")
@@ -108,7 +108,7 @@ namespace Morgott.PerkOracle.Tests
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `dotnet test tests/PerkOracle.Tests/PerkOracle.Tests.csproj --nologo`
+Run: `dotnet test tests/Oracle.Tests/Oracle.Tests.csproj --nologo`
 Expected: FAIL — build error `The name 'ClassPerkResolver' does not exist in the current context` (the type is not created yet).
 
 - [ ] **Step 3: Write minimal implementation**
@@ -119,7 +119,7 @@ Create `src/ClassPerkResolver.cs`:
 using System;
 using System.Collections.Generic;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Pure ordering/dedup/resolve core for a subclass's guaranteed class-track perks. Has no Unity,
@@ -171,7 +171,7 @@ namespace Morgott.PerkOracle
 }
 ```
 
-Then add the link-compile entry to `tests/PerkOracle.Tests/PerkOracle.Tests.csproj` inside the existing pure-cores `<ItemGroup>` (the one containing `PerkPoolResolver.cs`), immediately after the `PerkSwapDecision.cs` line:
+Then add the link-compile entry to `tests/Oracle.Tests/Oracle.Tests.csproj` inside the existing pure-cores `<ItemGroup>` (the one containing `PerkPoolResolver.cs`), immediately after the `PerkSwapDecision.cs` line:
 
 ```xml
     <!-- ClassPerkResolver is the pure class-track ordering/dedup core (no Unity/TFTV types). -->
@@ -180,42 +180,42 @@ Then add the link-compile entry to `tests/PerkOracle.Tests/PerkOracle.Tests.cspr
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `dotnet test tests/PerkOracle.Tests/PerkOracle.Tests.csproj --nologo`
+Run: `dotnet test tests/Oracle.Tests/Oracle.Tests.csproj --nologo`
 Expected: PASS — `пройдено 40` (34 existing + 6 new) / `Passed! 40`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git -C 'E:\DEV\PhoenixPoint\PerkOracle' add src/ClassPerkResolver.cs tests/PerkOracle.Tests/ClassPerkResolverTests.cs tests/PerkOracle.Tests/PerkOracle.Tests.csproj
-git -C 'E:\DEV\PhoenixPoint\PerkOracle' commit -m "feat(PerkOracle): add pure ClassPerkResolver core with unit tests"
+git -C 'E:\DEV\PhoenixPoint\PerkOracle' add src/ClassPerkResolver.cs tests/Oracle.Tests/ClassPerkResolverTests.cs tests/Oracle.Tests/Oracle.Tests.csproj
+git -C 'E:\DEV\PhoenixPoint\PerkOracle' commit -m "feat(Oracle): add pure ClassPerkResolver core with unit tests"
 ```
 
 ---
 
-## Task 2 — Localization term `PERKORACLE_WIKI_TITLE_CLASS`
+## Task 2 — Localization term `ORACLE_WIKI_TITLE_CLASS`
 
 **Files:**
-- Modify: `Assets/Localization/PerkOracle_Localization.csv`
+- Modify: `Assets/Localization/Oracle_Localization.csv`
 
 The CSV column order is **fixed** as `Key,English,Chinese (Simplified),French,German,Italian,Polish,Russian,Spanish` (header is line 1). Append the new term as a final row. There is no class-exclusion logic to test here; verification is a CSV-shape check.
 
 - [ ] **Step 1: Add the new CSV row**
 
-Append exactly this single line to the end of `Assets/Localization/PerkOracle_Localization.csv` (file already ends with a trailing newline, so this becomes a new final line). Author translations of "CLASS PERKS":
+Append exactly this single line to the end of `Assets/Localization/Oracle_Localization.csv` (file already ends with a trailing newline, so this becomes a new final line). Author translations of "CLASS PERKS":
 
 ```text
-PERKORACLE_WIKI_TITLE_CLASS,CLASS PERKS,职业天赋,PERKS DE CLASSE,KLASSEN-PERKS,PERK DI CLASSE,PERKI KLASY,КЛАССОВЫЕ ПЕРКИ,PERKS DE CLASE
+ORACLE_WIKI_TITLE_CLASS,CLASS PERKS,职业天赋,PERKS DE CLASSE,KLASSEN-PERKS,PERK DI CLASSE,PERKI KLASY,КЛАССОВЫЕ ПЕРКИ,PERKS DE CLASE
 ```
 
 - [ ] **Step 2: Verify the row is well-formed**
 
-Run: `dotnet tool run dotnet-csv --help 2>$null; (Get-Content 'Assets/Localization/PerkOracle_Localization.csv' | Select-String 'PERKORACLE_WIKI_TITLE_CLASS')`
+Run: `dotnet tool run dotnet-csv --help 2>$null; (Get-Content 'Assets/Localization/Oracle_Localization.csv' | Select-String 'ORACLE_WIKI_TITLE_CLASS')`
 Simpler verification (PowerShell): confirm the new row has exactly 9 comma-separated fields and matches the header column count:
 
 Run:
 ```powershell
-$h = (Get-Content 'Assets/Localization/PerkOracle_Localization.csv' -TotalCount 1) -split ',' ;
-$r = (Get-Content 'Assets/Localization/PerkOracle_Localization.csv' | Select-String '^PERKORACLE_WIKI_TITLE_CLASS,').Line -split ',' ;
+$h = (Get-Content 'Assets/Localization/Oracle_Localization.csv' -TotalCount 1) -split ',' ;
+$r = (Get-Content 'Assets/Localization/Oracle_Localization.csv' | Select-String '^ORACLE_WIKI_TITLE_CLASS,').Line -split ',' ;
 "header=$($h.Count) row=$($r.Count)"
 ```
 Expected: `header=9 row=9`
@@ -223,8 +223,8 @@ Expected: `header=9 row=9`
 - [ ] **Step 3: Commit**
 
 ```bash
-git -C 'E:\DEV\PhoenixPoint\PerkOracle' add Assets/Localization/PerkOracle_Localization.csv
-git -C 'E:\DEV\PhoenixPoint\PerkOracle' commit -m "feat(PerkOracle): add PERKORACLE_WIKI_TITLE_CLASS loc term (8 langs)"
+git -C 'E:\DEV\PhoenixPoint\PerkOracle' add Assets/Localization/Oracle_Localization.csv
+git -C 'E:\DEV\PhoenixPoint\PerkOracle' commit -m "feat(Oracle): add ORACLE_WIKI_TITLE_CLASS loc term (8 langs)"
 ```
 
 ---
@@ -234,7 +234,7 @@ git -C 'E:\DEV\PhoenixPoint\PerkOracle' commit -m "feat(PerkOracle): add PERKORA
 **Files:**
 - Modify: `src/PerkWikiPanel.cs`
 
-The banner title is currently hard-wired to `PERKORACLE_WIKI_TITLE` / "POSSIBLE SKILLS" (PerkWikiPanel.cs:30-31, used in `BuildTitle` at line 336). Add optional `titleTerm`/`titleFallback` params to `Open`, default them to the existing constants (so the current progression-screen caller at `OnCancelInputHandlerPatch.cs:77` keeps working unchanged), and thread them through `BuildPanel` → `BuildTitle`. This is UI code (net472 against Unity) and is not unit-tested; it is exercised by Task 4's manual in-game verification.
+The banner title is currently hard-wired to `ORACLE_WIKI_TITLE` / "POSSIBLE SKILLS" (PerkWikiPanel.cs:30-31, used in `BuildTitle` at line 336). Add optional `titleTerm`/`titleFallback` params to `Open`, default them to the existing constants (so the current progression-screen caller at `OnCancelInputHandlerPatch.cs:77` keeps working unchanged), and thread them through `BuildPanel` → `BuildTitle`. This is UI code (net472 against Unity) and is not unit-tested; it is exercised by Task 4's manual in-game verification.
 
 - [ ] **Step 1: Change the `Open` signature to accept the title**
 
@@ -321,14 +321,14 @@ with:
 
 - [ ] **Step 5: Build the mod to verify it compiles**
 
-Run: `dotnet build PerkOracle.csproj -c Release --nologo`
-Expected: `Build succeeded` with 0 errors. (Builds against the ModSDK + game Managed DLLs declared in `PerkOracle.csproj`.)
+Run: `dotnet build Oracle.csproj -c Release --nologo`
+Expected: `Build succeeded` with 0 errors. (Builds against the ModSDK + game Managed DLLs declared in `Oracle.csproj`.)
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git -C 'E:\DEV\PhoenixPoint\PerkOracle' add src/PerkWikiPanel.cs
-git -C 'E:\DEV\PhoenixPoint\PerkOracle' commit -m "feat(PerkOracle): allow a custom title term/fallback in PerkWikiPanel.Open"
+git -C 'E:\DEV\PhoenixPoint\PerkOracle' commit -m "feat(Oracle): allow a custom title term/fallback in PerkWikiPanel.Open"
 ```
 
 ---
@@ -359,7 +359,7 @@ using PhoenixPoint.Common.Entities.Characters;
 using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Game-side adapter that turns a subclass <see cref="SpecializationDef"/> into the ordered,
@@ -425,7 +425,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] ClassPerkProvider.GetClassPerks failed: " + ex.Message);
+                Debug.Log("[Oracle] ClassPerkProvider.GetClassPerks failed: " + ex.Message);
                 return new List<TacticalAbilityDef>();
             }
         }
@@ -467,7 +467,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] ClassPerkProvider.GetOmittedSubclasses failed: " + ex.Message);
+                Debug.Log("[Oracle] ClassPerkProvider.GetOmittedSubclasses failed: " + ex.Message);
                 return new List<SpecializationDef>();
             }
         }
@@ -477,14 +477,14 @@ namespace Morgott.PerkOracle
 
 - [ ] **Step 2: Build the mod to verify it compiles**
 
-Run: `dotnet build PerkOracle.csproj -c Release --nologo`
+Run: `dotnet build Oracle.csproj -c Release --nologo`
 Expected: `Build succeeded` with 0 errors.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git -C 'E:\DEV\PhoenixPoint\PerkOracle' add src/ClassPerkProvider.cs
-git -C 'E:\DEV\PhoenixPoint\PerkOracle' commit -m "feat(PerkOracle): add ClassPerkProvider game-side class-track adapter"
+git -C 'E:\DEV\PhoenixPoint\PerkOracle' commit -m "feat(Oracle): add ClassPerkProvider game-side class-track adapter"
 ```
 
 ---
@@ -509,7 +509,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Attached to a subclass picker button (available OR greyed-injected). On right-click it opens the
@@ -521,7 +521,7 @@ namespace Morgott.PerkOracle
     public sealed class SubclassWikiClickHandler : MonoBehaviour, IPointerClickHandler
     {
         /// <summary>I2 term + English fallback for the class-perk banner title.</summary>
-        public const string ClassTitleTerm = "PERKORACLE_WIKI_TITLE_CLASS";
+        public const string ClassTitleTerm = "ORACLE_WIKI_TITLE_CLASS";
         public const string ClassTitleFallback = "CLASS PERKS";
 
         /// <summary>The subclass whose guaranteed perks this button previews.</summary>
@@ -550,7 +550,7 @@ namespace Morgott.PerkOracle
                 List<TacticalAbilityDef> defs = ClassPerkProvider.GetClassPerks(Spec);
                 if (defs == null || defs.Count == 0)
                 {
-                    Debug.Log("[PerkOracle] subclass wiki: empty class-perk list for "
+                    Debug.Log("[Oracle] subclass wiki: empty class-perk list for "
                               + ((UnityEngine.Object)Spec).name);
                     return;
                 }
@@ -566,7 +566,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] SubclassWikiClickHandler.OnPointerClick failed: " + ex.Message);
+                Debug.Log("[Oracle] SubclassWikiClickHandler.OnPointerClick failed: " + ex.Message);
             }
         }
     }
@@ -575,14 +575,14 @@ namespace Morgott.PerkOracle
 
 - [ ] **Step 2: Build the mod to verify it compiles**
 
-Run: `dotnet build PerkOracle.csproj -c Release --nologo`
+Run: `dotnet build Oracle.csproj -c Release --nologo`
 Expected: `Build succeeded` with 0 errors.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git -C 'E:\DEV\PhoenixPoint\PerkOracle' add src/SubclassWikiClickHandler.cs
-git -C 'E:\DEV\PhoenixPoint\PerkOracle' commit -m "feat(PerkOracle): add SubclassWikiClickHandler right-click preview hook"
+git -C 'E:\DEV\PhoenixPoint\PerkOracle' commit -m "feat(Oracle): add SubclassWikiClickHandler right-click preview hook"
 ```
 
 ---
@@ -612,7 +612,7 @@ using PhoenixPoint.Geoscape.View.ViewControllers.Modal;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// POSTFIX on the level-up subclass picker's populate seam. After the native code shows one button
@@ -673,7 +673,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] SelectSpecializationDataBind postfix failed: " + ex.Message);
+                Debug.Log("[Oracle] SelectSpecializationDataBind postfix failed: " + ex.Message);
             }
         }
 
@@ -706,7 +706,7 @@ namespace Morgott.PerkOracle
 
                 GameObject cloneGo = UnityEngine.Object.Instantiate(
                     ((Component)template).gameObject, container, false);
-                cloneGo.name = "PerkOracleGreyedSubclass";
+                cloneGo.name = "OracleGreyedSubclass";
                 cloneGo.SetActive(true);
 
                 var cloneEl = cloneGo.GetComponent<SpecializationOptionElementController>();
@@ -740,7 +740,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                Debug.Log("[PerkOracle] InjectGreyedEntry failed for "
+                Debug.Log("[Oracle] InjectGreyedEntry failed for "
                           + ((UnityEngine.Object)(object)spec != (UnityEngine.Object)null
                              ? ((UnityEngine.Object)spec).name : "<null>")
                           + ": " + ex.Message);
@@ -754,12 +754,12 @@ namespace Morgott.PerkOracle
 
 - [ ] **Step 2: Build the mod to verify it compiles**
 
-Run: `dotnet build PerkOracle.csproj -c Release --nologo`
+Run: `dotnet build Oracle.csproj -c Release --nologo`
 Expected: `Build succeeded` with 0 errors.
 
 - [ ] **Step 3: Re-run unit tests (regression guard)**
 
-Run: `dotnet test tests/PerkOracle.Tests/PerkOracle.Tests.csproj --nologo`
+Run: `dotnet test tests/Oracle.Tests/Oracle.Tests.csproj --nologo`
 Expected: PASS — `Passed! 40` (no pure-core regressions).
 
 - [ ] **Step 4: Deploy + manual in-game verification**
@@ -771,14 +771,14 @@ Then in-game (author-run; this UI/Harmony task cannot be unit-tested):
 2. **Available subclass — right-click:** right-click an available subclass button → the "CLASS PERKS" banner opens listing that subclass's proficiency + class-track perks with native icons/tooltips. Right-click again (or click the backdrop) → it closes. Confirm the title reads "CLASS PERKS" (localized).
 3. **Left-click still selects:** left-click an available subclass → the native selection/confirm still works (the right-click hook did not break it).
 4. **Greyed injection:** confirm unresearched subclasses appear as greyed, dimmed buttons; they are **not** selectable (left-click does nothing) but **are** right-clickable → their "CLASS PERKS" banner opens.
-5. **Fail-safe:** confirm the picker opens and behaves normally even if PerkOracle logged any `[PerkOracle] ...` warning (the screen must never break).
-6. Check the player log for any `[PerkOracle] ... failed:` lines and resolve before shipping.
+5. **Fail-safe:** confirm the picker opens and behaves normally even if Oracle logged any `[Oracle] ...` warning (the screen must never break).
+6. Check the player log for any `[Oracle] ... failed:` lines and resolve before shipping.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git -C 'E:\DEV\PhoenixPoint\PerkOracle' add src/SelectSpecializationDataBindPatch.cs
-git -C 'E:\DEV\PhoenixPoint\PerkOracle' commit -m "feat(PerkOracle): right-click subclass perk preview + greyed unresearched entries"
+git -C 'E:\DEV\PhoenixPoint\PerkOracle' commit -m "feat(Oracle): right-click subclass perk preview + greyed unresearched entries"
 ```
 
 ---
@@ -789,12 +789,12 @@ git -C 'E:\DEV\PhoenixPoint\PerkOracle' commit -m "feat(PerkOracle): right-click
 - (1) Pure `ClassPerkResolver` mirroring `PerkPoolResolver`, injected resolver, unit-tested with fakes, no Unity dep → **Task 1**. ✔
 - (2) Right-click hook on `SpecializationOptionElementController` (available or greyed) → `PerkWikiPanel.Open(canvas, defs, null, ...)` view-only, right-click open/close convention → **Tasks 5 + 6**. ✔
 - (3) Greyed-entry injection: enumerate full subclass set from `DefRepository`, inject omitted ones as greyed non-selectable native clones, still right-clickable → **Tasks 4 (`GetOmittedSubclasses`) + 6 (`InjectGreyedEntry`)**. ✔
-- (4) New I2 loc term `PERKORACLE_WIKI_TITLE_CLASS` ("CLASS PERKS") in all 8 languages → **Task 2** (+ title plumbing in **Task 3**). ✔
+- (4) New I2 loc term `ORACLE_WIKI_TITLE_CLASS` ("CLASS PERKS") in all 8 languages → **Task 2** (+ title plumbing in **Task 3**). ✔
 - (5) Rolled-cell highlight + candidate banner ride along for free, no new code → noted in **File Structure note**; no task re-implements it. ✔
-- All bodies try/catch + `Debug.Log("[PerkOracle] ...")`; read-only/additive/fail-safe; clone native element (no hand-built UGUI) → satisfied in Tasks 4-6. ✔
+- All bodies try/catch + `Debug.Log("[Oracle] ...")`; read-only/additive/fail-safe; clone native element (no hand-built UGUI) → satisfied in Tasks 4-6. ✔
 - Ordering: pure tested core (Task 1) first; UI/Harmony (Tasks 4-6) after, with manual in-game verification steps (Task 6 Step 4) since they touch Unity/Harmony. ✔
 
-**2. Placeholder scan:** No "TBD/TODO/add error handling/similar to Task N". Every code step contains complete code; every command has expected output; every commit message is spelled out (Conventional Commits, `feat(PerkOracle): ...` / one `docs:` for the plan commit itself). ✔
+**2. Placeholder scan:** No "TBD/TODO/add error handling/similar to Task N". Every code step contains complete code; every command has expected output; every commit message is spelled out (Conventional Commits, `feat(Oracle): ...` / one `docs:` for the plan commit itself). ✔
 
 **3. Type consistency:**
 - `ClassPerkResolver.Resolve<T>(IReadOnlyList<string>, Func<string,T>)` — same signature in Task 1 impl, Task 1 tests, and Task 4 caller. ✔

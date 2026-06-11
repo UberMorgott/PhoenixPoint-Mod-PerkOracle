@@ -6,7 +6,7 @@ using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Hover trigger on a wiki perk icon: on pointer-enter it shows the game's RICH framed ability
@@ -78,7 +78,7 @@ namespace Morgott.PerkOracle
                 {
                     return; // only left-click swaps; RMB/Esc routing closes the wiki elsewhere
                 }
-                if (!PerkOracleMain.AllowPerkSwap || SwapContext == null || Def == null)
+                if (!OracleMain.AllowPerkSwap || SwapContext == null || Def == null)
                 {
                     return;
                 }
@@ -86,13 +86,13 @@ namespace Morgott.PerkOracle
                 // Research gate (pure verdict surfaced here): when the "require research" toggle is on and
                 // the soldier's faction has not completed the perk-swap research, deny with a localized
                 // on-screen-equivalent feedback message and leave the wiki open (no swap, no close).
-                if (PerkSwapResearch.GateVerdict(PerkOracleMain.RequirePerkSwapResearch, SwapContext.Character)
+                if (PerkSwapResearch.GateVerdict(OracleMain.RequirePerkSwapResearch, SwapContext.Character)
                     == PerkSwapVerdict.DenyResearchLocked)
                 {
                     string msg = Loc.Get(
-                        "PERKORACLE_SwapResearchLocked",
+                        "ORACLE_SwapResearchLocked",
                         "Perk reassignment requires the \"Operative Reconditioning\" research.");
-                    PerkOracleLog.Debug("[PerkOracle] PerkSwap denied (research locked): " + msg);
+                    OracleLog.Debug("[Oracle] PerkSwap denied (research locked): " + msg);
                     ShowDenyMessage(msg);
                     return; // wiki stays open so the player sees the candidates again
                 }
@@ -110,7 +110,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] WikiAbilityTooltipTrigger.OnPointerClick failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] WikiAbilityTooltipTrigger.OnPointerClick failed: " + ex.Message);
             }
         }
 
@@ -134,7 +134,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] WikiAbilityTooltipTrigger.ShowDenyMessage failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] WikiAbilityTooltipTrigger.ShowDenyMessage failed: " + ex.Message);
             }
         }
 
@@ -165,7 +165,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] WikiAbilityTooltipTrigger.OnPointerEnter failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] WikiAbilityTooltipTrigger.OnPointerEnter failed: " + ex.Message);
             }
         }
 
@@ -181,7 +181,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] WikiAbilityTooltipTrigger.OnPointerExit failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] WikiAbilityTooltipTrigger.OnPointerExit failed: " + ex.Message);
             }
         }
 
@@ -227,7 +227,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] WikiAbilityTooltipTrigger.Position failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] WikiAbilityTooltipTrigger.Position failed: " + ex.Message);
             }
         }
     }

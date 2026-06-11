@@ -1,6 +1,6 @@
-# PerkOracle — Steam Workshop publishing playbook
+# Oracle — Steam Workshop publishing playbook
 
-End-to-end guide for publishing and updating PerkOracle on the Steam Workshop
+End-to-end guide for publishing and updating Oracle on the Steam Workshop
 for **Phoenix Point** (appid **839770**).
 
 Each step is tagged:
@@ -14,7 +14,7 @@ Each step is tagged:
 A Phoenix Point Workshop item is just a plain folder containing:
 
 ```
-PerkOracle.dll
+Oracle.dll
 meta.json
 Assets/
 ```
@@ -40,7 +40,7 @@ GUI to create the item and get its `publishedfileid`.
    ```
    This produces `workshop/Dist/` (DLL + meta.json + Assets/).
 4. In PPWorkshopTool: **create a New Workshop Item**, point it at
-   `workshop/Dist/`, set the **title** (`PerkOracle`) and **preview image**
+   `workshop/Dist/`, set the **title** (`Oracle`) and **preview image**
    (`image/steam_preview.jpg`, must be ≤ 1 MB), and **upload**.
 5. **Find the publishedfileid:**
    - In the Workshop item URL after upload: `...?id=<publishedfileid>`.

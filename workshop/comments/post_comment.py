@@ -80,7 +80,7 @@ def main() -> int:
     cookies = {"sessionid": sessionid, "steamLoginSecure": login_secure}
     data = {"comment": args.text, "sessionid": sessionid, "count": 10}
     headers = {
-        "User-Agent": "Mozilla/5.0 PerkOracle-comment-poster/0.1",
+        "User-Agent": "Mozilla/5.0 Oracle-comment-poster/0.1",
         "Referer": f"https://steamcommunity.com/sharedfiles/filedetails/?id={args.item}",
         "Origin": "https://steamcommunity.com",
     }

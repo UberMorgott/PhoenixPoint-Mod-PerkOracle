@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Pure ordering/dedup/resolve core for a subclass's guaranteed class-track perks. Has no Unity,

@@ -3,7 +3,7 @@ using HarmonyLib;
 using PhoenixPoint.Geoscape.View.ViewControllers.Research;
 using UnityEngine;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Shows the mod's custom research illustration for the Operative Reconditioning project.
@@ -52,7 +52,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] ResearchTooltipIconPatch.Postfix failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] ResearchTooltipIconPatch.Postfix failed: " + ex.Message);
             }
         }
     }

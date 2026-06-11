@@ -1,14 +1,14 @@
 using System.Collections.Generic;
 using PhoenixPoint.Modding;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
-    /// In-game mod settings for PerkOracle. The game auto-discovers every public instance
+    /// In-game mod settings for Oracle. The game auto-discovers every public instance
     /// field (see <see cref="ModConfig.GetConfigFields"/>), surfaces it in the mod-options UI and
-    /// serializes it to ModConfig.json. Read at runtime via <c>PerkOracleMain.Instance.Config</c>.
+    /// serializes it to ModConfig.json. Read at runtime via <c>OracleMain.Instance.Config</c>.
     /// </summary>
-    public class PerkOracleConfig : ModConfig
+    public class OracleConfig : ModConfig
     {
         /// <summary>
         /// When true, left-clicking a candidate perk in the wiki replaces the soldier's learned perk
@@ -33,8 +33,8 @@ namespace Morgott.PerkOracle
         public bool PerkSwapCostsResources = false;
 
         /// <summary>
-        /// When true, the mod writes its <c>[PerkOracle] ...</c> diagnostic lines to the player log
-        /// (routed through <see cref="PerkOracleLog"/>). Default OFF: a shipped mod is silent. Turn this
+        /// When true, the mod writes its <c>[Oracle] ...</c> diagnostic lines to the player log
+        /// (routed through <see cref="OracleLog"/>). Default OFF: a shipped mod is silent. Turn this
         /// on only to diagnose an issue, then send the log.
         /// </summary>
         public bool EnableDebugLogging = false;
@@ -53,31 +53,31 @@ namespace Morgott.PerkOracle
             {
                 if (field.ID == nameof(AllowPerkSwap))
                 {
-                    field.GetText = () => Loc.Get("PERKORACLE_AllowPerkSwap", "Perk Swap");
+                    field.GetText = () => Loc.Get("ORACLE_AllowPerkSwap", "Perk Swap");
                     field.GetDescription = () => Loc.Get(
-                        "PERKORACLE_AllowPerkSwap_DESCRIPTION",
+                        "ORACLE_AllowPerkSwap_DESCRIPTION",
                         "Left-click a perk in the wiki to swap the soldier's learned perk for it, for free.");
                 }
                 else if (field.ID == nameof(RequirePerkSwapResearch))
                 {
-                    field.GetText = () => Loc.Get("PERKORACLE_RequirePerkSwapResearch", "Require Research");
+                    field.GetText = () => Loc.Get("ORACLE_RequirePerkSwapResearch", "Require Research");
                     field.GetDescription = () => Loc.Get(
-                        "PERKORACLE_RequirePerkSwapResearch_DESCRIPTION",
+                        "ORACLE_RequirePerkSwapResearch_DESCRIPTION",
                         "When on, perk swapping requires the \"Operative Reconditioning\" research to be completed first. Turn off for free play.");
                 }
                 else if (field.ID == nameof(PerkSwapCostsResources))
                 {
-                    field.GetText = () => Loc.Get("PERKORACLE_PerkSwapCostsResources", "Swap Costs Resources");
+                    field.GetText = () => Loc.Get("ORACLE_PerkSwapCostsResources", "Swap Costs Resources");
                     field.GetDescription = () => Loc.Get(
-                        "PERKORACLE_PerkSwapCostsResources_DESCRIPTION",
+                        "ORACLE_PerkSwapCostsResources_DESCRIPTION",
                         "Placeholder for a future update: make perk swapping cost resources. Currently has no effect.");
                 }
                 else if (field.ID == nameof(EnableDebugLogging))
                 {
-                    field.GetText = () => Loc.Get("PERKORACLE_EnableDebugLogging", "Enable PerkOracle debug logging");
+                    field.GetText = () => Loc.Get("ORACLE_EnableDebugLogging", "Enable Oracle debug logging");
                     field.GetDescription = () => Loc.Get(
-                        "PERKORACLE_EnableDebugLogging_DESCRIPTION",
-                        "When on, PerkOracle writes diagnostic messages to the player log. Leave off for normal play; turn on only to help diagnose an issue.");
+                        "ORACLE_EnableDebugLogging_DESCRIPTION",
+                        "When on, Oracle writes diagnostic messages to the player log. Leave off for normal play; turn on only to help diagnose an issue.");
                 }
             }
             return fields;

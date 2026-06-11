@@ -1,13 +1,13 @@
-# PerkOracle — Agent Operations Runbook
+# Oracle — Agent Operations Runbook
 
-Agent-facing runbook for routine Steam Workshop operations on the **PerkOracle**
+Agent-facing runbook for routine Steam Workshop operations on the **Oracle**
 Phoenix Point mod. Every command below is verified against the actual scripts in
 `workshop/`. Execute these directly for routine update / publish / description /
 tags / gallery / comments tasks — **no clarifying questions needed**.
 
 All commands assume **CWD = the mod repo root** `E:\DEV\PhoenixPoint\PerkOracle`.
 (If a session starts at the outer monorepo `E:\DEV\PhoenixPoint`, prefix paths
-with `PerkOracle\` or `cd` into the repo first.)
+with `Oracle\` or `cd` into the repo first.)
 
 ---
 
@@ -46,11 +46,11 @@ polish, schinese** (Steam shows each viewer their client-language description;
 
 | Goal | Command | What it uploads | Verify |
 |---|---|---|---|
-| **Publish a NEW VERSION (build/content)** | `pwsh -File workshop/pack-dist.ps1` then `python workshop/steamugc/publish_ugc.py --update --item 3739613434 --changenote "vX.Y.Z - ..."` | Packed `workshop/Dist/` (PerkOracle.dll + meta.json + Assets) + title/description/preview/visibility/tags | `[update] OK -> upload committed` and `SubmitItemUpdate ... EResult.OK`; Workshop item **"Last updated"** timestamp changes |
+| **Publish a NEW VERSION (build/content)** | `pwsh -File workshop/pack-dist.ps1` then `python workshop/steamugc/publish_ugc.py --update --item 3739613434 --changenote "vX.Y.Z - ..."` | Packed `workshop/Dist/` (Oracle.dll + meta.json + Assets) + title/description/preview/visibility/tags | `[update] OK -> upload committed` and `SubmitItemUpdate ... EResult.OK`; Workshop item **"Last updated"** timestamp changes |
 | **Update DESCRIPTION / tags ONLY (no build)** | `python workshop/steamugc/publish_ugc.py --localize-descriptions --item 3739613434 --changenote "..."` | Only `workshop/locale/description.<lang>.txt` per language (+ tags on english pass) — **NOT** the mod build/content/preview/title | Per-language `EResult.OK` table; **"Last updated"** does NOT change (no content upload) |
 
 Before a NEW VERSION publish, bump the version in **`meta.json`** (repo root —
-`pack-dist.ps1` copies this into `Dist/`) and the `PerkOracle.csproj` `<Version>`
+`pack-dist.ps1` copies this into `Dist/`) and the `Oracle.csproj` `<Version>`
 so the changenote and `meta.json` agree on `vX.Y.Z`.
 
 ---
@@ -114,7 +114,7 @@ git -C E:\DEV\PhoenixPoint\PerkOracle push origin main
 
 Trigger phrases: "обнови мод", "update the mod", "publish a new build".
 
-1. Rebuild the clean content folder (`workshop/Dist/` = `PerkOracle.dll` +
+1. Rebuild the clean content folder (`workshop/Dist/` = `Oracle.dll` +
    `meta.json` + `Assets/`):
    ```powershell
    pwsh -File workshop/pack-dist.ps1
@@ -239,7 +239,7 @@ thank reporters, stay positive.** Produce a short **EN** and short **RU** reply.
 For **bug reports**, steer the reporter to:
 - open a **GitHub Issue** at the repo for detailed reports, and
 - attach **`Player.log`**, a **save** from just before the issue, the **mod load
-  order** (confirm TFTV installed + PerkOracle loads after it), and exact repro
+  order** (confirm TFTV installed + Oracle loads after it), and exact repro
   steps (expected vs. observed).
 
 Support policy: redirect technical issues to **GitHub Issues**; keep Workshop

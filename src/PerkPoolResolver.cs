@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Pure ordering/dedup/filter core for the perk wiki pool. Has no Unity, TFTV or Harmony

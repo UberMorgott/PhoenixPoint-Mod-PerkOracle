@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Morgott.PerkOracle;
+using Morgott.Oracle;
 using Xunit;
 
-namespace Morgott.PerkOracle.Tests
+namespace Morgott.Oracle.Tests
 {
     /// <summary>
     /// Unit tests for the pure class-perk core. Defs are faked with strings ("name" -> "DEF:name")

@@ -9,7 +9,7 @@ using PhoenixPoint.Geoscape.View.ViewControllers.Modal;
 using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Preview-then-confirm for AVAILABLE (selectable) subclasses in the dual-class picker.
@@ -30,7 +30,7 @@ namespace Morgott.PerkOracle
     [HarmonyPatch(typeof(SelectSpecializationDataBind), "SelectSpecializationElement")]
     internal static class SelectSpecializationConfirmPatch
     {
-        public const string ConfirmTerm = "PERKORACLE_CONFIRM_SUBCLASS";
+        public const string ConfirmTerm = "ORACLE_CONFIRM_SUBCLASS";
         public const string ConfirmFallback = "Take {0} as a subclass?";
 
         // One-shot guard: the element the user just confirmed with YES. When set, the next call for that
@@ -89,7 +89,7 @@ namespace Morgott.PerkOracle
                         }
                         catch (Exception ex)
                         {
-                            PerkOracleLog.Debug("[PerkOracle] SelectSpecialization confirm callback failed: " + ex.Message);
+                            OracleLog.Debug("[Oracle] SelectSpecialization confirm callback failed: " + ex.Message);
                         }
                     },
                     sender: null, userData: marker);
@@ -98,7 +98,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] SelectSpecializationElement prefix failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] SelectSpecializationElement prefix failed: " + ex.Message);
                 _confirmedElement = null;
                 return true; // never brick the picker -> let native selection proceed
             }

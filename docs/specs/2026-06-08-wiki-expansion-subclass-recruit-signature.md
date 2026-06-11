@@ -1,8 +1,8 @@
-# PerkOracle — Wiki expansion: subclass preview, recruit full-page preview & merc gimmick in merc-shop description
+# Oracle — Wiki expansion: subclass preview, recruit full-page preview & merc gimmick in merc-shop description
 
-Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 investigation spike COMPLETE; implementation plans next** (not yet scheduled) · Mod: PerkOracle (standalone, ns `Morgott.PerkOracle`, Dependencies `[]`)
+Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 investigation spike COMPLETE; implementation plans next** (not yet scheduled) · Mod: Oracle (standalone, ns `Morgott.Oracle`, Dependencies `[]`)
 
-> Road map for future updates, all shipping inside the **one** PerkOracle mod. Grounds three new surfaces in the mod's existing architecture, built strictly from **native game components, surgically modified** (clone/Harmony-patch native elements — no bespoke UI). API anchors taken from the current codebase are marked **[confirmed]**; anchors located during the Phase-1 investigation spike (against the game/TFTV decompile + reference mods) are marked **[verified — spike]** with the concrete type/path/symbol grounding. The Phase-1 spike is **complete** — all `[verify]` anchors are now resolved; implementation plans/specs per remaining feature come next.
+> Road map for future updates, all shipping inside the **one** Oracle mod. Grounds three new surfaces in the mod's existing architecture, built strictly from **native game components, surgically modified** (clone/Harmony-patch native elements — no bespoke UI). API anchors taken from the current codebase are marked **[confirmed]**; anchors located during the Phase-1 investigation spike (against the game/TFTV decompile + reference mods) are marked **[verified — spike]** with the concrete type/path/symbol grounding. The Phase-1 spike is **complete** — all `[verify]` anchors are now resolved; implementation plans/specs per remaining feature come next.
 
 ## Process / resources
 
@@ -15,7 +15,7 @@ Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 i
 
 ## Goal
 
-- Extend the existing read-only perk wiki beyond the ability-progression screen onto three more surfaces, turning PerkOracle into a broader in-game "soldier wiki":
+- Extend the existing read-only perk wiki beyond the ability-progression screen onto three more surfaces, turning Oracle into a broader in-game "soldier wiki":
   - **Subclass preview (A)** — on the subclass-selection screen (when leveling a soldier), see each subclass's guaranteed perks before committing; rolled cells stay highlighted with the existing candidate drill-down. Unresearched classes the game omits are shown **greyed** and stay clickable for preview. **[SHIPPED — gesture diverged: greyed = LEFT-click banner; available = LEFT-click → native yes/no confirm with the perk row injected on top; RMB is the modal cancel. See the "AS SHIPPED" block in Feature A.]**
   - **Recruit preview (B)** — on hiring/recruitment surfaces (haven recruits, base personnel), click a candidate soldier to open the **full character page** like the squad-management view, rendered **read-only** by stripping the mutation UI: only the 3D model, the progression panel, and the stat panels remain (no inventory/equipment/customization controls). The existing perk highlight + candidate wiki ride along on its progression screen.
   - **Merc gimmick in description (C)** — for unique mercenaries in the merc shop, append their bespoke gimmick to the merc's existing **merc-shop description text** so the hook reads inline where the player already looks (no new UI). *(There is no vanilla soldier-biography prose surface; the merc-shop item description is the seam.)*
@@ -24,13 +24,13 @@ Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 i
 ## Design principles (carried over from the current mod)
 
 - **Native components, surgically modified — never bespoke UI.** Every surface reuses the game's own UI elements: clone live native elements and/or Harmony-patch them, the way the current wiki clones native ability cells (`WikiIconFactory.MakeNative`) and the highlight rides a postfix on the cell's own populate seam. **[confirmed]** Do **not** hand-build UGUI panels from scratch where a native element can be cloned/patched. Keeps look, fonts, tooltips, and localization identical to the game and resilient to its updates.
-- **One mod, phased updates.** A, B, C all ship inside PerkOracle itself (no separate mods), as successive updates. This document is the **road map**, not an approved build.
+- **One mod, phased updates.** A, B, C all ship inside Oracle itself (no separate mods), as successive updates. This document is the **road map**, not an approved build.
 - **Reuse the existing wiki, don't rebuild it.** All features render through the same `PerkWikiPanel.Open(Canvas, List<TacticalAbilityDef>, PerkSwapContext)` overlay. **[confirmed]** `src/PerkWikiPanel.cs`.
 - **View-only by default.** Pass `swapContext = null` so the panel is pure display — no swap affordance, no behavior. **[confirmed]** `PerkWikiPanel.Open` already accepts a null `swapContext`.
 - **Data-driven, not hard-coded.** Enumerate classes/perks from `DefRepository` so the features automatically pick up TFTV and class-adding mods, exactly like `TftvConfigBridge.GetVanillaPersonalPool()` does today. **[confirmed]** `src/TftvConfigBridge.cs`.
 - **Pure logic stays in testable cores.** New selection/ordering logic mirrors `PerkPoolResolver.OrderAndResolve<T>` (no Unity/TFTV/Harmony refs, unit-tested with fakes). **[confirmed]** `src/PerkPoolResolver.cs`.
-- **Never break the host screen.** Every Harmony body wrapped in try/catch + `Debug.Log("[PerkOracle] …")`, matching the current patches. **[confirmed]** `src/AbilityTrackSkillEntryElementPatches.cs`.
-- **Localize via CSV.** New titles/labels go through the existing 8-language CSV + I2 terms (`Loc.Get(term, fallback)`); no new loading code. **[confirmed]** `PerkOracleMain.LoadLocalization`, `PerkWikiPanel.TitleTerm`.
+- **Never break the host screen.** Every Harmony body wrapped in try/catch + `Debug.Log("[Oracle] …")`, matching the current patches. **[confirmed]** `src/AbilityTrackSkillEntryElementPatches.cs`.
+- **Localize via CSV.** New titles/labels go through the existing 8-language CSV + I2 terms (`Loc.Get(term, fallback)`); no new loading code. **[confirmed]** `OracleMain.LoadLocalization`, `PerkWikiPanel.TitleTerm`.
 
 ---
 
@@ -70,7 +70,7 @@ Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 i
   already-unlocked (`GeoFaction.AvailableCharacterSpecializations`), minus `NotSecondClassSpecialization`
   / no-track / no-proficiency entries. This **replaced** the earlier `GetAllDefs<SpecializationDef>` −
   available heuristic, which over-filtered real classes and duplicated base classes.
-- **Logging.** All `[PerkOracle]` diagnostics now route through `PerkOracleLog.Debug`, gated by the
+- **Logging.** All `[Oracle]` diagnostics now route through `OracleLog.Debug`, gated by the
   default-OFF `EnableDebugLogging` mod-config toggle — the shipped mod is silent unless the user opts in.
 - Informational/confirm only — preview grants nothing; the confirm just gates the native selection.
 
@@ -99,7 +99,7 @@ Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 i
   - **Cancel:** `SelectSpecializationCancelPatch` gives the floating banner a two-stage cancel (first
     cancel closes the banner, second exits the picker) plus an `ExitState` orphan fail-safe.
   - The rolled-cell highlight + candidate banner come for free from the existing patches wherever the screen renders progression cells.
-- **Panel title term.** New I2 term, e.g. `PERKORACLE_WIKI_TITLE_CLASS` ("CLASS PERKS"), mirroring `PERKORACLE_WIKI_TITLE`.
+- **Panel title term.** New I2 term, e.g. `ORACLE_WIKI_TITLE_CLASS` ("CLASS PERKS"), mirroring `ORACLE_WIKI_TITLE`.
 
 ### Resolved anchors (**[verified — spike]**)
 
@@ -118,7 +118,7 @@ Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 i
 - Works on **all three hiring sources**: (1) the **global map** (third-party / haven recruiting), (2) **in-base** recruiting, and (3) the **merc shop**.
 - On any of them, clicking a candidate soldier opens the **full character page** — 3D model, all panels, stats, equipment, ability progression — **exactly like the squad-management/roster view**, before committing to hire.
 - The page is **read-only by construction**: the inventory/equipment, customization, and drag-drop UI is simply **not present** on the cloned screen — only the (non-interactive) 3D model, the perk/ability-progression panel, and the stat panels remain — so there is nothing to mutate.
-- **Perk preview rides along for free.** That full character page already contains the ability-progression screen, where PerkOracle's existing rolled-perk highlight **and** right-click candidate wiki already work. So opening the page automatically gives the recruit's perk preview — no separate popup needed for the perk goal.
+- **Perk preview rides along for free.** That full character page already contains the ability-progression screen, where Oracle's existing rolled-perk highlight **and** right-click candidate wiki already work. So opening the page automatically gives the recruit's perk preview — no separate popup needed for the perk goal.
 
 ### Why this is a natural fit
 
@@ -170,7 +170,7 @@ Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 i
 - A and B are **pure read-out**: the game forms the perks/pools, the mod only reads and displays them. C is different — the game does **not** tag any ability as "this is the merc's gimmick", so there is nothing native that *labels* it.
 - **Hybrid source, in preference order:**
   1. **Prefer the native ability description** via a curated `characterDefId -> abilityId` map — pull the game's own localized ability description for that gimmick. Auto-localized, zero translation. Used **where the gimmick is expressible as one ability**.
-  2. **Fall back to an authored CSV blurb** (`PERKORACLE_GIMMICK_<key>`, 8 languages) **only when** the gimmick is not expressible as a single ability description.
+  2. **Fall back to an authored CSV blurb** (`ORACLE_GIMMICK_<key>`, 8 languages) **only when** the gimmick is not expressible as a single ability description.
 - The curated map/blurbs are maintained per known unique merc and live in the mod.
 - Optional heuristic auto-detect (ability not in class track nor personal pool) can flag unlisted mercs, but it cannot pick the right ability or author a blurb, so the curated mapping stays primary.
 - **The gimmick catalogue itself is a research task.** *Which merc has which gimmick* (and its `abilityId` or authored line) is to be sourced — during the Feature-C phase — from in-game data, the internet / community wikis, **and** the reference mods already bundled in this workspace.
@@ -179,7 +179,7 @@ Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 i
 
 - **Gimmick registry (curated, mod-owned).** Small data table keyed by `characterDefId`, holding **either** an `abilityId` (preferred — sources the game's own localized description) **or** an authored CSV-blurb key when no single ability captures the gimmick. Primary source of truth; easy to extend. Populated from the Feature-C catalogue research (in-game data + community wikis + bundled reference mods).
 - **Description-append hook — native, surgical.** Harmony-POSTFIX the merc-shop description seam (`UIModuleTheMarketplace.SetupChoiceInfoBlock`): when the displayed merc is in the registry, append the gimmick line to the native `ResearchInfo.Description`. Modifies the game's own text element, builds nothing new.
-- **Localization.** Preferred path needs **no** new translation — the appended line is the game's own localized ability description, pulled via the mapped `abilityId`. Only the fallback blurbs need authored per-language rows in the existing 8-language CSV (`PERKORACLE_GIMMICK_<key>`). Optional small prefix label term (e.g. `PERKORACLE_GIMMICK_PREFIX` → "Special: ").
+- **Localization.** Preferred path needs **no** new translation — the appended line is the game's own localized ability description, pulled via the mapped `abilityId`. Only the fallback blurbs need authored per-language rows in the existing 8-language CSV (`ORACLE_GIMMICK_<key>`). Optional small prefix label term (e.g. `ORACLE_GIMMICK_PREFIX` → "Special: ").
 
 ### Resolved anchors (**[verified — spike]**)
 
@@ -195,7 +195,7 @@ Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 i
 - **`PerkWikiPanel` native template on new screens (Feature A).** The panel prefers cloning a live native `AbilityTrackSkillEntryElement` and falls back to `WikiIconFactory.Make` custom icons only when none is present. **[confirmed]** Per the native-components principle, find a native ability cell to clone on the subclass screen (or pull one from a progression module) rather than defaulting to custom icons — the custom path is a last-resort fallback, not the goal. Feature B's full character page keeps the real progression cells, so the native-clone wiki works there unchanged.
 - **Mutation-UI strip list (Feature B).** A single curated list of "what to hide on the cloned character screen" (inventory/equipment widgets, equip/unequip controls, customization/repaint buttons, drag-drop affordances). Not a process-wide flag — the preview screen is built read-only by *omitting* the mutating UI, so there is nothing to guard. The existing swap path is simply absent on the preview screen for the same reason. The strip list is the one source of truth.
 - **Open-affordance convention.** Standardize on right-click-to-open for the subclass wiki (matches the existing progression screen). The recruit surface instead opens the full character page on click (Feature B), where the existing right-click perk wiki then applies inside it.
-- **Localization.** Add the new title terms to `Assets/Localization/PerkOracle_Localization.csv` across all 8 languages (english, russian, german, french, spanish, italian, polish, schinese), imported via the existing `Import_CSV`/`AddNewTerms` path. **[confirmed]**
+- **Localization.** Add the new title terms to `Assets/Localization/Oracle_Localization.csv` across all 8 languages (english, russian, german, french, spanish, italian, polish, schinese), imported via the existing `Import_CSV`/`AddNewTerms` path. **[confirmed]**
 
 ## Confirmed reusable anchors (this repo, today)
 
@@ -204,7 +204,7 @@ Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 i
 - `TftvConfigBridge.TryGetTftvRandomPool(int level0, string className, out List<TacticalAbilityDef>)` and `GetVanillaPersonalPool()` — `src/TftvConfigBridge.cs`.
 - `PerkClassification.Classify(...)` — non-`Personal` track sources classify as `Fixed` (class perks are deterministic) — `src/PerkClassification.cs`.
 - `WikiIconFactory.Make(...)` (custom icon) / `MakeNative(...)` (native cell clone) — `src/WikiIconFactory.cs`.
-- Localization: `Loc.Get(term, fallback)` + CSV import in `PerkOracleMain.LoadLocalization` — `src/PerkOracleMain.cs`, `src/Localization.cs`.
+- Localization: `Loc.Get(term, fallback)` + CSV import in `OracleMain.LoadLocalization` — `src/OracleMain.cs`, `src/Localization.cs`.
 - Harmony postfix-on-UI-seam pattern with full try/catch guards — `src/AbilityTrackSkillEntryElementPatches.cs`.
 
 ## Open questions for the author
@@ -215,13 +215,13 @@ Date: 2026-06-08 · Status: **road map — design decisions resolved & Phase-1 i
   1. Feature-B **mutation-strip list is [conf:M]** — confirm each hidden element doesn't break the screen in-game.
   2. Confirm `UIStateEditSoldier` can be opened for a **non-roster** `GeoUnitDescriptor` with a supplied faction/roster context.
 
-> **Resolved:** all three features ship inside the **one** PerkOracle mod as phased updates (no separate mods). This doc is the road map.
+> **Resolved:** all three features ship inside the **one** Oracle mod as phased updates (no separate mods). This doc is the road map.
 > **Resolved (Feature A):** unresearched classes the game omits **are** injected into the list, shown **greyed/inactive**, and stay right-clickable for perk preview. No need to explain *why* a class is greyed — grey just means not yet available.
 > **Resolved (Feature B — scope):** the GOAL is the **full character page, read-only** (3D model + progression + stat panels), built on **`UIStateEditSoldier` + strip the mutation UI** (the mutation-free `UIStateGeoCharacterStatus` is rejected — no progression cells for highlight/wiki to ride). The lightweight perk-wiki popup is demoted to **Plan B, emergency fallback only**, not a co-equal option.
 > **Resolved (Feature B — roll timing):** recruits are **pre-rolled at generation** (`GeoFaction.GenerateRecruits` → `GeoHaven.SpawnNewRecruit`, `GeoUnitDescriptor.ProgressionDescriptor.PersonalAbilities`) — the progression screen shows **exact** perks; pool-fallback rarely needed.
 > **Resolved (Feature B — read-only mechanism):** read-only is achieved by **hiding/stripping the mutation UI** on the cloned screen (inventory/equipment widgets, equip/unequip controls, customization/repaint buttons, drag-drop), **not** a process-wide preview flag or per-seam mutation guards. *Everything is already native — we just surface it, not block it seam-by-seam.* This also covers the old "read-only strictness" question: there is no mutating UI present, so nothing to block selectively.
 > **Resolved (Feature C — surface):** there is **no vanilla soldier biography prose surface**; the gimmick is appended to the **merc-shop description** via a POSTFIX on `UIModuleTheMarketplace.SetupChoiceInfoBlock` (writes `ResearchInfo.Description`). Mercs keyed by `TacCharacterDef` (def name/GUID and/or `Mercenary` GameTag).
-> **Resolved (Feature C — gimmick source):** **hybrid** — prefer the native game ability description (`ability.ViewElementDef.GetInterpolatedDescription(ability)`) via a curated `characterDefId -> abilityId` map (auto-localized, zero translation) where the gimmick is one ability; fall back to an authored CSV blurb (`PERKORACLE_GIMMICK_<key>`, 8 languages) only when it is not. The gimmick **catalogue** (which merc has which gimmick) is a build-phase research task for the Feature-C phase, sourced from in-game data, community wikis, and the bundled reference mods.
+> **Resolved (Feature C — gimmick source):** **hybrid** — prefer the native game ability description (`ability.ViewElementDef.GetInterpolatedDescription(ability)`) via a curated `characterDefId -> abilityId` map (auto-localized, zero translation) where the gimmick is one ability; fall back to an authored CSV blurb (`ORACLE_GIMMICK_<key>`, 8 languages) only when it is not. The gimmick **catalogue** (which merc has which gimmick) is a build-phase research task for the Feature-C phase, sourced from in-game data, community wikis, and the bundled reference mods.
 
 ## Suggested phasing
 

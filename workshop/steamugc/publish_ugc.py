@@ -1,5 +1,5 @@
 """
-Headless Steam Workshop publisher for the PerkOracle Phoenix Point mod.
+Headless Steam Workshop publisher for the Oracle Phoenix Point mod.
 
 Rides the ALREADY-RUNNING, logged-in Steam client via SteamworksPy (no
 username/password) -- the same auth model the official PPWorkshopTool uses.
@@ -54,7 +54,7 @@ LOCALE_DESCRIPTIONS = [
 PUBLISHED_ID_FILE = os.path.join(HERE, "published_id.txt")
 
 APP_ID = 839770
-TITLE = "PerkOracle"
+TITLE = "Oracle"
 
 # Global Workshop tags (NOT per-language). Phoenix Point's valid tags are:
 # Geoscape, Tactical, Difficulty, Gameplay, Bionics, Mutations. Applied once
@@ -326,7 +326,7 @@ def persist_id(published_file_id: int) -> None:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Headless SteamworksPy Workshop publisher for PerkOracle")
+    ap = argparse.ArgumentParser(description="Headless SteamworksPy Workshop publisher for Oracle")
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument("--create", action="store_true",
                       help="Create a brand-new Workshop item, then upload content.")
@@ -366,7 +366,7 @@ def main() -> int:
             raise SystemExit(f"Missing locale description file(s) in {LOCALE_DIR}: {missing}")
 
         print("=" * 70)
-        print("PerkOracle Workshop publisher (SteamworksPy, headless)")
+        print("Oracle Workshop publisher (SteamworksPy, headless)")
         print(f"  mode        : localize-descriptions")
         print(f"  app_id      : {APP_ID}")
         print(f"  item        : {args.item}")
@@ -416,7 +416,7 @@ def main() -> int:
     description = build_description()
 
     print("=" * 70)
-    print("PerkOracle Workshop publisher (SteamworksPy, headless)")
+    print("Oracle Workshop publisher (SteamworksPy, headless)")
     print(f"  mode        : {'create' if args.create else 'update'}")
     print(f"  app_id      : {APP_ID}")
     print(f"  content     : {CONTENT_FOLDER}")

@@ -1,9 +1,9 @@
 using System;
 using PhoenixPoint.Common.Entities.Characters;
-using Morgott.PerkOracle;
+using Morgott.Oracle;
 using Xunit;
 
-namespace Morgott.PerkOracle.Tests
+namespace Morgott.Oracle.Tests
 {
     public class PerkClassificationTests
     {

@@ -7,7 +7,7 @@ using PhoenixPoint.Geoscape.View.ViewControllers.Modal;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// POSTFIX on the level-up subclass picker's populate seam. After the native code shows one button
@@ -22,7 +22,7 @@ namespace Morgott.PerkOracle
     internal static class SelectSpecializationDataBindPatch
     {
         /// <summary>Name stamped on every greyed clone we inject, so we can find + dedup them.</summary>
-        private const string GreyedCloneName = "PerkOracleGreyedSubclass";
+        private const string GreyedCloneName = "OracleGreyedSubclass";
 
         private static void Postfix(SelectSpecializationDataBind __instance, Transform ___DualClassButtonContainer)
         {
@@ -85,7 +85,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] SelectSpecializationDataBind postfix failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] SelectSpecializationDataBind postfix failed: " + ex.Message);
             }
         }
 
@@ -182,7 +182,7 @@ namespace Morgott.PerkOracle
                 {
                     UnityEngine.Object.DestroyImmediate(cloneGo);
                 }
-                PerkOracleLog.Debug("[PerkOracle] InjectGreyedEntry failed for "
+                OracleLog.Debug("[Oracle] InjectGreyedEntry failed for "
                           + ((UnityEngine.Object)(object)spec != (UnityEngine.Object)null
                              ? ((UnityEngine.Object)spec).name : "<null>")
                           + ": " + ex.Message);

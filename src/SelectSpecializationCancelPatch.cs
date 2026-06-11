@@ -3,7 +3,7 @@ using HarmonyLib;
 using PhoenixPoint.Geoscape.View.ViewStates;
 using UnityEngine;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Two-stage cancel for the dual-class subclass picker's "CLASS PERKS" wiki banner.
@@ -35,7 +35,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] UIStateGeoModal.OnCancel prefix failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] UIStateGeoModal.OnCancel prefix failed: " + ex.Message);
             }
             return true; // banner not open -> let the native cancel exit the modal as normal
         }
@@ -56,7 +56,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] UIStateGeoModal.ExitState postfix failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] UIStateGeoModal.ExitState postfix failed: " + ex.Message);
             }
         }
     }

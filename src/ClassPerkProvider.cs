@@ -10,7 +10,7 @@ using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Game-side adapter that turns a subclass <see cref="SpecializationDef"/> into the ordered,
@@ -76,7 +76,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] ClassPerkProvider.GetClassPerks failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] ClassPerkProvider.GetClassPerks failed: " + ex.Message);
                 return new List<TacticalAbilityDef>();
             }
         }
@@ -139,7 +139,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] ClassPerkProvider.GetOmittedSubclasses failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] ClassPerkProvider.GetOmittedSubclasses failed: " + ex.Message);
                 return new List<SpecializationDef>();
             }
         }
@@ -172,7 +172,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] ClassPerkProvider.GetUnlockedSpecializations failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] ClassPerkProvider.GetUnlockedSpecializations failed: " + ex.Message);
             }
             return set;
         }
@@ -222,7 +222,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] ClassPerkProvider.GetSelectableSubclassUniverse failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] ClassPerkProvider.GetSelectableSubclassUniverse failed: " + ex.Message);
             }
             return list;
         }

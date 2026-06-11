@@ -1,10 +1,10 @@
 using System;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Tiny localization façade over I2's <see cref="I2.Loc.LocalizationManager"/>. The mod imports its
-    /// own terms from a CSV on enable (see <c>PerkOracleMain.LoadLocalization</c>); this helper
+    /// own terms from a CSV on enable (see <c>OracleMain.LoadLocalization</c>); this helper
     /// reads them back for the current language with a hard-coded English fallback so the UI always shows
     /// readable text even if the CSV is missing or the term failed to import.
     /// </summary>

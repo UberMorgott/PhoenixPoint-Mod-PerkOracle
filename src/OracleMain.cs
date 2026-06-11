@@ -8,14 +8,14 @@ using HarmonyLib;
 using I2.Loc;
 using PhoenixPoint.Modding;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
-    public class PerkOracleMain : ModMain
+    public class OracleMain : ModMain
     {
-        public static new PerkOracleMain Instance { get; private set; }
+        public static new OracleMain Instance { get; private set; }
 
         /// <summary>Strongly-typed view of the mod's config (declared public fields auto-exposed in-game).</summary>
-        public new PerkOracleConfig Config => (PerkOracleConfig)base.Config;
+        public new OracleConfig Config => (OracleConfig)base.Config;
 
         /// <summary>
         /// Runtime read of the perk-swap toggle. Defaults to false if the config is somehow unavailable,
@@ -25,8 +25,8 @@ namespace Morgott.PerkOracle
         {
             get
             {
-                PerkOracleMain inst = Instance;
-                PerkOracleConfig cfg = inst != null ? inst.Config : null;
+                OracleMain inst = Instance;
+                OracleConfig cfg = inst != null ? inst.Config : null;
                 return cfg != null && cfg.AllowPerkSwap;
             }
         }
@@ -39,8 +39,8 @@ namespace Morgott.PerkOracle
         {
             get
             {
-                PerkOracleMain inst = Instance;
-                PerkOracleConfig cfg = inst != null ? inst.Config : null;
+                OracleMain inst = Instance;
+                OracleConfig cfg = inst != null ? inst.Config : null;
                 return cfg == null || cfg.RequirePerkSwapResearch;
             }
         }
@@ -54,22 +54,22 @@ namespace Morgott.PerkOracle
         {
             get
             {
-                PerkOracleMain inst = Instance;
-                PerkOracleConfig cfg = inst != null ? inst.Config : null;
+                OracleMain inst = Instance;
+                OracleConfig cfg = inst != null ? inst.Config : null;
                 return cfg != null && cfg.PerkSwapCostsResources;
             }
         }
 
         /// <summary>
         /// Runtime read of the debug-logging toggle. Defaults to false when the config is unavailable,
-        /// so the mod stays silent unless the user explicitly opts in. Read by <see cref="PerkOracleLog"/>.
+        /// so the mod stays silent unless the user explicitly opts in. Read by <see cref="OracleLog"/>.
         /// </summary>
         public static bool DebugLoggingEnabled
         {
             get
             {
-                PerkOracleMain inst = Instance;
-                PerkOracleConfig cfg = inst != null ? inst.Config : null;
+                OracleMain inst = Instance;
+                OracleConfig cfg = inst != null ? inst.Config : null;
                 return cfg != null && cfg.EnableDebugLogging;
             }
         }
@@ -79,10 +79,10 @@ namespace Morgott.PerkOracle
         public override void OnModEnabled()
         {
             Instance = this;
-            PerkOracleLog.Debug("[PerkOracle] OnModEnabled");
+            OracleLog.Debug("[Oracle] OnModEnabled");
             var harmony = (Harmony)HarmonyInstance;
             harmony.PatchAll(Assembly.GetExecutingAssembly());
-            PerkOracleLog.Debug("[PerkOracle] PatchAll done");
+            OracleLog.Debug("[Oracle] PatchAll done");
             LoadLocalization();
             RegisterPerkSwapResearch();
         }
@@ -103,12 +103,12 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] RegisterPerkSwapResearch failed: " + ex);
+                OracleLog.Debug("[Oracle] RegisterPerkSwapResearch failed: " + ex);
             }
         }
 
         /// <summary>
-        /// Import the mod's localization terms from <c>Assets/Localization/PerkOracle_Localization.csv</c>
+        /// Import the mod's localization terms from <c>Assets/Localization/Oracle_Localization.csv</c>
         /// (UTF-8) into I2's primary language source, mirroring TFTV's AddLocalizationFromCSV. Fully
         /// guarded: a missing file or any import error is logged and never thrown out of OnModEnabled,
         /// so the mod still loads (the UI then falls back to its English literals via <see cref="Loc"/>).
@@ -118,12 +118,12 @@ namespace Morgott.PerkOracle
             try
             {
                 // base.Instance is the framework ModInstance (ModMain.Instance); the static
-                // PerkOracleMain.Instance shadows it, so qualify with base to reach the install dir.
+                // OracleMain.Instance shadows it, so qualify with base to reach the install dir.
                 string dir = base.Instance.Entry.Directory;
-                string path = Path.Combine(dir, "Assets", "Localization", "PerkOracle_Localization.csv");
+                string path = Path.Combine(dir, "Assets", "Localization", "Oracle_Localization.csv");
                 if (!File.Exists(path))
                 {
-                    PerkOracleLog.Debug("[PerkOracle] Localization CSV not found: " + path);
+                    OracleLog.Debug("[Oracle] Localization CSV not found: " + path);
                     return;
                 }
 
@@ -135,23 +135,23 @@ namespace Morgott.PerkOracle
 
                 if (LocalizationManager.Sources == null || LocalizationManager.Sources.Count == 0)
                 {
-                    PerkOracleLog.Debug("[PerkOracle] No I2 localization sources available; skipping CSV import.");
+                    OracleLog.Debug("[Oracle] No I2 localization sources available; skipping CSV import.");
                     return;
                 }
 
                 LocalizationManager.Sources[0].Import_CSV(string.Empty, csv, eSpreadsheetUpdateMode.AddNewTerms, ',');
                 LocalizationManager.LocalizeAll(true);
-                PerkOracleLog.Debug("[PerkOracle] Localization loaded from " + path);
+                OracleLog.Debug("[Oracle] Localization loaded from " + path);
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] Localization load failed: " + ex);
+                OracleLog.Debug("[Oracle] Localization load failed: " + ex);
             }
         }
 
         public override void OnModDisabled()
         {
-            PerkOracleLog.Debug("[PerkOracle] OnModDisabled");
+            OracleLog.Debug("[Oracle] OnModDisabled");
         }
     }
 }

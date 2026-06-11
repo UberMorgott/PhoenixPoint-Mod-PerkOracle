@@ -1,4 +1,4 @@
-// SteamCMD Workshop build item descriptor for PerkOracle (Phoenix Point).
+// SteamCMD Workshop build item descriptor for Oracle (Phoenix Point).
 //
 // Usage:
 //   steamcmd +login <user> +workshop_build_item "<abs path to this .vdf>" +quit
@@ -11,7 +11,7 @@
 //       publishedfileid). Then paste that id below and use SteamCMD / update.ps1
 //       for all future updates. You must be logged in as the item's OWNER.
 //
-//   contentfolder  = absolute path to the assembled /Dist (PerkOracle.dll +
+//   contentfolder  = absolute path to the assembled /Dist (Oracle.dll +
 //                    meta.json + Assets\). Run workshop\pack-dist.ps1 first.
 //   previewfile    = absolute path to the preview image (<= 1 MB).
 //   changenote     = shown in the item's change history.
@@ -25,5 +25,5 @@
 	"publishedfileid" "3739613434"
 	"contentfolder"   "E:\DEV\PhoenixPoint\PerkOracle\workshop\Dist"
 	"previewfile"     "E:\DEV\PhoenixPoint\PerkOracle\image\steam_preview.jpg"
-	"changenote"      "Update PerkOracle."
+	"changenote"      "Update Oracle."
 }

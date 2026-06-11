@@ -33,7 +33,7 @@ def fetch_comments(owner: str, item: str, start: int, count: int) -> dict:
     resp = requests.post(
         url,
         data={"start": start, "count": count},
-        headers={"User-Agent": "PerkOracle-comment-reader/1.0"},
+        headers={"User-Agent": "Oracle-comment-reader/1.0"},
         timeout=30,
     )
     resp.raise_for_status()

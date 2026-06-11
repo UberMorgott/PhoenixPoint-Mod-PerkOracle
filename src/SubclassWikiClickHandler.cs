@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Attached to a GREYED-injected subclass clone in the dual-class picker. The clone is non-selectable
@@ -22,7 +22,7 @@ namespace Morgott.PerkOracle
     public sealed class SubclassWikiClickHandler : MonoBehaviour, IPointerClickHandler
     {
         /// <summary>I2 term + English fallback for the class-perk banner title.</summary>
-        public const string ClassTitleTerm = "PERKORACLE_WIKI_TITLE_CLASS";
+        public const string ClassTitleTerm = "ORACLE_WIKI_TITLE_CLASS";
         public const string ClassTitleFallback = "CLASS PERKS";
 
         /// <summary>The subclass whose guaranteed perks this button previews.</summary>
@@ -64,7 +64,7 @@ namespace Morgott.PerkOracle
                 List<TacticalAbilityDef> defs = ClassPerkProvider.GetClassPerks(Spec);
                 if (defs == null || defs.Count == 0)
                 {
-                    PerkOracleLog.Debug("[PerkOracle] subclass wiki: empty class-perk list for "
+                    OracleLog.Debug("[Oracle] subclass wiki: empty class-perk list for "
                               + ((UnityEngine.Object)Spec).name);
                     return;
                 }
@@ -80,7 +80,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] SubclassWikiClickHandler.OnPointerClick failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] SubclassWikiClickHandler.OnPointerClick failed: " + ex.Message);
             }
         }
     }

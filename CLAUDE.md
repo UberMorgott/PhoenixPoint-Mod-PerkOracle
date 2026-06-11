@@ -1,4 +1,4 @@
-# PerkOracle — project notes
+# Oracle — project notes
 
 For all routine Steam Workshop operations on this mod — updating/publishing a new
 build, editing or localizing the store description, changing tags, adding/replacing

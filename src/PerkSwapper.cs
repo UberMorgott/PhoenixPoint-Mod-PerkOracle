@@ -7,7 +7,7 @@ using PhoenixPoint.Geoscape.View.ViewModules;
 using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Immutable bundle of everything the swap needs from the click site: the soldier, the slot being
@@ -78,7 +78,7 @@ namespace Morgott.PerkOracle
                 {
                     if (verdict == PerkSwapVerdict.DenyAlreadyOwned)
                     {
-                        PerkOracleLog.Debug("[PerkOracle] PerkSwap skipped: "
+                        OracleLog.Debug("[Oracle] PerkSwap skipped: "
                                   + DefName(chosenDef) + " already owned by soldier.");
                     }
                     // Not-learned / same-as-current / invalid: silent no-op per design.
@@ -90,14 +90,14 @@ namespace Morgott.PerkOracle
                     Traverse.Create(progression).Field("_abilities").GetValue<List<TacticalAbilityDef>>();
                 if (abilities == null)
                 {
-                    PerkOracleLog.Debug("[PerkOracle] PerkSwap aborted: could not reflect _abilities.");
+                    OracleLog.Debug("[Oracle] PerkSwap aborted: could not reflect _abilities.");
                     return false;
                 }
                 // If the old def is not actually in _abilities the swap would leave the slot pointing at a
                 // def the soldier doesn't own. Abort BEFORE mutating slot.Ability so nothing is half-done.
                 if (!abilities.Remove(oldDef))
                 {
-                    PerkOracleLog.Debug("[PerkOracle] PerkSwap aborted: old def "
+                    OracleLog.Debug("[Oracle] PerkSwap aborted: old def "
                               + DefName(oldDef) + " was not in _abilities (nothing mutated).");
                     return false;
                 }
@@ -128,7 +128,7 @@ namespace Morgott.PerkOracle
                     catch (Exception ex)
                     {
                         // Data swap already committed; only the recompute failed. Log and carry on.
-                        PerkOracleLog.Debug("[PerkOracle] PerkSwap stat recompute (UpdateStats) failed: " + ex.Message);
+                        OracleLog.Debug("[Oracle] PerkSwap stat recompute (UpdateStats) failed: " + ex.Message);
                     }
 
                     // step 5: repaint the progression grid via reflection (private SetAbilityTracks).
@@ -140,7 +140,7 @@ namespace Morgott.PerkOracle
                     {
                         // The data swap already succeeded; only the immediate repaint failed. Log and carry on
                         // (the grid refreshes on the next natural redraw).
-                        PerkOracleLog.Debug("[PerkOracle] PerkSwap repaint (SetAbilityTracks) failed: " + ex.Message);
+                        OracleLog.Debug("[Oracle] PerkSwap repaint (SetAbilityTracks) failed: " + ex.Message);
                     }
                 }
                 catch (Exception ex)
@@ -164,32 +164,32 @@ namespace Morgott.PerkOracle
                     }
                     catch (Exception rollbackEx)
                     {
-                        PerkOracleLog.Debug("[PerkOracle] PerkSwap rollback failed: " + rollbackEx.Message);
+                        OracleLog.Debug("[Oracle] PerkSwap rollback failed: " + rollbackEx.Message);
                     }
-                    PerkOracleLog.Debug("[PerkOracle] PerkSwap failed mid-sequence, rolled back: " + ex.Message);
+                    OracleLog.Debug("[Oracle] PerkSwap failed mid-sequence, rolled back: " + ex.Message);
                     return false;
                 }
 
-                PerkOracleLog.Debug("[PerkOracle] PerkSwap: " + DefName(oldDef) + " -> " + DefName(chosenDef)
+                OracleLog.Debug("[Oracle] PerkSwap: " + DefName(oldDef) + " -> " + DefName(chosenDef)
                           + " @ level " + LevelLabel(ctx));
                 return true;
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] PerkSwapper.TrySwap failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] PerkSwapper.TrySwap failed: " + ex.Message);
                 return false;
             }
         }
 
         /// <summary>
         /// STUB for a future "perk swap costs resources" feature. Currently does nothing (the swap is always
-        /// free). Reads <c>PerkOracleMain.PerkSwapCostsResources</c> only to mark where the future cost would
+        /// free). Reads <c>OracleMain.PerkSwapCostsResources</c> only to mark where the future cost would
         /// be charged; it intentionally has no effect and never blocks the swap. No Wallet/SkillPoints access.
         /// </summary>
         private static void ApplyResourceCostStub(PerkSwapContext ctx)
         {
             _ = ctx;
-            _ = PerkOracleMain.PerkSwapCostsResources;
+            _ = OracleMain.PerkSwapCostsResources;
             // TODO(resource-cost): when implemented, charge the configured cost here and return a
             // success/failure so TrySwap can abort BEFORE mutating _abilities on insufficient funds.
         }

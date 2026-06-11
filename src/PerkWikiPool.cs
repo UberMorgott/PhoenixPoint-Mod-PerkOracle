@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using PhoenixPoint.Tactical.Entities.Abilities;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Game-side wiring that turns a (slot, class) into the candidate def list for the wiki: prefers

@@ -12,7 +12,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace Morgott.PerkOracle
+namespace Morgott.Oracle
 {
     /// <summary>
     /// Prefix on UIModuleCharacterProgression.OnCancelInputHandler (the "back"/cancel seam, fired for
@@ -58,7 +58,7 @@ namespace Morgott.PerkOracle
                 List<TacticalAbilityDef> defs = PerkWikiPool.ResolveForSlot(level0, className);
                 if (defs == null || defs.Count == 0)
                 {
-                    PerkOracleLog.Debug("[PerkOracle] perk wiki: empty pool for level0=" + level0
+                    OracleLog.Debug("[Oracle] perk wiki: empty pool for level0=" + level0
                               + " class=" + (className ?? "<null>"));
                     return true; // nothing to show -> let normal back proceed
                 }
@@ -80,7 +80,7 @@ namespace Morgott.PerkOracle
             }
             catch (Exception ex)
             {
-                PerkOracleLog.Debug("[PerkOracle] OnCancelInputHandler prefix failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] OnCancelInputHandler prefix failed: " + ex.Message);
                 return true; // on any failure, never block the normal back action
             }
         }

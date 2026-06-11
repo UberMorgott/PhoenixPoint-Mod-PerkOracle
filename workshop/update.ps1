@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    LOCAL main-account update path for the PerkOracle Steam Workshop item.
+    LOCAL main-account update path for the Oracle Steam Workshop item.
 
     This is the recommended way to push updates (per the maintainer's choice):
     run it on the machine logged into the owning Steam account. It builds a clean

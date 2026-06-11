@@ -1,8 +1,8 @@
 <#
 .SYNOPSIS
-    Builds PerkOracle in Release and assembles a clean Steam Workshop content
+    Builds Oracle in Release and assembles a clean Steam Workshop content
     folder at workshop/Dist/ containing exactly:
-        PerkOracle.dll + meta.json + Assets/
+        Oracle.dll + meta.json + Assets/
     (no .pdb, no extra files). Idempotent: cleans Dist/ then re-copies.
 
 .NOTES
@@ -15,20 +15,20 @@ param()
 $ErrorActionPreference = 'Stop'
 
 # --- Paths (anchored to the repo root, one level above this script) ---
-$repoRoot = Split-Path -Parent $PSScriptRoot          # ...\PerkOracle
-$proj     = Join-Path $repoRoot 'PerkOracle.csproj'
+$repoRoot = Split-Path -Parent $PSScriptRoot          # ...\Oracle
+$proj     = Join-Path $repoRoot 'Oracle.csproj'
 $relOut   = Join-Path $repoRoot 'bin\Release'
 $meta     = Join-Path $repoRoot 'meta.json'
 $assets   = Join-Path $repoRoot 'Assets'
 $dist     = Join-Path $PSScriptRoot 'Dist'            # workshop\Dist
 
-Write-Host "Building PerkOracle (Release)..." -ForegroundColor Cyan
+Write-Host "Building Oracle (Release)..." -ForegroundColor Cyan
 if ($PSCmdlet.ShouldProcess($proj, 'dotnet build -c Release')) {
     dotnet build $proj -c Release
     if ($LASTEXITCODE -ne 0) { throw "dotnet build failed (exit $LASTEXITCODE)." }
 }
 
-$dll = Join-Path $relOut 'PerkOracle.dll'
+$dll = Join-Path $relOut 'Oracle.dll'
 
 # --- Clean Dist/ ---
 if (Test-Path $dist) {
