@@ -3,6 +3,7 @@ using HarmonyLib;
 using PhoenixPoint.Geoscape.Events;
 using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Geoscape.View.ViewControllers.SiteEncounters;
+using PhoenixPoint.Geoscape.View.ViewModules;
 using UnityEngine;
 
 namespace Morgott.Oracle
@@ -135,6 +136,61 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] EventChoiceHoverPatch.ResolveCanvas failed: " + ex.Message);
                 return null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Catch-all that guarantees the cached outcome-preview tooltip can never linger. The hover wiring only
+    /// hides the tooltip on <c>ChoicePointerExit</c>, but CLICKING a choice closes the event UI without ever
+    /// firing PointerExit, so the cached GameObject was left <c>SetActive(true)</c> and stayed visible on the
+    /// geoscape globe. <see cref="UIModuleSiteEncounters"/> extends <c>UIModuleBehavior</c> (a MonoBehaviour);
+    /// its <c>OnDisable</c> (decompile UIModuleSiteEncounters.cs:182) runs whenever the module GameObject is
+    /// disabled — i.e. for EVERY way the encounter screen goes away: a choice that completes/closes the event,
+    /// the exit button, a view-state change, or returning to the globe. Hiding the tooltip here therefore
+    /// covers both "after clicking a choice" and "after leaving to the globe". <see cref="EventOutcomeTooltip.Hide"/>
+    /// is static, idempotent and Unity-null-safe (a destroyed cached object is skipped), so this can never throw.
+    /// </summary>
+    [HarmonyPatch(typeof(UIModuleSiteEncounters), "OnDisable")]
+    public static class EventModuleHideTooltipPatch
+    {
+        [HarmonyPostfix]
+        public static void Postfix()
+        {
+            try
+            {
+                EventOutcomeTooltip.Hide();
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventModuleHideTooltipPatch.Postfix failed: " + ex.Message);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Immediate hide the instant a choice is CLICKED, before the module decides whether to close, page to the
+    /// next text, or show the closing reward step. <see cref="SiteBaseChoicesController.OnButtonChoiceSelected"/>
+    /// (decompile SiteBaseChoicesController.cs:84, public virtual) is the single choke point invoked on every
+    /// choice selection. A click always means the current hover is over, so hiding here removes the tooltip
+    /// with no wait for the module to disable — and when a paging/closing step keeps the UI open with new
+    /// buttons, the normal hover wiring re-shows it on the next PointerEnter. Safe for the marketplace variant
+    /// too: <see cref="EventOutcomeTooltip.Hide"/> only deactivates OUR cached GameObject and is a no-op when
+    /// nothing is shown.
+    /// </summary>
+    [HarmonyPatch(typeof(SiteBaseChoicesController), nameof(SiteBaseChoicesController.OnButtonChoiceSelected))]
+    public static class EventChoiceSelectedHideTooltipPatch
+    {
+        [HarmonyPostfix]
+        public static void Postfix()
+        {
+            try
+            {
+                EventOutcomeTooltip.Hide();
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventChoiceSelectedHideTooltipPatch.Postfix failed: " + ex.Message);
             }
         }
     }
