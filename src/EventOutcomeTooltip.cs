@@ -138,6 +138,25 @@ namespace Morgott.Oracle
                 _root.transform.localScale = Vector3.one; // full size (NOT 0.5)
                 _root.SetActive(false); // stay hidden until populated
 
+                // CRITICAL: strip every I2 Localization `Localize` MonoBehaviour under the clone.
+                // The native title/description Text objects each carry an I2.Loc.Localize component bound
+                // to the ability's term. Its OnEnable()/Awake() (I2.Loc/Localize.cs:112-125) calls
+                // OnLocalize() -> mLocalizeTarget.DoLocalize(...) (Localize.cs:237), which OVERWRITES the
+                // Text.text from the (now stale/empty) term. With no valid term in our repurposed clone,
+                // I2 emits its "NEEDS TEXT" placeholder, clobbering the raw strings we set in
+                // PopulateTooltip the instant Show() reactivates the hierarchy. The perk-wiki tooltip never
+                // hits this because it feeds the native Show() a value that matches the bound term, so I2
+                // re-resolves to the same string. We set arbitrary (non-term) text, so we must remove the
+                // localizers. Destroying only the Localize component leaves the Text's font/fontSize/color/
+                // alignment untouched, so the framed look is preserved.
+                foreach (var loc in _root.GetComponentsInChildren<I2.Loc.Localize>(true))
+                {
+                    if ((UnityEngine.Object)(object)loc != (UnityEngine.Object)null)
+                    {
+                        UnityEngine.Object.DestroyImmediate(loc);
+                    }
+                }
+
                 // Never intercept pointer events (mirrors the wiki tooltip clone's blocksRaycasts=false
                 // flicker fix): the tooltip must not steal the hover from the choice button beneath it.
                 var cg = _root.GetComponent<CanvasGroup>() ?? _root.AddComponent<CanvasGroup>();
