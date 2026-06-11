@@ -355,5 +355,77 @@ namespace Morgott.Oracle
             // EnsureInitialized only runs the resolution path once, so this fires at most once.
             OracleLog.Debug(message);
         }
+
+        // ---- Event resource-reward multiplier (matches the actual grant under TFTV) ----------------
+
+        /// <summary>
+        /// TFTV's flat per-resource event-reward scalar, hardcoded in
+        /// <c>TFTV.TFTVSpecialDifficulties.OnGeoscape.TFTV_GeoEventChoiceOutcome_GenerateFactionReward_*_patch.Prefix</c>
+        /// ("Pre_Azozoth_base"): every event-outcome <c>ResourceUnit.Value *= 0.8f</c>, unconditionally,
+        /// before the reward is generated. Verified in refs/TFTV-src TFTVSpecialDifficulties.cs (~line 434).
+        /// </summary>
+        private const float TftvBaseResourceRewardMultiplier = 0.8f;
+
+        // Resolved TFTVNewGameOptions.ResourceMultiplierSetting field (player option, 0.5/1/1.25/1.5/2),
+        // applied on top of the 0.8 base in the same TFTV Prefix when it differs from 1.
+        private static FieldInfo _resourceMultiplierField;
+        private static bool _resourceMultiplierResolved;
+
+        /// <summary>
+        /// The total multiplier the game applies to every event-outcome resource amount before granting it,
+        /// so a preview can match the real reward. Under TFTV this is
+        /// <c>0.8 * ResourceMultiplierSetting</c> (the campaign's chosen resource multiplier); when TFTV is
+        /// absent the patch never runs, so this is <c>1.0</c> (raw def value). Fails open to <c>1.0</c> on any
+        /// reflection error so the tooltip never breaks. Read-only: never invokes the apply path.
+        /// </summary>
+        public static float EventResourceRewardMultiplier
+        {
+            get
+            {
+                try
+                {
+                    EnsureInitialized();
+                    if (!_available)
+                    {
+                        // TFTV not loaded (or its config didn't resolve) -> patch doesn't run -> no scaling.
+                        return 1f;
+                    }
+
+                    float multiplier = TftvBaseResourceRewardMultiplier;
+                    float setting = ReadResourceMultiplierSetting();
+                    // TFTV only applies the player setting when it differs from 1; a non-positive value means
+                    // the option was never initialized (no active campaign) -> ignore it, keep the 0.8 base.
+                    if (setting > 0f)
+                    {
+                        multiplier *= setting;
+                    }
+                    return multiplier;
+                }
+                catch (Exception ex)
+                {
+                    OracleLog.Debug("[Oracle] EventResourceRewardMultiplier failed, using 1.0: " + ex.Message);
+                    return 1f;
+                }
+            }
+        }
+
+        /// <summary>Reflect the current <c>TFTVNewGameOptions.ResourceMultiplierSetting</c>; 0 on any miss.</summary>
+        private static float ReadResourceMultiplierSetting()
+        {
+            if (!_resourceMultiplierResolved)
+            {
+                _resourceMultiplierResolved = true;
+                Type tOptions = AccessTools.TypeByName("TFTV.TFTVNewGameOptions");
+                _resourceMultiplierField = tOptions != null
+                    ? AccessTools.Field(tOptions, "ResourceMultiplierSetting")
+                    : null;
+            }
+            if (_resourceMultiplierField == null)
+            {
+                return 0f;
+            }
+            object value = _resourceMultiplierField.GetValue(null);
+            return value is float f ? f : 0f;
+        }
     }
 }

@@ -41,13 +41,24 @@ namespace Morgott.Oracle
                 }
 
                 // Resources (rounded int per unit, skip zero/None).
+                // The game scales the raw def amount before granting it: under TFTV every event-outcome
+                // resource is multiplied by 0.8 * ResourceMultiplierSetting in a GenerateFactionReward
+                // Prefix, then displayed via ResourceUnit.RoundedValue = Mathf.RoundToInt(Value). We mirror
+                // that here so the preview matches the actual reward (e.g. 625 -> 500, 100 -> 80), scaling
+                // the raw float Value and rounding ONCE the same way. Multiplier is 1.0 when TFTV is absent.
                 if (o.Resources != null && o.Resources.Values != null)
                 {
+                    float resourceMultiplier = TftvConfigBridge.EventResourceRewardMultiplier;
                     foreach (ResourceUnit ru in o.Resources.Values)
                     {
-                        if (ru.Type != ResourceType.None && ru.RoundedValue != 0)
+                        if (ru.Type == ResourceType.None)
                         {
-                            data.Resources.Add(new EventOutcomeData.ResourceEntry(ResourceName(ru.Type), ru.RoundedValue));
+                            continue;
+                        }
+                        int scaled = UnityEngine.Mathf.RoundToInt(ru.Value * resourceMultiplier);
+                        if (scaled != 0)
+                        {
+                            data.Resources.Add(new EventOutcomeData.ResourceEntry(ResourceName(ru.Type), scaled));
                         }
                     }
                 }
