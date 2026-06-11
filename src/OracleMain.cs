@@ -74,6 +74,21 @@ namespace Morgott.Oracle
             }
         }
 
+        /// <summary>
+        /// Runtime read of the event-outcome-preview toggle. Defaults to false when the config is
+        /// unavailable, so a missing config simply hides the preview rather than throwing. Read by
+        /// <see cref="EventChoiceHoverPatch"/>.
+        /// </summary>
+        public static bool ShowEventOutcomePreview
+        {
+            get
+            {
+                OracleMain inst = Instance;
+                OracleConfig cfg = inst != null ? inst.Config : null;
+                return cfg != null && cfg.ShowEventOutcomePreview;
+            }
+        }
+
         public override bool CanSafelyDisable => true;
 
         public override void OnModEnabled()

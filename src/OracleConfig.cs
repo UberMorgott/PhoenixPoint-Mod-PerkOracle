@@ -40,6 +40,14 @@ namespace Morgott.Oracle
         public bool EnableDebugLogging = false;
 
         /// <summary>
+        /// When true (default), hovering an answer-choice button in a geoscape site-encounter event
+        /// shows a framed tooltip previewing that choice's outcome (reputation, resources, soldier
+        /// HP/stamina loss, items, research, etc.). Read straight from the choice's outcome def WITHOUT
+        /// applying it. Turn off to hide the preview.
+        /// </summary>
+        public bool ShowEventOutcomePreview = true;
+
+        /// <summary>
         /// Localize the in-game options UI for <see cref="AllowPerkSwap"/>. The base implementation builds
         /// one <see cref="ModConfigField"/> per public field; we keep those (so value get/set still work)
         /// and only override the <c>GetText</c>/<c>GetDescription</c> delegates of the AllowPerkSwap field
@@ -78,6 +86,13 @@ namespace Morgott.Oracle
                     field.GetDescription = () => Loc.Get(
                         "ORACLE_EnableDebugLogging_DESCRIPTION",
                         "When on, Oracle writes diagnostic messages to the player log. Leave off for normal play; turn on only to help diagnose an issue.");
+                }
+                else if (field.ID == nameof(ShowEventOutcomePreview))
+                {
+                    field.GetText = () => Loc.Get("ORACLE_ShowEventOutcomePreview", "Event Outcome Preview");
+                    field.GetDescription = () => Loc.Get(
+                        "ORACLE_ShowEventOutcomePreview_DESCRIPTION",
+                        "When on, hovering an event answer shows a tooltip previewing its outcome (reputation, resources, soldier damage, items, research, etc.).");
                 }
             }
             return fields;
