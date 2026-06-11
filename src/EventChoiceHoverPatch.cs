@@ -97,11 +97,26 @@ namespace Morgott.Oracle
             }
         }
 
-        /// <summary>Find a live geoscape canvas to parent the tooltip (the top-most active Canvas in the scene).</summary>
+        // Cached so we don't run a full-scene FindObjectsOfType<Canvas>() on every hover (part of the
+        // per-hover cost that caused the hover lag). Re-resolved only when the cached canvas is gone or no
+        // longer active/enabled (e.g. screen changed).
+        private static Canvas _cachedCanvas;
+
+        /// <summary>
+        /// Find a live geoscape canvas to parent the tooltip (the top-most active Canvas in the scene),
+        /// caching the result. The expensive <c>FindObjectsOfType&lt;Canvas&gt;()</c> scan runs only on the
+        /// first hover and again whenever the cached canvas has been destroyed or disabled — not every hover.
+        /// </summary>
         private static Canvas ResolveCanvas()
         {
             try
             {
+                if ((UnityEngine.Object)(object)_cachedCanvas != (UnityEngine.Object)null
+                    && _cachedCanvas.isActiveAndEnabled)
+                {
+                    return _cachedCanvas;
+                }
+
                 Canvas[] canvases = UnityEngine.Object.FindObjectsOfType<Canvas>();
                 Canvas best = null;
                 foreach (Canvas c in canvases)
@@ -113,6 +128,7 @@ namespace Morgott.Oracle
                         best = c;
                     }
                 }
+                _cachedCanvas = best;
                 return best;
             }
             catch (Exception ex)

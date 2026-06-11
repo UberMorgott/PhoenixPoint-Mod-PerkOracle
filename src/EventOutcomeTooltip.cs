@@ -43,13 +43,21 @@ namespace Morgott.Oracle
 
         private const float CursorXOffset = 18f;
 
+        // The tooltip GameObject is cloned from the native widget ONCE (lazily, on the first Show) and then
+        // REUSED for every subsequent hover: Show re-populates the body + repositions + SetActive(true), and
+        // Hide just SetActive(false). Nothing is Instantiated/Destroyed per hover, so there is no per-hover
+        // allocation/GC churn (kills the hover lag) and no deferred Destroy that a fast re-hover could race
+        // against (kills the "tooltip doesn't reappear" glitch). The cached refs are only rebuilt when the
+        // GameObject is gone (e.g. destroyed on scene unload — detected via the Unity-overloaded == null).
         private static GameObject _root;
         private static RectTransform _rootRt;
         private static RectTransform _canvasRect;
         private static Canvas _rootCanvas;
+        private static GeoRosterAbilityDetailTooltip _tip;
 
-        /// <summary>True while a tooltip instance is live.</summary>
-        public static bool IsShown => (UnityEngine.Object)(object)_root != (UnityEngine.Object)null;
+        /// <summary>True while the tooltip instance exists and is currently visible.</summary>
+        public static bool IsShown => (UnityEngine.Object)(object)_root != (UnityEngine.Object)null
+                                      && _root.activeSelf;
 
         /// <summary>
         /// Build + show the tooltip for <paramref name="rows"/> parented to <paramref name="anchorCanvas"/>'s
@@ -61,23 +69,14 @@ namespace Morgott.Oracle
         {
             try
             {
-                Hide();
                 if (rows == null || rows.Count == 0
                     || (UnityEngine.Object)(object)anchorCanvas == (UnityEngine.Object)null)
                 {
+                    Hide();
                     return;
                 }
 
-                _rootCanvas = anchorCanvas.rootCanvas;
-                Transform rootParent = ((UnityEngine.Object)(object)_rootCanvas != (UnityEngine.Object)null)
-                    ? _rootCanvas.transform
-                    : anchorCanvas.transform;
-                _canvasRect = ((UnityEngine.Object)(object)_rootCanvas != (UnityEngine.Object)null)
-                    ? _rootCanvas.transform as RectTransform
-                    : null;
-
-                GeoRosterAbilityDetailTooltip tip = CloneNativeTooltip(rootParent);
-                if ((UnityEngine.Object)(object)tip == (UnityEngine.Object)null)
+                if (!EnsureBuilt(anchorCanvas))
                 {
                     // No native template available on this screen; show nothing rather than fall back to
                     // an unstyled box (the framed look depends entirely on the cloned widget).
@@ -85,8 +84,10 @@ namespace Morgott.Oracle
                     return;
                 }
 
-                CaptureNativeRewardColors();
-                PopulateTooltip(tip, rows);
+                // Keep the body hidden while we re-populate, then flip it on (same proven order as the
+                // original build-once-then-activate path; nothing is re-instantiated here).
+                _root.SetActive(false);
+                PopulateTooltip(_tip, rows);
 
                 _root.SetActive(true);
                 _root.transform.SetAsLastSibling(); // render above the event module
@@ -99,33 +100,76 @@ namespace Morgott.Oracle
             }
         }
 
-        /// <summary>Tear down the live tooltip instance, if any. Safe to call when nothing is shown.</summary>
+        /// <summary>
+        /// Hide the persistent tooltip instance. Just deactivates the cached GameObject — it is NOT
+        /// destroyed, so there is no deferred end-of-frame Destroy for a fast re-hover to race against
+        /// (the previous "move off then straight back on => tooltip never appears" glitch). Safe to call
+        /// when nothing is shown or before anything has ever been built.
+        /// </summary>
         public static void Hide()
         {
             try
             {
                 if ((UnityEngine.Object)(object)_root != (UnityEngine.Object)null)
                 {
-                    UnityEngine.Object.Destroy(_root);
+                    _root.SetActive(false);
                 }
             }
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] EventOutcomeTooltip.Hide failed: " + ex.Message);
             }
-            _root = null;
-            _rootRt = null;
-            _canvasRect = null;
-            _rootCanvas = null;
+        }
+
+        /// <summary>
+        /// Ensure the cached tooltip GameObject exists and is parented under <paramref name="anchorCanvas"/>'s
+        /// root canvas. Reuses the existing clone when it is still alive (the common per-hover path: no
+        /// allocation, no scene scan beyond a cheap field check). Only when the cached instance is missing —
+        /// first ever Show, or it was destroyed on a scene unload (detected via the Unity-overloaded
+        /// <c>== null</c>) — does it clone the native widget, strip the I2 localizers, deactivate the unused
+        /// child groups and capture the native reward colours, all exactly ONCE per built instance. Returns
+        /// false when no native template can be cloned on this screen.
+        /// </summary>
+        private static bool EnsureBuilt(Canvas anchorCanvas)
+        {
+            // Fast path: the clone is still alive — reuse it as-is.
+            if ((UnityEngine.Object)(object)_root != (UnityEngine.Object)null
+                && (UnityEngine.Object)(object)_tip != (UnityEngine.Object)null)
+            {
+                return true;
+            }
+
+            // (Re)build: resolve + cache the target canvas, then clone the native widget once.
+            _rootCanvas = anchorCanvas.rootCanvas;
+            Transform rootParent = ((UnityEngine.Object)(object)_rootCanvas != (UnityEngine.Object)null)
+                ? _rootCanvas.transform
+                : anchorCanvas.transform;
+            _canvasRect = ((UnityEngine.Object)(object)_rootCanvas != (UnityEngine.Object)null)
+                ? _rootCanvas.transform as RectTransform
+                : null;
+
+            _tip = CloneNativeTooltip(rootParent);
+            if ((UnityEngine.Object)(object)_tip == (UnityEngine.Object)null)
+            {
+                return false;
+            }
+
+            // One-time, build-only setup that never changes between hovers: deactivate the ability
+            // title/icon/SP-AP-WP cost groups (we only use the description field) and snapshot the native
+            // reward colours. Doing this once — not per Show — is the rest of the per-hover-cost saving.
+            DeactivateUnusedGroups(_tip);
+            CaptureNativeRewardColors();
+            return true;
         }
 
         /// <summary>
         /// Clone the game's native ability-detail tooltip GameObject under <paramref name="rootParent"/>
         /// (mirrors <see cref="PerkWikiPanel.CreateTooltipClone"/>): prefer a live in-scene instance, else
-        /// any inactive scene instance. The clone is kept inactive while it is configured, never blocks
-        /// raycasts (so it cannot steal the hover from the choice button beneath it) and is full size.
-        /// Stores the clone in <see cref="_root"/>/<see cref="_rootRt"/>. Returns the widget component or
-        /// null when no template exists / the clone fails.
+        /// any inactive scene instance. Called ONCE per built instance (from <see cref="EnsureBuilt"/>), not
+        /// per hover. The clone is kept inactive while it is configured, never blocks raycasts (so it cannot
+        /// steal the hover from the choice button beneath it) and is full size. Stores the clone in
+        /// <see cref="_root"/>/<see cref="_rootRt"/>. Returns the widget component or null when no template
+        /// exists / the clone fails.
         /// </summary>
         private static GeoRosterAbilityDetailTooltip CloneNativeTooltip(Transform rootParent)
         {
@@ -184,12 +228,13 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Repurpose the cloned widget's text fields for the outcome preview instead of an ability: the
-        /// description line shows the composed, sign-coloured rows. There is NO header — the native encounter
-        /// reward UI (UIModuleSiteEncounters.ShowReward -> AddRewardText) simply appends reward lines with no
-        /// heading, and the game has no "Outcome"/"Rewards" loc term for one, so we drop the title rather than
-        /// invent a label. The ability title, icon and SP/AP/WP skill-cost groups are deactivated so only the
-        /// framed body remains.
+        /// Re-populate the cached widget's description field with the current outcome rows and re-fit the
+        /// frame. Called every Show (it is the only thing that changes between hovers): sets the composed,
+        /// sign-coloured rows on the repurposed ability-description Text and re-runs <see cref="ResizeToContent"/>
+        /// so the box hugs the new content. There is NO header — the native encounter reward UI
+        /// (UIModuleSiteEncounters.ShowReward -> AddRewardText) simply appends reward lines with no heading,
+        /// and the game has no "Outcome"/"Rewards" loc term for one, so we drop the title rather than invent
+        /// a label.
         /// </summary>
         private static void PopulateTooltip(GeoRosterAbilityDetailTooltip tip, List<EventOutcomeRow> rows)
         {
@@ -198,6 +243,16 @@ namespace Morgott.Oracle
                 tip.AbilityDescription.text = ComposeBody(rows);
             }
 
+            ResizeToContent(tip);
+        }
+
+        /// <summary>
+        /// Deactivate the ability title, icon and SP/AP/WP skill-cost child groups so only the framed body
+        /// remains. Done ONCE at build time (from <see cref="EnsureBuilt"/>) — these children never come back
+        /// on, so there is no need to re-deactivate them on every hover.
+        /// </summary>
+        private static void DeactivateUnusedGroups(GeoRosterAbilityDetailTooltip tip)
+        {
             SetActiveSafe(tip.AbilityTitleText);
             SetActiveSafe(tip.AbilityIcon);
             SetActiveSafe(tip.AbilitySkillCostGroup);
@@ -205,8 +260,6 @@ namespace Morgott.Oracle
             SetActiveSafe(tip.AbilitySkillAPCostText);
             SetActiveSafe(tip.AbilitySkillWPCostText);
             SetActiveSafe(tip.SkillCostHeaderText);
-
-            ResizeToContent(tip);
         }
 
         // Inset between the framed background edge and the body text, in canvas units. Small but enough
