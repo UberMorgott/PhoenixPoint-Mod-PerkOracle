@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using PhoenixPoint.Geoscape.View.ViewControllers.Roster;
+using PhoenixPoint.Geoscape.View.ViewModules;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -24,13 +25,21 @@ namespace Morgott.Oracle
     /// </summary>
     public static class EventOutcomeTooltip
     {
-        // Standard reward sign colours, readable on the native dark frame. Used in place of the
-        // def-driven RewardsColorsDef.PrimaryUIColor/SecondaryUIColor (UIModuleSiteEncounters.cs:173-174):
-        // those are only assembled into PositiveRewardTextPattern/NegativeRewardTextPattern inside that
-        // module's Awake and are not reachable as a stable static here, so we fall back to plain
-        // green / red rich-text tags (the prompt's documented fallback path).
-        private const string PositiveColor = "#6FCF6F";
-        private const string NegativeColor = "#E06C6C";
+        // Reward colours captured from the LIVE encounter module each Show, so our rows match the native
+        // post-choice reward display exactly (UIModuleSiteEncounters):
+        //   * value, positive  = RewardsColorsDef.PrimaryUIColor   (the "+" pattern, decompile line 173)
+        //   * value, negative  = RewardsColorsDef.SecondaryUIColor (the "-" pattern, decompile line 174)
+        //   * label            = EncounterRewardTextPrefab's Text colour (the gold/orange the native
+        //                        resource line renders its DisplayName1 in; line 417 emits it uncoloured,
+        //                        so its colour IS the prefab default).
+        // These fall back to the constants below only when the module/def/prefab can't be read.
+        private const string FallbackPositiveColor = "#6FCF6F";
+        private const string FallbackNegativeColor = "#E06C6C";
+        private const string FallbackLabelColor = "#D9A441"; // PP-style reward gold
+
+        private static string _positiveColor = FallbackPositiveColor;
+        private static string _negativeColor = FallbackNegativeColor;
+        private static string _labelColor = FallbackLabelColor;
 
         private const float CursorXOffset = 18f;
 
@@ -76,6 +85,7 @@ namespace Morgott.Oracle
                     return;
                 }
 
+                CaptureNativeRewardColors();
                 PopulateTooltip(tip, rows);
 
                 _root.SetActive(true);
@@ -217,12 +227,62 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Compose the body text: one line per row as "label   value", with the value wrapped in a
-        /// green (positive "+") / red (negative "-") rich-text colour tag; other values (ranges, "xN",
-        /// "N%") and name-only rows stay the field's default colour. A label that begins with "ORACLE_"
-        /// is treated as a loc key and resolved via <see cref="Loc"/> (the pure formatter emits raw keys
-        /// for fixed scalar rows); any other label is already-localized text from
-        /// <see cref="EventOutcomeAdapter"/>.
+        /// Read the native reward colours from the live <see cref="UIModuleSiteEncounters"/> so our rows
+        /// match the post-choice reward display: positive/negative value colours come from
+        /// <c>RewardsColorsDef.PrimaryUIColor</c>/<c>SecondaryUIColor</c> (the same two colours the module
+        /// bakes into its Positive/Negative reward text patterns, decompile lines 173-174), and the label
+        /// gold comes from the encounter reward-text prefab's own <see cref="Text"/> colour (the native
+        /// resource line renders its label uncoloured, so the prefab default IS that gold). Any piece that
+        /// can't be read keeps its Fallback* constant. Prefers an active module, then a scene instance.
+        /// </summary>
+        private static void CaptureNativeRewardColors()
+        {
+            // Reset to fallbacks so a partial read never leaks a stale value from a prior Show.
+            _positiveColor = FallbackPositiveColor;
+            _negativeColor = FallbackNegativeColor;
+            _labelColor = FallbackLabelColor;
+            try
+            {
+                UIModuleSiteEncounters module = UnityEngine.Object.FindObjectOfType<UIModuleSiteEncounters>();
+                if ((UnityEngine.Object)(object)module == (UnityEngine.Object)null)
+                {
+                    module = Resources.FindObjectsOfTypeAll<UIModuleSiteEncounters>()
+                        .FirstOrDefault(m => (UnityEngine.Object)(object)m != (UnityEngine.Object)null
+                            && m.gameObject.scene.IsValid());
+                }
+                if ((UnityEngine.Object)(object)module == (UnityEngine.Object)null)
+                {
+                    return;
+                }
+
+                if ((UnityEngine.Object)(object)module.RewardsColorsDef != (UnityEngine.Object)null)
+                {
+                    _positiveColor = "#" + ColorUtility.ToHtmlStringRGB(module.RewardsColorsDef.PrimaryUIColor);
+                    _negativeColor = "#" + ColorUtility.ToHtmlStringRGB(module.RewardsColorsDef.SecondaryUIColor);
+                }
+
+                if ((UnityEngine.Object)(object)module.EncounterRewardTextPrefab != (UnityEngine.Object)null)
+                {
+                    Text t = module.EncounterRewardTextPrefab.GetComponentInChildren<Text>(true);
+                    if ((UnityEngine.Object)(object)t != (UnityEngine.Object)null)
+                    {
+                        _labelColor = "#" + ColorUtility.ToHtmlStringRGB(t.color);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeTooltip.CaptureNativeRewardColors failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Compose the body text: one line per row as "label   value". The label is wrapped in the native
+        /// reward gold colour and the value in the native positive ("+") / negative ("-") colour; other
+        /// values (ranges, "xN", "N%") and name-only rows keep the gold label but leave the value plain.
+        /// A label that begins with "ORACLE_" is treated as a loc key and resolved via <see cref="Loc"/>
+        /// (the pure formatter emits raw keys for fixed scalar rows); any other label is already-localized
+        /// text from <see cref="EventOutcomeAdapter"/>.
         /// </summary>
         private static string ComposeBody(List<EventOutcomeRow> rows)
         {
@@ -240,7 +300,7 @@ namespace Morgott.Oracle
                 {
                     sb.Append('\n');
                 }
-                sb.Append(label);
+                sb.Append("<color=").Append(_labelColor).Append('>').Append(label).Append("</color>");
                 if (!string.IsNullOrEmpty(row.Value))
                 {
                     sb.Append("   ").Append(Colorize(row.Value));
@@ -249,7 +309,7 @@ namespace Morgott.Oracle
             return sb.ToString();
         }
 
-        /// <summary>Wrap a signed value in a green/red rich-text colour tag; leave neutral values plain.</summary>
+        /// <summary>Wrap a signed value in the native positive/negative reward colour; leave neutral values plain.</summary>
         private static string Colorize(string value)
         {
             if (value.Length == 0)
@@ -258,11 +318,11 @@ namespace Morgott.Oracle
             }
             if (value[0] == '+')
             {
-                return "<color=" + PositiveColor + ">" + value + "</color>";
+                return "<color=" + _positiveColor + ">" + value + "</color>";
             }
             if (value[0] == '-')
             {
-                return "<color=" + NegativeColor + ">" + value + "</color>";
+                return "<color=" + _negativeColor + ">" + value + "</color>";
             }
             return value;
         }

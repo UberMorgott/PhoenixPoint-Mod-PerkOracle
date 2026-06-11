@@ -2,9 +2,11 @@ using System;
 using Base.Core;
 using PhoenixPoint.Common.Core;
 using PhoenixPoint.Common.Entities.Items;
+using PhoenixPoint.Common.UI;
 using PhoenixPoint.Geoscape;
 using PhoenixPoint.Geoscape.Events;
 using PhoenixPoint.Geoscape.Levels;
+using PhoenixPoint.Geoscape.View.ViewModules;
 
 namespace Morgott.Oracle
 {
@@ -152,13 +154,42 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Resource display name via the live geoscape view's resource view-element map
-        /// (<c>GeoscapeView.GetProperResourceViewElementDef</c>); falls back to the enum name. The static
-        /// <c>UIModuleSiteEncounters.ResourcesList</c> NamedListDef is an instance UI field and not globally
-        /// reachable, so we resolve through the same level/view chain the tooltip uses for its font.
+        /// Resource display name resolved EXACTLY like the native reward line
+        /// (<c>UIModuleSiteEncounters.ShowReward</c>, decompile line 417): the live encounter module's
+        /// <c>ResourcesList</c> NamedListDef is keyed by the resource's enum name and returns a
+        /// <see cref="ViewElementDef"/> whose <c>DisplayName1</c> carries the localized, already-upper-cased
+        /// label ("МАТЕРИАЛЫ", "ТЕХНОЛОГИИ"). The OLD path used <c>GeoscapeView.GetProperResourceViewElementDef</c>,
+        /// which returns the unrelated geoscape <c>ResourceViewElementDef</c> family whose <c>DisplayName</c>
+        /// LocalizedTextBind is empty for these resources -> <c>.Localize()</c> yielded "" -> we fell back to
+        /// the raw enum name. We now mirror the native source, with that geoscape def and finally the enum
+        /// name kept only as defensive fallbacks.
         /// </summary>
         private static string ResourceName(ResourceType type)
         {
+            // Primary: same NamedListDef + ViewElementDef.DisplayName1 the native reward text uses.
+            try
+            {
+                UIModuleSiteEncounters module = UnityEngine.Object.FindObjectOfType<UIModuleSiteEncounters>();
+                if ((UnityEngine.Object)(object)module != (UnityEngine.Object)null
+                    && (UnityEngine.Object)(object)module.ResourcesList != (UnityEngine.Object)null)
+                {
+                    ViewElementDef ved = module.ResourcesList.GetDef<ViewElementDef>(type.ToString());
+                    if ((UnityEngine.Object)(object)ved != (UnityEngine.Object)null && ved.DisplayName1 != null)
+                    {
+                        string s = ved.DisplayName1.Localize();
+                        if (!string.IsNullOrEmpty(s))
+                        {
+                            return s;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.ResourceName (native) failed: " + ex.Message);
+            }
+
+            // Fallback: legacy geoscape resource view-element map (DisplayName usually empty for rewards).
             try
             {
                 ResourceViewElementDef view = GameUtl.CurrentLevel()
@@ -175,8 +206,9 @@ namespace Morgott.Oracle
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] EventOutcomeAdapter.ResourceName failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.ResourceName (geoscape) failed: " + ex.Message);
             }
+
             return type.ToString();
         }
 
