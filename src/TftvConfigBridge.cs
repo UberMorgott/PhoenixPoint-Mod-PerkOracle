@@ -7,6 +7,8 @@ using Base.Core;
 using Base.Defs;
 using HarmonyLib;
 using PhoenixPoint.Common.Core;
+using PhoenixPoint.Geoscape.Events;
+using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
 
@@ -426,6 +428,165 @@ namespace Morgott.Oracle
             }
             object value = _resourceMultiplierField.GetValue(null);
             return value is float f ? f : 0f;
+        }
+
+        // ---- Event diplomacy/reputation multiplier (matches the actual grant under TFTV) -----------
+
+        // Resolved once, lazily, on first diplomacy preview. Each may stay null (member absent) without
+        // disabling the others; the computation simply skips the branch that needs it.
+        private static bool _diplomacyReflectionResolved;
+        private static FieldInfo _diplomaticPenaltiesField;   // TFTVNewGameOptions.DiplomaticPenaltiesSetting (static bool)
+        private static MethodInfo _voidOmensInPlayMethod;     // TFTVVoidOmens.CheckFordVoidOmensInPlay(GeoLevelController) -> int[]
+        private static GeoFactionDef _phoenixFactionDef;      // base def "Phoenix_GeoPhoenixFactionDef"
+        private static bool _phoenixFactionResolved;
+
+        /// <summary>
+        /// The reputation/diplomacy value the game will actually GRANT for one
+        /// <see cref="OutcomeDiplomacyChange"/>, mirroring TFTV's
+        /// <c>TFTV_GeoEventChoiceOutcome_GenerateFactionReward_SpecialDifficultiesAndVO2AndVO8_patch.Prefix</c>
+        /// (refs/TFTV-src TFTVSpecialDifficulties.cs lines 324-427). TFTV mutates <c>Diplomacy[i].Value</c>
+        /// in place before the base game reads it into the reward, so the previewed number must reproduce the
+        /// SAME sequential transforms, in the SAME order, with the SAME rounding:
+        /// <list type="number">
+        ///   <item>Diplomatic-penalties option (<c>TFTVNewGameOptions.DiplomaticPenaltiesSetting</c>): a
+        ///         Phoenix-faction penalty (<c>Value &lt;= 0</c>) doubles. The real patch also skips a fixed
+        ///         list of story events (<c>ExcludedEventsDiplomacyPenalty</c>); the event id is not reachable
+        ///         from the hovered choice, so we replicate the COMMON case (not excluded). See residual note.</item>
+        ///   <item>Rookie/Easy geoscape (<c>CurrentDifficultyLevel.Order == 1</c>): a Phoenix-faction reward
+        ///         (<c>Value &gt;= 0</c>) doubles.</item>
+        ///   <item>Void Omen #2 (<c>TFTVVoidOmens.CheckFordVoidOmensInPlay</c> contains 2): any non-zero value
+        ///         is halved via <c>Mathf.CeilToInt(v * 0.5f)</c> (this is the 4 -&gt; 2 case).</item>
+        ///   <item>Void Omen #8 (contains 8): a non-Phoenix penalty (<c>Value &lt;= 0</c>) scales by 1.5 via
+        ///         <c>Mathf.RoundToInt(v * 1.5f)</c>.</item>
+        /// </list>
+        /// Read-only: never invokes <c>GenerateFactionReward</c>/the apply path. Fails open to the raw
+        /// <c>change.Value</c> when TFTV is absent or any reflected/engine member cannot be resolved, so the
+        /// tooltip never throws and matches vanilla when the patch would not run.
+        /// </summary>
+        public static int EventDiplomacyFinalValue(OutcomeDiplomacyChange change)
+        {
+            int raw = change.Value;
+            try
+            {
+                EnsureInitialized();
+                if (!_available || raw == 0)
+                {
+                    // TFTV not loaded (patch never runs) or nothing to scale -> raw value as-is.
+                    return raw;
+                }
+
+                GeoLevelController controller = GameUtl.CurrentLevel()?.GetComponent<GeoLevelController>();
+                if ((UnityEngine.Object)(object)controller == (UnityEngine.Object)null)
+                {
+                    return raw;
+                }
+
+                EnsureDiplomacyReflection();
+
+                bool isPhoenix = (UnityEngine.Object)(object)_phoenixFactionDef != (UnityEngine.Object)null
+                                 && (UnityEngine.Object)(object)change.TargetFaction == (UnityEngine.Object)(object)_phoenixFactionDef;
+
+                int v = raw;
+
+                // 1. Diplomatic-penalties option: Phoenix penalty doubles (excluded-events residual aside).
+                if (_diplomaticPenaltiesField != null
+                    && _diplomaticPenaltiesField.GetValue(null) is bool penalties && penalties
+                    && isPhoenix && v <= 0)
+                {
+                    v *= 2;
+                }
+
+                // 2. Rookie/Easy geoscape (difficulty Order == 1): Phoenix reward doubles.
+                GameDifficultyLevelDef difficulty = controller.CurrentDifficultyLevel;
+                if ((UnityEngine.Object)(object)difficulty != (UnityEngine.Object)null
+                    && difficulty.Order == 1 && isPhoenix && v >= 0)
+                {
+                    v *= 2;
+                }
+
+                // Void Omens (3 & 4) need the in-play array; absence -> empty -> both branches skip.
+                int[] voidOmens = ReadVoidOmensInPlay(controller);
+
+                // 3. Void Omen #2: any non-zero value halved (ceil). This is the reported 4 -> 2 case.
+                if (voidOmens != null && Array.IndexOf(voidOmens, 2) >= 0 && v != 0)
+                {
+                    v = Mathf.CeilToInt(v * 0.5f);
+                }
+
+                // 4. Void Omen #8: non-Phoenix penalty scaled by 1.5 (round).
+                if (voidOmens != null && Array.IndexOf(voidOmens, 8) >= 0 && v <= 0 && !isPhoenix)
+                {
+                    v = Mathf.RoundToInt(v * 1.5f);
+                }
+
+                return v;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventDiplomacyFinalValue failed, using raw value: " + ex.Message);
+                return raw;
+            }
+        }
+
+        /// <summary>Resolve the TFTV diplomacy-multiplier reflection members once (each may stay null).</summary>
+        private static void EnsureDiplomacyReflection()
+        {
+            if (!_diplomacyReflectionResolved)
+            {
+                _diplomacyReflectionResolved = true;
+
+                Type tOptions = AccessTools.TypeByName("TFTV.TFTVNewGameOptions");
+                _diplomaticPenaltiesField = tOptions != null
+                    ? AccessTools.Field(tOptions, "DiplomaticPenaltiesSetting")
+                    : null;
+
+                Type tVoidOmens = AccessTools.TypeByName("TFTV.TFTVVoidOmens");
+                _voidOmensInPlayMethod = tVoidOmens != null
+                    ? AccessTools.Method(tVoidOmens, "CheckFordVoidOmensInPlay", new[] { typeof(GeoLevelController) })
+                    : null;
+            }
+
+            if (!_phoenixFactionResolved)
+            {
+                _phoenixFactionResolved = true;
+                try
+                {
+                    // Match by def name (same key TFTV's DefCache.GetDef uses), mirroring EnsureDefIndex's
+                    // name-based lookup; the base GetDef(string) keys by GUID, not name.
+                    DefRepository repo = GameUtl.GameComponent<DefRepository>();
+                    foreach (GeoFactionDef def in repo.GetAllDefs<GeoFactionDef>())
+                    {
+                        if (def != null && def.name == "Phoenix_GeoPhoenixFactionDef")
+                        {
+                            _phoenixFactionDef = def;
+                            break;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    OracleLog.Debug("[Oracle] Phoenix faction def lookup failed: " + ex.Message);
+                    _phoenixFactionDef = null;
+                }
+            }
+        }
+
+        /// <summary>Reflect TFTV's current in-play Void Omen ids; empty array on any miss.</summary>
+        private static int[] ReadVoidOmensInPlay(GeoLevelController controller)
+        {
+            if (_voidOmensInPlayMethod == null)
+            {
+                return Array.Empty<int>();
+            }
+            try
+            {
+                return _voidOmensInPlayMethod.Invoke(null, new object[] { controller }) as int[] ?? Array.Empty<int>();
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] Void Omens lookup failed: " + ex.Message);
+                return Array.Empty<int>();
+            }
         }
     }
 }

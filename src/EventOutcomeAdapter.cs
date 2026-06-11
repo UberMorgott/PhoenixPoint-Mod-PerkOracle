@@ -273,6 +273,15 @@ namespace Morgott.Oracle
                 {
                     return;
                 }
+                // The game scales the raw def reputation before granting it: under TFTV a GenerateFactionReward
+                // Prefix conditionally multiplies OutcomeDiplomacyChange.Value (Void Omen #2 halves it, e.g.
+                // 4 -> 2; easy/penalties double it; VO#8 scales penalties). Mirror that here so the preview
+                // matches the actual grant. Multiplier is identity when TFTV is absent or no flag applies.
+                int scaled = TftvConfigBridge.EventDiplomacyFinalValue(d);
+                if (scaled == 0)
+                {
+                    return;
+                }
                 string party = FactionViewName(d.PartyFaction);
                 string target = FactionViewName(d.TargetFaction);
                 if (string.IsNullOrEmpty(party) || string.IsNullOrEmpty(target))
@@ -289,7 +298,7 @@ namespace Morgott.Oracle
                 {
                     return;
                 }
-                string value = Colorize(mod, d.Value.ToString("+#;-#"), d.Value > 0);
+                string value = Colorize(mod, scaled.ToString("+#;-#"), scaled > 0);
                 string line = string.Format(pattern, party, target, value);
                 if (!string.IsNullOrEmpty(line))
                 {
