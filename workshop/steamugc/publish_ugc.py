@@ -20,7 +20,7 @@ Usage:
   python publish_ugc.py --update --item 1234567890 --changenote "v1.1.0"
 
 On success: prints the publishedfileid + item URL, writes published_id.txt,
-and stamps the id into ../perkoracle.vdf (SteamCMD fallback path).
+and stamps the id into ../oracle.vdf (SteamCMD fallback path).
 """
 import argparse
 import os
@@ -35,7 +35,7 @@ REPO_ROOT = os.path.dirname(WORKSHOP_DIR)                     # repo root
 CONTENT_FOLDER = os.path.join(WORKSHOP_DIR, "Dist")
 PREVIEW_FILE = os.path.join(REPO_ROOT, "image", "steam_preview.jpg")
 LOCALE_DIR = os.path.join(WORKSHOP_DIR, "locale")
-VDF_FILE = os.path.join(WORKSHOP_DIR, "perkoracle.vdf")
+VDF_FILE = os.path.join(WORKSHOP_DIR, "oracle.vdf")
 
 # Per-language store descriptions, in the order they are pushed. Steam shows
 # each viewer the description matching their client language; "english" is the

@@ -62,7 +62,7 @@ Options: `--visibility public|friends|private`, `--tags a,b,c` (default none),
 `--changenote "..."`.
 
 On success the script writes `published_id.txt` and stamps the id into
-`../perkoracle.vdf` (the SteamCMD fallback descriptor).
+`../oracle.vdf` (the SteamCMD fallback descriptor).
 
 ## Notes
 

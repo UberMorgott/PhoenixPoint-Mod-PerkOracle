@@ -4,13 +4,13 @@
 
     This is the recommended way to push updates (per the maintainer's choice):
     run it on the machine logged into the owning Steam account. It builds a clean
-    /Dist, then uploads via SteamCMD's workshop_build_item using perkoracle.vdf.
+    /Dist, then uploads via SteamCMD's workshop_build_item using oracle.vdf.
 
 .DESCRIPTION
     Steps:
       1. Verify SteamCMD is available (PATH or known locations). If not, print an
          install hint and stop.
-      2. Verify perkoracle.vdf has a real publishedfileid (not the placeholder).
+      2. Verify oracle.vdf has a real publishedfileid (not the placeholder).
          (First publish must be done via PPWorkshopTool GUI - see WORKSHOP.md.)
       3. Run pack-dist.ps1 to (re)build workshop\Dist.
       4. Stamp the changenote into the vdf, then run:
@@ -46,7 +46,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $here = $PSScriptRoot
-$vdf  = Join-Path $here 'perkoracle.vdf'
+$vdf  = Join-Path $here 'oracle.vdf'
 $pack = Join-Path $here 'pack-dist.ps1'
 
 # --- 1. Locate SteamCMD ---------------------------------------------------
@@ -87,10 +87,10 @@ if (-not (Test-Path $vdf)) { throw "VDF not found: $vdf" }
 $vdfText = Get-Content -Raw $vdf
 if ($vdfText -match 'PUBLISHEDFILEID_PLACEHOLDER') {
     Write-Error @"
-perkoracle.vdf still has the placeholder publishedfileid.
+oracle.vdf still has the placeholder publishedfileid.
 
 You must FIRST publish the item once via the PPWorkshopTool GUI (see WORKSHOP.md),
-then put the real published file id into perkoracle.vdf:
+then put the real published file id into oracle.vdf:
 
     "publishedfileid" "1234567890"
 

@@ -53,7 +53,7 @@ SteamCMD's `workshop_build_item`, so future updates can use SteamCMD.
 
 ## 2. Record the publishedfileid  **[NEEDS YOU — one edit]**
 
-Open `workshop/perkoracle.vdf` and replace the placeholder:
+Open `workshop/oracle.vdf` and replace the placeholder:
 
 ```
 "publishedfileid" "PUBLISHEDFILEID_PLACEHOLDER"
@@ -154,7 +154,7 @@ the header comment in that workflow for required secrets.
 | Path | Purpose |
 |---|---|
 | `workshop/pack-dist.ps1` | Build Release + assemble `Dist/` (DLL+meta+Assets). |
-| `workshop/perkoracle.vdf` | SteamCMD build descriptor (set publishedfileid). |
+| `workshop/oracle.vdf` | SteamCMD build descriptor (set publishedfileid). |
 | `workshop/update.ps1` | Local update path: pack + SteamCMD upload. |
 | `workshop/description_en.txt` / `_ru.txt` | BBCode store descriptions. |
 | `workshop/comments/` | Read tool, reply workflow, experimental writer. |
