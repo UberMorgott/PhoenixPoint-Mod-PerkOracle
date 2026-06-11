@@ -6,22 +6,38 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.3.0] - 2026-06-12
 
+> ### Upgrade notes (read before updating from PerkOracle)
+> Two one-time things happen when you update from the previous version. Both are
+> harmless and never repeat on future updates:
+>
+> 1. **Mods may appear disabled after the update.** The mod's internal id changed
+>    (`PerkOracle` to `Oracle`), so you may need to open the in-game **Mods** menu
+>    once and re-enable your mods. This is a one-time activation refresh; nothing
+>    is lost.
+> 2. **The mod's own in-game research resets once.** The optional "perk swap"
+>    unlock will show as not-yet-researched again. To restore it, either research
+>    it again in-game or simply turn that feature off in the mod settings (it is
+>    optional). **Your resources, perks, and soldiers are not affected** — only the
+>    mod's own research-unlock flag resets, this one time. Future updates will not
+>    do this again (the save key is now a stable neutral id; see below).
+
 ### Changed
 - **Renamed the mod from "PerkOracle" to "Oracle"** (mod ID `Morgott.Oracle`,
   assembly `Oracle.dll`, namespace `Morgott.Oracle`). The Steam Workshop page is
-  **unchanged** (same item) — existing subscribers keep their subscription.
-- The perk-swap research save key is now a neutral GUID, so the gate is no longer
-  tied to a name-derived identifier (rename-safe across versions).
+  **unchanged** (same item); existing subscribers keep their subscription.
+- The perk-swap research save key is now a stable neutral id (no longer derived
+  from the mod name), so future renames will not reset the research again.
 
 ### Added
 - **Event outcome-preview tooltip.** Hovering an event choice now shows a framed
-  tooltip previewing that choice's outcomes (reputation, resources, site reveals,
-  and other rewards). Strings come from the game's own native localization keys —
-  no invented labels — and values mirror TFTV's actual grant math: the conditional
-  diplomacy multiplier and the resource-reward multiplier are applied so the
-  preview matches what you actually receive. Resource names are localized and use
-  the native reward colors. The tooltip is cached per hover (no lag) and is hidden
-  as soon as a choice is selected or the event screen closes.
+  tooltip previewing that choice's outcomes (reputation, resources, soldier
+  stamina and HP, items, sites revealed, and other rewards). Strings come from the
+  game's own native localization keys (no invented labels), and values mirror
+  TFTV's actual grant math: the conditional diplomacy multiplier and the
+  resource-reward multiplier are applied so the preview matches what you actually
+  receive. Resource names are localized and use the native reward colors. The
+  tooltip is cached per hover (no lag) and is hidden as soon as a choice is
+  selected or the event screen closes.
 
 ## [1.2.1] - 2026-06-06
 

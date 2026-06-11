@@ -1,29 +1,32 @@
 [h1]Oracle[/h1]
-[b]Podgląd w grze (tylko do odczytu) tego, jakie losowe „osobiste” perki mogły wypaść żołnierzowi. Dla Phoenix Point, samodzielnie lub z TFTV.[/b]
-
-W Phoenix Point część perków ze ścieżki „osobistej” losuje się dla każdego żołnierza. Ta losowość to własny system gry (vanilla i TFTV), a nie funkcja dodana przez ten mod. Oracle jedynie odczytuje te dane i je wyświetla. Nie tworzy, nie dodaje ani nie zmienia żadnych perków.
-
-Oferuje też opcjonalną wymianę perków, domyślnie wyłączoną, dla graczy, którzy chcą więcej kontroli.
+[b]Doradca w grze dla Phoenix Point. Pokazuje informacje, które gra zwykle ukrywa, dokładnie tam, gdzie podejmujesz decyzje, w formie podpowiedzi przy najechaniu kursorem. Działa samodzielnie na grze podstawowej, w pełni zgodny z TFTV.[/b]
 
 [hr][/hr]
 
-[h1]Co robi[/h1]
+[h1]Aktualizujesz z PerkOracle? Przeczytaj najpierw[/h1]
 [list]
-[*][b]Wyróżnia wylosowane perki.[/b] Na ekranie postępu umiejętności komórki ścieżki osobistej, których perk został wylosowany, otrzymują niebieski odcień, dzięki czemu od razu widać, co pochodzi z losowania, a co ze stałej ścieżki klasy.
-[*][b]Wyskakujące okno „wiki” kandydatów.[/b] Najedź kursorem na wylosowany (niebieski) perk i [b]kliknij go prawym przyciskiem myszy[/b], aby otworzyć okno z listą [i]każdego[/i] perka, który mógł trafić do tego slotu, każdy z natywną ikoną i podpowiedzią gry. Okno niczego nie zmienia; kliknij prawym przyciskiem ponownie, aby je zamknąć.
-[*][b]Podgląd podklas.[/b] Na ekranie wyboru podklasy widzisz [i]wszystkie[/i] podklasy od razu, w tym niezbadane (pokazane na szaro), z podpowiedzią dla każdego perka. Przed potwierdzeniem okno dialogowe pokazuje perki wybranej podklasy z natywnymi ikonami i podpowiedziami gry.
+[*][b]Mod został przemianowany z „PerkOracle" na „Oracle"[/b] (ta sama strona Steam, ten sam przedmiot, ta sama subskrypcja). Ponieważ zmienił się jego wewnętrzny identyfikator, po aktualizacji może być konieczne jednorazowe otwarcie menu [b]Mody[/b] w grze i ponowne włączenie modów. Nic nie ginie; to jednorazowe odświeżenie aktywacji.
+[*][b]Własne badanie moda w grze resetuje się jeden raz.[/b] Opcjonalne odblokowanie „wymiany perków" po tej aktualizacji ponownie pokaże się jako jeszcze niezbadane. Aby je odzyskać, zbadaj je ponownie w grze albo po prostu wyłącz tę funkcję w ustawieniach moda (jest opcjonalna). [b]Twoje zasoby, perki i żołnierze nie są naruszane[/b]. Resetuje się jedynie własna flaga badania moda, ten jeden raz. Przyszłe aktualizacje już tego nie zrobią.
 [/list]
 
-[h1]Opcjonalnie: Wymiana perków (domyślnie wyłączona)[/h1]
+[h1]Co robi[/h1]
+Oracle ma dwa pomocniki.
 [list]
-[*][b]AllowPerkSwap[/b] od razu po instalacji jest [b]WYŁĄCZONA[/b], więc Oracle pozostaje wyłącznie w trybie odczytu. Włącz ją w Ustawieniach moda, a [b]lewy przycisk myszy[/b] na perku w wiki zastąpi już wyuczony perk w tym slocie innym istniejącym perkiem. Zmienia jedynie, który istniejący perk zajmuje już odblokowany slot.
-[*][b]Opcjonalna blokada badania.[/b] Możesz wymagać jednorazowego badania „Przekwalifikowanie operatorów”, zanim będzie można przeszkalać żołnierzy. Włącz lub wyłącz tę opcję w ustawieniach moda.
+[*][b]Wgląd w perki.[/b] Na ekranie postępu umiejętności losowe („wylosowane") perki osobiste są wyróżnione, dzięki czemu od razu widać, co pochodzi z losowania, a co ze stałej ścieżki klasy. Otwórz wyskakujące okno wiki perków, aby zobaczyć każdy perk, który mógł trafić do danego slotu, z natywnymi ikonami i podpowiedziami gry. Opcjonalna, zależna od badania wymiana perków pozwala zamienić wyuczony perk na inny już istniejący.
+[*][b]Podgląd wyboru w wydarzeniu.[/b] Najedź kursorem na opcję odpowiedzi w wydarzeniu eksploracyjnym na geoskali, a podpowiedź pokaże skutek tego wyboru [i]zanim[/i] go dokonasz: zasoby, reputację, kondycję i punkty życia żołnierzy, przedmioty, odkryte lokacje i więcej. Wartości odpowiadają temu, co gra faktycznie przyzna, łącznie z modyfikatorami TFTV, a etykiety korzystają z natywnych, przetłumaczonych tekstów gry.
+[/list]
+
+[h1]Co nowego w v1.3.0[/h1]
+[list]
+[*][b]Przemianowano z PerkOracle na Oracle[/b] (ta sama strona Steam, ten sam przedmiot).
+[*][b]Nowość: podgląd skutków wyboru w wydarzeniu.[/b] Obramowana podpowiedź przy każdej odpowiedzi w wydarzeniu, zbudowana z natywnych, przetłumaczonych tekstów nagród gry, z wartościami zgodnymi z rzeczywistym przyznaniem (z uwzględnieniem mnożników TFTV).
+[*][b]Zapisy odporne na zmianę nazwy.[/b] Klucz zapisu badania moda jest teraz stabilnym, neutralnym identyfikatorem, więc przyszłe zmiany nazwy już go nie zresetują.
 [/list]
 
 [h1]Zgodność[/h1]
 [list]
 [*][b]Samodzielnie.[/b] Działa z podstawową grą Phoenix Point samodzielnie, nic więcej nie jest wymagane.
-[*][b]Terror From The Void (TFTV).[/b] W pełni zgodny. Przy zainstalowanym TFTV odczytuje dane o losowych perkach dla poszczególnych slotów z TFTV; w przeciwnym razie korzysta z puli osobistych perków gry podstawowej.
+[*][b]Terror From The Void (TFTV).[/b] W pełni zgodny. Przy zainstalowanym TFTV odczytuje dane TFTV dla poszczególnych slotów i odwzorowuje matematykę nagród TFTV; w przeciwnym razie korzysta z danych gry podstawowej.
 [*][b]Mody dodające klasy.[/b] Działa razem z modami dodającymi klasy (nowe mody Oficera, dodatkowe klasy itp.).
 [/list]
 
@@ -34,7 +37,7 @@ English, 简体中文 (chiński uproszczony), Français, Deutsch, Italiano, Pols
 [list=1]
 [*][b]Zasubskrybuj[/b] Oracle w Warsztacie. (Jeśli używasz TFTV, zainstaluj go również; Oracle ładuje się po nim.)
 [*]Uruchom Phoenix Point i [b]włącz Oracle[/b] w menedżerze modów w grze.
-[*]Otwórz ekran postępu umiejętności żołnierza, najedź kursorem na wylosowany (niebieski) perk i [b]kliknij go prawym przyciskiem myszy[/b].
+[*]Otwórz ekran postępu umiejętności żołnierza i najedź kursorem na wylosowany perk albo najedź na opcję odpowiedzi w wydarzeniu eksploracyjnym.
 [/list]
 
 [h1]Zgłaszanie błędów / Wsparcie[/h1]

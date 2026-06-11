@@ -1,30 +1,33 @@
 [h1]Oracle[/h1]
-[b]Una vista previa en el juego, de solo lectura, de qué perks «personales» podría haber obtenido un soldado al azar. Para Phoenix Point, en solitario o con TFTV.[/b]
-
-En Phoenix Point, algunos perks de la vía «personal» se obtienen al azar por cada soldado. Esa aleatoriedad es el propio sistema del juego (vanilla y TFTV), no algo que añada este mod. Oracle solo lee esos datos y los muestra. No genera, añade ni cambia ningún perk.
-
-También incluye un intercambio de perks opcional, desactivado por defecto, para quienes quieren más control.
+[b]Un asesor dentro del juego para Phoenix Point. Muestra información que el juego normalmente oculta, justo donde tomas tus decisiones, en forma de pistas e información emergente al pasar el cursor. Funciona en solitario con el juego base y es totalmente compatible con TFTV.[/b]
 
 [hr][/hr]
 
-[h1]Qué hace[/h1]
+[h1]¿Vienes de PerkOracle? Lee esto primero[/h1]
 [list]
-[*][b]Resalta los perks aleatorios.[/b] En la pantalla de progresión de habilidades, las celdas de la vía personal cuyo perk se obtuvo al azar reciben un tinte azul, para que veas de un vistazo qué proviene del azar y qué de la vía de clase fija.
-[*][b]Ventana «wiki» de candidatos.[/b] Pasa el cursor sobre un perk obtenido al azar (en azul) y haz [b]clic derecho[/b] sobre él para abrir una ventana que enumera [i]todos[/i] los perks que podrían haber caído en esa ranura, cada uno con el icono y la información emergente nativos del juego. La ventana no cambia nada; haz clic derecho de nuevo para cerrarla.
-[*][b]Vista previa de subclases.[/b] En la pantalla de selección de subclase, ve [i]todas[/i] las subclases de un vistazo, incluidas las no investigadas (mostradas en gris), con información emergente por perk. Antes de confirmar, un diálogo muestra los perks de la subclase elegida con los iconos e información emergente nativos del juego.
+[*][b]El mod cambió de nombre, de «PerkOracle» a «Oracle»[/b] (misma página de Steam, mismo artículo, misma suscripción). Como su id interno cambió, tras la actualización puede que necesites abrir el menú de [b]Mods[/b] del juego y volver a activar tus mods una vez. No se pierde nada; es un refresco de activación que ocurre una sola vez.
+[*][b]La investigación propia del mod dentro del juego se reinicia una vez.[/b] El desbloqueo opcional de «intercambio de perks» aparecerá de nuevo como no investigado tras esta actualización. Para recuperarlo, vuelve a investigarlo en el juego o simplemente desactiva esa función en los ajustes del mod (es opcional). [b]Tus recursos, perks y soldados no se tocan[/b]. Solo se reinicia el indicador de investigación propio del mod, esta única vez. Las futuras actualizaciones no volverán a hacerlo.
 [/list]
 
-[h1]Opcional: Intercambio de perks (desactivado por defecto)[/h1]
+[h1]Qué hace[/h1]
+Oracle tiene dos ayudantes.
 [list]
-[*][b]AllowPerkSwap[/b] está [b]DESACTIVADO[/b] de fábrica, así que Oracle se mantiene estrictamente de solo lectura. Actívalo en los Ajustes del mod, y un [b]clic izquierdo[/b] en un perk del wiki reemplaza un perk ya aprendido en esa ranura por otro perk existente. Solo cambia qué perk existente ocupa una ranura que ya has desbloqueado.
-[*][b]Requisito de investigación opcional.[/b] Puedes exigir una investigación única «Reacondicionamiento de operativos» antes de que los soldados puedan ser reentrenados. Actívalo o desactívalo en los ajustes del mod.
+[*][b]Anticipación de perks.[/b] En la pantalla de progresión de habilidades, los perks personales aleatorios (obtenidos al azar) aparecen resaltados, para que veas de un vistazo cuáles provienen del azar y cuáles de la vía de clase fija. Abre la ventana «wiki» de perks para ver todos los perks que podrían haber caído en una ranura, con los iconos e información emergente nativos del juego. Un intercambio de perks opcional, sujeto a investigación, te permite cambiar un perk aprendido por otro ya existente.
+[*][b]Vista previa de opciones de eventos.[/b] Pasa el cursor sobre una respuesta en un evento de exploración del geoscape y una información emergente muestra el resultado de esa opción [i]antes[/i] de elegirla: recursos, reputación, vigor y PV del soldado, objetos, lugares revelados y más. Los valores coinciden con lo que el juego concederá realmente, incluidos los modificadores de TFTV, y las etiquetas usan el propio texto localizado del juego.
+[/list]
+
+[h1]Novedades de la v1.3.0[/h1]
+[list]
+[*][b]Cambio de nombre, de PerkOracle a Oracle[/b] (misma página de Steam, mismo artículo).
+[*][b]Nuevo: vista previa del resultado de las opciones de eventos.[/b] Una información emergente enmarcada en cada respuesta de evento, construida a partir de las cadenas de recompensa localizadas nativas del juego, con valores fieles a la concesión real (incluidos los multiplicadores de TFTV).
+[*][b]Partidas a salvo de cambios de nombre.[/b] La clave de guardado de la investigación del mod ahora es un id neutro y estable, así que futuros cambios de nombre no la volverán a reiniciar.
 [/list]
 
 [h1]Compatibilidad[/h1]
 [list]
 [*][b]En solitario.[/b] Funciona por sí solo con Phoenix Point base, no se requiere nada más.
-[*][b]Terror From The Void (TFTV).[/b] Totalmente compatible. Con TFTV instalado, lee los datos de perks aleatorios por ranura de TFTV; en caso contrario, usa el conjunto de perks personales del juego base.
-[*][b]Mods que añaden clases.[/b] Funciona junto a mods que añaden clases (nuevos mods de Oficial, clases adicionales, etc.).
+[*][b]Terror From The Void (TFTV).[/b] Totalmente compatible. Con TFTV instalado, lee los datos por ranura de TFTV y coincide con sus cálculos de recompensa; en caso contrario, usa los datos del juego base.
+[*][b]Mods que añaden clases.[/b] Funciona junto a mods que añaden clases (nuevo Oficial, clases adicionales, etc.).
 [/list]
 
 [h1]Idiomas admitidos[/h1]
@@ -34,7 +37,7 @@ English, 简体中文 (chino simplificado), Français, Deutsch, Italiano, Polski
 [list=1]
 [*][b]Suscríbete[/b] a Oracle en el Workshop. (Si usas TFTV, instálalo también; Oracle se carga después de él.)
 [*]Inicia Phoenix Point y [b]activa Oracle[/b] en el gestor de mods del juego.
-[*]Abre la pantalla de progresión de habilidades de un soldado, pasa el cursor sobre un perk obtenido al azar (en azul) y haz [b]clic derecho[/b] sobre él.
+[*]Abre la pantalla de progresión de habilidades de un soldado y pasa el cursor sobre un perk obtenido al azar, o pasa el cursor sobre una respuesta en un evento de exploración.
 [/list]
 
 [h1]Informes de errores / Soporte[/h1]

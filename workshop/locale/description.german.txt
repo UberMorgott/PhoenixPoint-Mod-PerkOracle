@@ -1,30 +1,33 @@
 [h1]Oracle[/h1]
-[b]Eine schreibgeschützte Ingame-Vorschau, welche zufälligen „persönlichen“ Perks ein Soldat hätte auswürfeln können. Für Phoenix Point, eigenständig oder mit TFTV.[/b]
-
-In Phoenix Point werden manche Perks der „persönlichen“ Spur pro Soldat zufällig ausgewürfelt. Diese Zufälligkeit ist das spieleigene System (Vanilla und TFTV), nicht etwas, das dieser Mod hinzufügt. Oracle liest diese Daten nur und zeigt sie an. Es erzeugt, fügt oder ändert keine Perks.
-
-Es gibt außerdem einen optionalen Perk-Tausch, standardmäßig aus, für Spieler, die mehr Kontrolle möchten.
+[b]Ein Ingame-Berater für Phoenix Point. Er bringt Informationen ans Licht, die das Spiel normalerweise verbirgt, genau dort, wo du Entscheidungen triffst, als Hinweise und Tooltips beim Überfahren mit der Maus. Eigenständig im Basisspiel, voll kompatibel mit TFTV.[/b]
 
 [hr][/hr]
 
-[h1]Was es macht[/h1]
+[h1]Du steigst von PerkOracle um? Lies das zuerst[/h1]
 [list]
-[*][b]Hebt ausgewürfelte Perks hervor.[/b] Im Fähigkeiten-Fortschrittsbildschirm erhalten Zellen der persönlichen Spur, deren Perk zufällig ausgewürfelt wurde, einen blauen Farbton, sodass du auf einen Blick erkennst, was aus dem Zufall stammt und was aus der festen Klassenspur.
-[*][b]Kandidaten-„Wiki“-Popup.[/b] Bewege den Mauszeiger über einen ausgewürfelten (blauen) Perk und [b]klicke ihn mit der rechten Maustaste an[/b], um ein Popup zu öffnen, das [i]jeden[/i] Perk auflistet, der in diesen Slot hätte fallen können, jeweils mit dem eigenen Symbol und Tooltip des Spiels. Das Popup ändert nichts; klicke erneut mit der rechten Maustaste, um es zu schließen.
-[*][b]Unterklassen-Vorschau.[/b] Im Unterklassen-Auswahlbildschirm siehst du [i]alle[/i] Unterklassen auf einen Blick, auch unerforschte (ausgegraut dargestellt), mit Tooltips pro Perk. Bevor du dich festlegst, zeigt ein Bestätigungsdialog die Perks der gewählten Unterklasse mit den eigenen Symbolen und Tooltips des Spiels.
+[*][b]Der Mod wurde von „PerkOracle“ in „Oracle“ umbenannt[/b] (gleiche Steam-Seite, gleiches Element, gleiches Abonnement). Da sich seine interne id geändert hat, musst du nach dem Update eventuell einmalig das Ingame-Menü [b]Mods[/b] öffnen und deine Mods erneut aktivieren. Es geht nichts verloren; das ist eine einmalige Aktivierungs-Auffrischung.
+[*][b]Die spielinterne Forschung des Mods wird einmalig zurückgesetzt.[/b] Die optionale Freischaltung „Perk-Tausch“ erscheint nach diesem Update wieder als nicht erforscht. Um sie zurückzubekommen, erforsche sie entweder erneut im Spiel oder schalte diese Funktion in den Mod-Einstellungen einfach aus (sie ist optional). [b]Deine Ressourcen, Perks und Soldaten bleiben unberührt[/b]. Nur das Forschungs-Flag des Mods wird dieses eine Mal zurückgesetzt. Künftige Updates tun das nicht mehr.
 [/list]
 
-[h1]Optional: Perk-Tausch (standardmäßig aus)[/h1]
+[h1]Was es macht[/h1]
+Oracle hat zwei Helfer.
 [list]
-[*][b]AllowPerkSwap[/b] ist ab Werk [b]AUS[/b], sodass Oracle streng schreibgeschützt bleibt. Aktiviere es in den Einstellungen des Mods, und ein [b]Linksklick[/b] auf einen Perk im Wiki ersetzt einen bereits gelernten Perk in diesem Slot durch einen anderen vorhandenen Perk. Es tauscht nur, welcher vorhandene Perk einen bereits freigeschalteten Slot belegt.
-[*][b]Optionales Forschungs-Gate.[/b] Du kannst eine einmalige Forschung „Operative-Umkonditionierung“ verlangen, bevor Soldaten umgeschult werden können. Schalte sie in den Mod-Einstellungen um.
+[*][b]Perk-Voraussicht.[/b] Im Fähigkeiten-Fortschrittsbildschirm werden die zufälligen (ausgewürfelten) persönlichen Perks hervorgehoben, sodass du auf einen Blick erkennst, was aus dem Zufall stammt und was aus der festen Klassenspur. Öffne ein Perk-Wiki-Popup, um jeden Perk zu sehen, der in einem Slot hätte landen können, jeweils mit den eigenen Symbolen und Tooltips des Spiels. Ein optionaler, forschungsgesperrter Perk-Tausch erlaubt dir, einen gelernten Perk durch einen anderen vorhandenen zu ersetzen.
+[*][b]Vorschau von Ereignis-Entscheidungen.[/b] Bewege den Mauszeiger über eine Antwortoption in einem Geoscape-Erkundungsereignis, und ein Tooltip zeigt das Ergebnis dieser Wahl, [i]bevor[/i] du sie triffst: Ressourcen, Ruf, Soldaten-Ausdauer und Lebenspunkte, Gegenstände, aufgedeckte Orte und mehr. Die Werte entsprechen dem, was das Spiel tatsächlich gewährt, inklusive der Modifikatoren von TFTV, und die Bezeichnungen nutzen den eigenen lokalisierten Text des Spiels.
+[/list]
+
+[h1]Neu in v1.3.0[/h1]
+[list]
+[*][b]Umbenannt von PerkOracle in Oracle[/b] (gleiche Steam-Seite, gleiches Element).
+[*][b]Neu: Vorschau der Ereignis-Ergebnisse.[/b] Ein gerahmter Tooltip an jeder Ereignis-Antwort, aufgebaut aus den nativen lokalisierten Belohnungstexten des Spiels, mit Werten, die der echten Gewährung entsprechen (TFTV-Multiplikatoren inklusive).
+[*][b]Umbenennungssichere Spielstände.[/b] Der Forschungs-Speicherschlüssel des Mods ist nun eine stabile, neutrale id, sodass künftige Umbenennungen ihn nicht erneut zurücksetzen.
 [/list]
 
 [h1]Kompatibilität[/h1]
 [list]
 [*][b]Eigenständig.[/b] Funktioniert allein mit dem Basisspiel Phoenix Point, sonst ist nichts erforderlich.
-[*][b]Terror From The Void (TFTV).[/b] Voll kompatibel. Mit installiertem TFTV liest es die slotweisen Zufalls-Perk-Daten von TFTV; andernfalls nutzt es den persönlichen Perk-Pool des Basisspiels.
-[*][b]Klassen-hinzufügende Mods.[/b] Funktioniert zusammen mit Mods, die Klassen hinzufügen (neue Offizier-Mods, Zusatzklassen und so weiter).
+[*][b]Terror From The Void (TFTV).[/b] Voll kompatibel. Mit installiertem TFTV liest es die slotweisen Daten von TFTV und entspricht der Belohnungsrechnung von TFTV; andernfalls nutzt es die Daten des Basisspiels.
+[*][b]Klassen-hinzufügende Mods.[/b] Funktioniert zusammen mit Mods, die Klassen hinzufügen (neuer Offizier, Zusatzklassen und so weiter).
 [/list]
 
 [h1]Unterstützte Sprachen[/h1]
@@ -34,7 +37,7 @@ English, 简体中文 (Vereinfachtes Chinesisch), Français, Deutsch, Italiano, 
 [list=1]
 [*][b]Abonniere[/b] Oracle im Workshop. (Wenn du TFTV nutzt, installiere es ebenfalls; Oracle lädt danach.)
 [*]Starte Phoenix Point und [b]aktiviere Oracle[/b] im Ingame-Mod-Manager.
-[*]Öffne den Fähigkeiten-Fortschrittsbildschirm eines Soldaten, bewege den Mauszeiger über einen ausgewürfelten (blauen) Perk und [b]klicke ihn mit der rechten Maustaste an[/b].
+[*]Öffne den Fähigkeiten-Fortschrittsbildschirm eines Soldaten und fahre über einen ausgewürfelten Perk, oder fahre über eine Antwortoption in einem Erkundungsereignis.
 [/list]
 
 [h1]Fehlerberichte / Support[/h1]

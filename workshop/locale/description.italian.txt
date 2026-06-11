@@ -1,30 +1,33 @@
 [h1]Oracle[/h1]
-[b]Un'anteprima in gioco, di sola lettura, di quali perk «personali» un soldato avrebbe potuto ottenere casualmente. Per Phoenix Point, da solo o con TFTV.[/b]
-
-In Phoenix Point alcuni perk del ramo «personale» vengono estratti casualmente per ogni soldato. Questa casualità è il sistema proprio del gioco (vanilla e TFTV), non qualcosa che questo mod aggiunge. Oracle si limita a leggere quei dati e a mostrarli. Non genera, non aggiunge e non modifica alcun perk.
-
-Include anche uno scambio di perk opzionale, disattivato di default, per chi vuole più controllo.
+[b]Un consigliere in gioco per Phoenix Point. Mostra informazioni che il gioco normalmente nasconde, proprio dove prendi le decisioni, come suggerimenti al passaggio del cursore e tooltip. Da solo sul gioco base, pienamente compatibile con TFTV.[/b]
 
 [hr][/hr]
 
-[h1]Cosa fa[/h1]
+[h1]Aggiorni da PerkOracle? Leggi prima questo[/h1]
 [list]
-[*][b]Evidenzia i perk casuali.[/b] Nella schermata di progressione delle abilità, le celle del ramo personale il cui perk è stato estratto casualmente ricevono una tinta blu, così capisci a colpo d'occhio cosa proviene dall'estrazione casuale e cosa dal ramo di classe fisso.
-[*][b]Finestra «wiki» dei candidati.[/b] Passa il cursore su un perk estratto casualmente (in blu) e [b]fai clic con il tasto destro[/b] su di esso per aprire una finestra che elenca [i]ogni[/i] perk che avrebbe potuto cadere in quello slot, ciascuno con l'icona e il tooltip nativi del gioco. La finestra non cambia nulla; fai di nuovo clic con il tasto destro per chiuderla.
-[*][b]Anteprima delle sottoclassi.[/b] Nella schermata di selezione della sottoclasse vedi [i]tutte[/i] le sottoclassi a colpo d'occhio, comprese quelle non ricercate (mostrate in grigio), con un tooltip per ogni perk. Prima di confermare, una finestra di conferma mostra i perk della sottoclasse scelta con le icone e i tooltip nativi del gioco.
+[*][b]Il mod è stato rinominato da «PerkOracle» a «Oracle»[/b] (stessa pagina Steam, stesso elemento, stessa iscrizione). Poiché il suo id interno è cambiato, dopo l'aggiornamento potrebbe essere necessario aprire il menu [b]Mods[/b] in gioco e riabilitare i tuoi mod una volta. Non si perde nulla; è un semplice aggiornamento di attivazione una tantum.
+[*][b]La ricerca in gioco propria del mod si azzera una volta.[/b] Lo sblocco opzionale dello «scambio dei perk» risulterà di nuovo non ancora ricercato dopo questo aggiornamento. Per riaverlo, ricercalo di nuovo in gioco oppure disattiva semplicemente quella funzione nelle impostazioni del mod (è opzionale). [b]Le tue risorse, i tuoi perk e i tuoi soldati non vengono toccati[/b]. Si azzera solo il flag di ricerca del mod stesso, questa unica volta. Gli aggiornamenti futuri non lo faranno più.
 [/list]
 
-[h1]Opzionale: Scambio dei perk (disattivato di default)[/h1]
+[h1]Cosa fa[/h1]
+Oracle ha due assistenti.
 [list]
-[*][b]AllowPerkSwap[/b] è [b]DISATTIVATO[/b] appena installato, quindi Oracle resta rigorosamente di sola lettura. Attivalo nelle Impostazioni del mod e un [b]clic sinistro[/b] su un perk nel wiki sostituisce un perk già appreso in quello slot con un altro perk esistente. Cambia solo quale perk esistente occupa uno slot che hai già sbloccato.
-[*][b]Gate di ricerca opzionale.[/b] Puoi richiedere una ricerca una tantum «Ricondizionamento degli operativi» prima che i soldati possano essere riaddestrati. Attivalo o disattivalo nelle impostazioni del mod.
+[*][b]Previsione dei perk.[/b] Nella schermata di progressione delle abilità, i perk personali casuali (estratti casualmente) vengono evidenziati, così capisci a colpo d'occhio quali provengono dall'estrazione e quali dal ramo di classe fisso. Apri la finestra wiki dei perk per vedere ogni perk che avrebbe potuto cadere in uno slot, con le icone e i tooltip nativi del gioco. Uno scambio dei perk opzionale, subordinato a una ricerca, ti permette di sostituire un perk appreso con un altro già esistente.
+[*][b]Anteprima delle scelte negli eventi.[/b] Passa il cursore su un'opzione di risposta in un evento di esplorazione sulla mappa strategica e un tooltip mostra l'esito di quella scelta [i]prima[/i] di selezionarla: risorse, reputazione, stamina e PS dei soldati, oggetti, siti rivelati e altro ancora. I valori corrispondono a ciò che il gioco assegnerà davvero, compresi i modificatori di TFTV, e le etichette usano il testo localizzato nativo del gioco.
+[/list]
+
+[h1]Novità nella v1.3.0[/h1]
+[list]
+[*][b]Rinominato da PerkOracle a Oracle[/b] (stessa pagina Steam, stesso elemento).
+[*][b]Nuovo: anteprima dell'esito delle scelte negli eventi.[/b] Un tooltip incorniciato su ogni risposta dell'evento, costruito dalle stringhe di ricompensa localizzate native del gioco, con valori accurati rispetto all'assegnazione reale (modificatori di TFTV inclusi).
+[*][b]Salvataggi a prova di rinomina.[/b] La chiave di salvataggio della ricerca del mod è ora un id neutro e stabile, così le future rinomine non la azzereranno più.
 [/list]
 
 [h1]Compatibilità[/h1]
 [list]
 [*][b]Da solo.[/b] Funziona con Phoenix Point base per conto suo, non serve altro.
-[*][b]Terror From The Void (TFTV).[/b] Pienamente compatibile. Con TFTV installato legge i dati dei perk casuali per slot di TFTV; altrimenti usa il pool di perk personali del gioco base.
-[*][b]Mod che aggiungono classi.[/b] Funziona insieme ai mod che aggiungono classi (nuovi mod Ufficiale, classi aggiuntive, ecc.).
+[*][b]Terror From The Void (TFTV).[/b] Pienamente compatibile. Con TFTV installato legge i dati per slot di TFTV e rispetta i calcoli delle ricompense di TFTV; altrimenti usa i dati del gioco base.
+[*][b]Mod che aggiungono classi.[/b] Funziona insieme ai mod che aggiungono classi (nuovo Ufficiale, classi aggiuntive e così via).
 [/list]
 
 [h1]Lingue supportate[/h1]
@@ -34,7 +37,7 @@ English, 简体中文 (cinese semplificato), Français, Deutsch, Italiano, Polsk
 [list=1]
 [*][b]Iscriviti[/b] a Oracle nel Workshop. (Se usi TFTV, installa anche quello; Oracle si carica dopo di esso.)
 [*]Avvia Phoenix Point e [b]abilita Oracle[/b] nel gestore di mod in gioco.
-[*]Apri la schermata di progressione delle abilità di un soldato, passa il cursore su un perk estratto casualmente (in blu) e [b]fai clic con il tasto destro[/b] su di esso.
+[*]Apri la schermata di progressione delle abilità di un soldato e passa il cursore su un perk estratto casualmente, oppure passa il cursore su un'opzione di risposta in un evento di esplorazione.
 [/list]
 
 [h1]Segnalazioni di bug / Supporto[/h1]
