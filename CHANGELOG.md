@@ -4,7 +4,7 @@ All notable changes to Oracle are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.0] - 2026-06-12
+## [1.4.0] - 2026-06-12
 
 > ### Upgrade notes (read before updating from PerkOracle)
 > Two one-time things happen when you update from the previous version. Both are
@@ -17,7 +17,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > 2. **The mod's own in-game research resets once.** The optional "perk swap"
 >    unlock will show as not-yet-researched again. To restore it, either research
 >    it again in-game or simply turn that feature off in the mod settings (it is
->    optional). **Your resources, perks, and soldiers are not affected** — only the
+>    optional). **Your resources, perks, and soldiers are not affected**, only the
 >    mod's own research-unlock flag resets, this one time. Future updates will not
 >    do this again (the save key is now a stable neutral id; see below).
 
@@ -38,6 +38,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   receive. Resource names are localized and use the native reward colors. The
   tooltip is cached per hover (no lag) and is hidden as soon as a choice is
   selected or the event screen closes.
+
+## [1.3.0] - 2026-06-08
+
+### Added
+- **Subclass selection screen.** Highlights and previews **all** subclasses,
+  including unresearched ones (shown greyed out), with per-perk tooltips. A
+  confirmation dialog previews the subclass's perks (native icons + tooltips)
+  before you commit to the choice.
+
+### Fixed
+- Perk wiki / rolled-perk highlight no longer fires in the main menu
+  (lifecycle/context guard).
 
 ## [1.2.1] - 2026-06-06
 
@@ -87,6 +99,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: rolled-perk highlight, in-game candidate wiki with native ability
   tooltips, optional free perk swap, and 8-language localization.
 
+[1.4.0]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.4.0
 [1.3.0]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.3.0
 [1.2.1]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.2.1
 [1.2.0]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.2.0
