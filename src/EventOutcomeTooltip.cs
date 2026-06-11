@@ -205,6 +205,70 @@ namespace Morgott.Oracle
             SetActiveSafe(tip.AbilitySkillAPCostText);
             SetActiveSafe(tip.AbilitySkillWPCostText);
             SetActiveSafe(tip.SkillCostHeaderText);
+
+            ResizeToContent(tip);
+        }
+
+        // Inset between the framed background edge and the body text, in canvas units. Small but enough
+        // to keep the text off the frame's border sprite. These are PADDING, not a fixed box size: the
+        // window is sized to (body preferred size + 2*inset), so it always hugs the rows and can never
+        // clip the longest native line — only the empty margin the native ability layout reserved (for
+        // its now-deactivated title/icon/SP-AP-WP cost groups) is removed.
+        private const float PadX = 24f;
+        private const float PadY = 18f;
+
+        /// <summary>
+        /// Shrink the cloned frame so the box hugs the body text instead of carrying the native ability
+        /// tooltip's full fixed footprint (which reserved room for the title/icon/cost groups we deactivate,
+        /// leaving the rows in the top-left with large empty space). Sizes the root <see cref="RectTransform"/>
+        /// to the description <see cref="Text"/>'s own preferred width/height plus a small inset, and re-anchors
+        /// that description to the frame's top-left with the same inset so it stays fully inside the smaller box.
+        /// Reads <see cref="Text.preferredWidth"/>/<see cref="Text.preferredHeight"/> (the text generator's
+        /// measurement of the CURRENT text with its EXISTING font/fontSize) — font, fontSize, style and scale
+        /// are never touched, so the text renders identically; only the surrounding box changes. Guarded so a
+        /// measurement hiccup can never break population.
+        /// </summary>
+        private static void ResizeToContent(GeoRosterAbilityDetailTooltip tip)
+        {
+            try
+            {
+                Text body = tip.AbilityDescription;
+                if ((UnityEngine.Object)(object)body == (UnityEngine.Object)null
+                    || (UnityEngine.Object)(object)_rootRt == (UnityEngine.Object)null)
+                {
+                    return;
+                }
+
+                var bodyRt = body.rectTransform;
+                if ((UnityEngine.Object)(object)bodyRt == (UnityEngine.Object)null)
+                {
+                    return;
+                }
+
+                // Measured from the current text + existing font (no font/size change). preferredWidth can
+                // include the full unwrapped line; clamp to the body's current width if it already wraps so a
+                // wrapped paragraph keeps its height rather than ballooning back to one long line.
+                float prefW = body.preferredWidth;
+                float prefH = body.preferredHeight;
+                if (prefW <= 0f || prefH <= 0f)
+                {
+                    return;
+                }
+
+                // Re-anchor the body to the frame's top-left so it sits inside the shrunk box at the inset.
+                bodyRt.anchorMin = new Vector2(0f, 1f);
+                bodyRt.anchorMax = new Vector2(0f, 1f);
+                bodyRt.pivot = new Vector2(0f, 1f);
+                bodyRt.sizeDelta = new Vector2(prefW, prefH);
+                bodyRt.anchoredPosition = new Vector2(PadX, -PadY);
+
+                // Size the framed root to hug that content (a stretched background child follows the root).
+                _rootRt.sizeDelta = new Vector2(prefW + 2f * PadX, prefH + 2f * PadY);
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeTooltip.ResizeToContent failed: " + ex.Message);
+            }
         }
 
         /// <summary>Deactivate the GameObject behind a widget field (a Component), if present.</summary>
