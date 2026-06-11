@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using Morgott.Oracle;
 using Xunit;
@@ -8,9 +7,15 @@ namespace Morgott.Oracle.Tests
     /// <summary>
     /// Unit tests for the pure outcome-preview formatter. Outcome data is fabricated as plain
     /// <see cref="EventOutcomeData"/> (no engine types), mirroring how PerkPoolResolver is tested.
-    /// Verifies one-row-per-effect, signed formatting "+#;-#" for diplomacy/resources, "xN" for items,
-    /// Min-Max ranges, % for zone damage, verbatim pass-through of pre-localized native reward sentences,
-    /// and the empty-outcome -> no-rows case.
+    ///
+    /// The pure layer now has exactly two channels — both already native-sourced by
+    /// <see cref="EventOutcomeAdapter"/>:
+    ///   • <see cref="EventOutcomeData.Resources"/>: localized name + signed "+#"/"-#" value.
+    ///   • <see cref="EventOutcomeData.NativeLines"/>: complete native reward sentences (site reveals,
+    ///     faction-party diplomacy, granted items, soldier/aircraft damage, tiredness, skill points),
+    ///     emitted verbatim as name-only rows.
+    /// All other outcome kinds are skipped by the adapter (no native reward line), so the pure layer never
+    /// sees them and there is nothing to format for them here.
     /// </summary>
     public class EventOutcomePreviewTests
     {
@@ -31,19 +36,6 @@ namespace Morgott.Oracle.Tests
         }
 
         [Fact]
-        public void Diplomacy_Positive_And_Negative_Are_Signed()
-        {
-            var data = new EventOutcomeData();
-            data.Diplomacy.Add(new EventOutcomeData.DiplomacyEntry("New Jericho", 5));
-            data.Diplomacy.Add(new EventOutcomeData.DiplomacyEntry("Synedrion", -10));
-
-            var rows = EventOutcomePreview.Build(data).Select(Render).ToList();
-
-            Assert.Contains("New Jericho +5", rows);
-            Assert.Contains("Synedrion -10", rows);
-        }
-
-        [Fact]
         public void Resources_Positive_And_Negative_Are_Signed()
         {
             var data = new EventOutcomeData();
@@ -57,10 +49,19 @@ namespace Morgott.Oracle.Tests
         }
 
         [Fact]
+        public void Resources_Zero_Are_Skipped()
+        {
+            var data = new EventOutcomeData();
+            data.Resources.Add(new EventOutcomeData.ResourceEntry("Materials", 0));
+            Assert.Empty(EventOutcomePreview.Build(data));
+        }
+
+        [Fact]
         public void NativeLines_Pass_Through_As_NameOnly_Rows()
         {
-            // Soldier/aircraft/skill-point effects arrive from the adapter as fully-formatted, already-localized
-            // native reward sentences; the pure formatter emits each verbatim as a label with no value column.
+            // Soldier/aircraft/skill-point/reveal/diplomacy/item effects arrive from the adapter as
+            // fully-formatted, already-localized native reward sentences; the pure formatter emits each
+            // verbatim as a label with no value column.
             var data = new EventOutcomeData();
             data.NativeLines.Add("Your soldiers lost stamina: 7");
             data.NativeLines.Add("Aircraft took 12 damage");
@@ -75,6 +76,22 @@ namespace Morgott.Oracle.Tests
         }
 
         [Fact]
+        public void RevealSite_NativeLine_Passes_Through_Verbatim()
+        {
+            // A type-based site reveal is pre-formatted by the adapter into the game's own native sentence
+            // (MultipleSiteRevealedTextKey, e.g. "Points added to geoscape: 3 Scavenging") and reaches the
+            // pure layer as a NativeLine — rendered verbatim, never as a codename + "xN".
+            var data = new EventOutcomeData();
+            data.NativeLines.Add("Points added to geoscape: 3 Scavenging");
+
+            var rows = EventOutcomePreview.Build(data);
+
+            Assert.Single(rows);
+            Assert.Equal("Points added to geoscape: 3 Scavenging", rows[0].Label);
+            Assert.Equal(string.Empty, rows[0].Value);
+        }
+
+        [Fact]
         public void Empty_NativeLines_Are_Skipped()
         {
             var data = new EventOutcomeData();
@@ -84,57 +101,19 @@ namespace Morgott.Oracle.Tests
         }
 
         [Fact]
-        public void Items_Render_Name_And_Count()
+        public void Resources_Then_NativeLines_Order_Is_Preserved()
         {
             var data = new EventOutcomeData();
-            data.Items.Add(new EventOutcomeData.ItemEntry("Medkit", 2));
-            var rows = EventOutcomePreview.Build(data).Select(Render).ToList();
-            Assert.Contains(rows, s => s.Contains("Medkit") && s.Contains("2"));
-        }
+            data.Resources.Add(new EventOutcomeData.ResourceEntry("Materials", 20));
+            data.NativeLines.Add("Aircraft took 12 damage");
 
-        [Fact]
-        public void Research_Renders_Name()
-        {
-            var data = new EventOutcomeData();
-            data.Researches.Add("Mutoid Tech");
-            var rows = EventOutcomePreview.Build(data).Select(Render).ToList();
-            Assert.Contains(rows, s => s.Contains("Mutoid Tech"));
-        }
+            var rows = EventOutcomePreview.Build(data);
 
-        [Fact]
-        public void VariableChange_Renders_Min_Max_Range()
-        {
-            var data = new EventOutcomeData();
-            data.VariableChanges.Add(new EventOutcomeData.RangeEntry("AncientThreat", 3, 7));
-            var rows = EventOutcomePreview.Build(data).Select(Render).ToList();
-            Assert.Contains(rows, s => s.Contains("AncientThreat") && s.Contains("3-7"));
-        }
-
-        [Fact]
-        public void MissionWeightChange_Renders_Min_Max_Range()
-        {
-            var data = new EventOutcomeData();
-            data.MissionWeightChanges.Add(new EventOutcomeData.RangeEntry("Anu Raids", 1, 4));
-            var rows = EventOutcomePreview.Build(data).Select(Render).ToList();
-            Assert.Contains(rows, s => s.Contains("Anu Raids") && s.Contains("1-4"));
-        }
-
-        [Fact]
-        public void ZoneDamage_Renders_Percent()
-        {
-            var data = new EventOutcomeData();
-            data.ZoneDamages.Add(new EventOutcomeData.ZoneDamageEntry("Living Quarters", 25));
-            var rows = EventOutcomePreview.Build(data).Select(Render).ToList();
-            Assert.Contains(rows, s => s.Contains("Living Quarters") && s.Contains("25%"));
-        }
-
-        [Fact]
-        public void RevealSites_Render_Name_And_Count()
-        {
-            var data = new EventOutcomeData();
-            data.RevealSites.Add(new EventOutcomeData.ItemEntry("Alien Nest", 1));
-            var rows = EventOutcomePreview.Build(data).Select(Render).ToList();
-            Assert.Contains(rows, s => s.Contains("Alien Nest"));
+            Assert.Equal(2, rows.Count);
+            Assert.Equal("Materials", rows[0].Label);
+            Assert.Equal("+20", rows[0].Value);
+            Assert.Equal("Aircraft took 12 damage", rows[1].Label);
+            Assert.Equal(string.Empty, rows[1].Value);
         }
     }
 }

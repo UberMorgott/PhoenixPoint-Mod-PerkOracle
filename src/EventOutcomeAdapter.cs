@@ -12,10 +12,31 @@ namespace Morgott.Oracle
 {
     /// <summary>
     /// The only engine-aware layer: reads a real <see cref="GeoEventChoiceOutcome"/>'s previewable def
-    /// fields into the pure <see cref="EventOutcomeData"/> DTO, resolving localized display names where
-    /// the game exposes them. NEVER calls <c>GenerateFactionReward</c> (that applies side-effects); only
-    /// reads serialized def fields. Fully guarded so a malformed outcome yields an empty DTO, never throws.
-    /// Field names verified against decompile GeoEventChoiceOutcome.cs (see plan "Grounded facts").
+    /// fields into the pure <see cref="EventOutcomeData"/> DTO. NEVER calls <c>GenerateFactionReward</c>
+    /// (that applies side-effects); only reads serialized def fields. Fully guarded so a malformed outcome
+    /// yields an empty DTO, never throws.
+    ///
+    /// EVERY line it emits is sourced from the game's OWN reward UI (<c>UIModuleSiteEncounters.ShowReward</c>,
+    /// decompile lines in brackets) so the preview reads identically to the native post-choice reward text in
+    /// the current language. Two channels only:
+    ///   • <see cref="EventOutcomeData.Resources"/> — native resource line [417]: localized name + signed value.
+    ///   • <see cref="EventOutcomeData.NativeLines"/> — complete native reward sentences built from the live
+    ///     module's own <c>LocalizedTextBind</c> keys / native concatenation (site reveals, faction-party
+    ///     diplomacy, granted items, soldier/aircraft damage, tiredness, faction skill points).
+    ///
+    /// Outcome kinds the native reward UI does NOT render, or that need apply-time data absent from a static
+    /// preview, are intentionally SKIPPED (no row), never shown as a raw codename / invented "xN":
+    ///   • Granted research (GiveResearches)         — no ShowReward branch.
+    ///   • Mission variables (VariablesChange)       — no ShowReward branch.
+    ///   • Sub-faction mission weight                — no ShowReward branch.
+    ///   • Zone damage (DamageZones)                 — native [476] needs a resolved GeoHavenZone + absolute
+    ///                                                 value; the def carries only a keyword + percentage.
+    ///   • Site-leader diplomacy (PartyType==SiteLeader) — native party is the site's haven leader, unknown
+    ///                                                 pre-apply.
+    ///   • Encounter-tag site reveals (SiteTag set)  — native resolves a specific live site's encounter Title
+    ///                                                 at apply time (distance-ordered, non-deterministic).
+    ///   • Haven-type site reveals (Type==Haven)     — native name is the runtime owner's localized faction
+    ///                                                 name + " Haven"; not reproducible from the def alone.
     /// </summary>
     public static class EventOutcomeAdapter
     {
@@ -30,23 +51,9 @@ namespace Morgott.Oracle
 
             try
             {
-                // Reputation / diplomacy.
-                if (o.Diplomacy != null)
-                {
-                    foreach (OutcomeDiplomacyChange d in o.Diplomacy)
-                    {
-                        if (d.Value != 0)
-                        {
-                            string label = FactionLabel(d.TargetFaction);
-                            if (!string.IsNullOrEmpty(label))
-                            {
-                                data.Diplomacy.Add(new EventOutcomeData.DiplomacyEntry(label, d.Value));
-                            }
-                        }
-                    }
-                }
+                UIModuleSiteEncounters mod = FindEncounterModule();
 
-                // Resources (rounded int per unit, skip zero/None).
+                // Resources (rounded int per unit, skip zero/None) — native resource reward line [417].
                 // The game scales the raw def amount before granting it: under TFTV every event-outcome
                 // resource is multiplied by 0.8 * ResourceMultiplierSetting in a GenerateFactionReward
                 // Prefix, then displayed via ResourceUnit.RoundedValue = Mathf.RoundToInt(Value). We mirror
@@ -69,98 +76,55 @@ namespace Morgott.Oracle
                     }
                 }
 
-                // Items granted.
-                if (o.Items != null)
-                {
-                    foreach (ItemUnit iu in o.Items)
-                    {
-                        string name = ItemName(iu);
-                        int count = ItemCount(iu);
-                        if (!string.IsNullOrEmpty(name))
-                        {
-                            data.Items.Add(new EventOutcomeData.ItemEntry(name, count));
-                        }
-                    }
-                }
-
-                // Granted research (raw id; best-effort display left to the game's own term, fall back to id).
-                if (o.GiveResearches != null)
-                {
-                    foreach (string id in o.GiveResearches)
-                    {
-                        if (!string.IsNullOrEmpty(id))
-                        {
-                            data.Researches.Add(id);
-                        }
-                    }
-                }
-
-                // Site reveals.
-                if (o.RevealSites != null)
-                {
-                    foreach (OutcomeSiteTag st in o.RevealSites)
-                    {
-                        string label = string.IsNullOrEmpty(st.SiteTag) ? st.Type.ToString() : st.SiteTag;
-                        int count = st.Count == int.MaxValue ? 1 : st.Count;
-                        data.RevealSites.Add(new EventOutcomeData.ItemEntry(label, count));
-                    }
-                }
-
-                // Range-rolled variable changes.
-                if (o.VariablesChange != null)
-                {
-                    foreach (OutcomeVariableChange vc in o.VariablesChange)
-                    {
-                        data.VariableChanges.Add(new EventOutcomeData.RangeEntry(
-                            vc.VariableName ?? string.Empty, vc.Value.Min, vc.Value.Max));
-                    }
-                }
-
-                // Range-rolled subfaction mission-weight changes.
-                if (o.SubfactionFactionMissionWeight != null)
-                {
-                    foreach (OutcomeFactionMissionWeightChange mw in o.SubfactionFactionMissionWeight)
-                    {
-                        string label = SubFactionLabel(mw.SubFaction);
-                        if (!string.IsNullOrEmpty(label))
-                        {
-                            data.MissionWeightChanges.Add(new EventOutcomeData.RangeEntry(
-                                label, mw.Value.Min, mw.Value.Max));
-                        }
-                    }
-                }
-
-                // Zone damage (% of zone max HP).
-                if (o.DamageZones != null)
-                {
-                    foreach (OutcomeDamageZone dz in o.DamageZones)
-                    {
-                        if (dz.DamagePercentage != 0)
-                        {
-                            data.ZoneDamages.Add(new EventOutcomeData.ZoneDamageEntry(
-                                dz.ZoneKeyword ?? string.Empty, dz.DamagePercentage));
-                        }
-                    }
-                }
-
-                // Flat scalar effects: render each as the EXACT native reward sentence the encounter UI
-                // shows (UIModuleSiteEncounters.ShowReward), sourced from the live module's own
-                // LocalizedTextBind keys so the text + language are the game's own. Native passes the raw
-                // magnitude into a full "lost/gained {0}" sentence (no separate label/value column, no +/-
-                // colour), so we mirror that: format key.Localize() with the magnitude. Field->key mapping
-                // (decompile UIModuleSiteEncounters.cs lines in brackets):
-                //   DamageCurrentSoldiers -> AircraftSoldiersInjuredTextKey [440]
-                //   DamageAllSoldiers     -> AllSoldierInjuredTextKey       [451]
-                //   TireCurrentSoldiers   -> AircraftSoldiersTiredTextKey   [446]
-                //   TireAllSoldiers       -> AllSoldierTiredTextKey         [456]
-                //   DamageCurrentAircraft -> AircraftDamageTextKey          [434]
-                //   FactionSkillPoints    -> AddSkillPointsTextKey          [466]
-                // HavenPopulationChange (HavenPopulationChangeTextKey needs the haven name we don't have in a
-                // static preview) and SDIChange (no native reward line at all) are intentionally SKIPPED
-                // rather than rendered with an invented label.
-                UIModuleSiteEncounters mod = FindEncounterModule();
+                // Everything below is a complete native reward SENTENCE; it requires the live encounter
+                // module's serialized loc keys. With no module present we cannot source native text, so we
+                // emit nothing rather than fall back to a codename.
                 if ((UnityEngine.Object)(object)mod != (UnityEngine.Object)null)
                 {
+                    // Site reveals — native GenerateSitesRewardStrings [516]. Only type-based, non-haven
+                    // reveals are reproducible from the def (text = GeoSiteType.ToString(), exactly the
+                    // untranslated token the game itself shows, e.g. "Scavenging"); singular/plural and count
+                    // mirror native (SiteRevealed / MultipleSiteRevealed). Tag-based and haven-type reveals
+                    // are skipped (see class remarks).
+                    if (o.RevealSites != null)
+                    {
+                        foreach (OutcomeSiteTag st in o.RevealSites)
+                        {
+                            AddRevealSiteNativeLine(data, mod, st);
+                        }
+                    }
+
+                    // Faction-party diplomacy — native EncounterFactionDiplomacyChangedTextKey [392]. Only
+                    // PartyType==Faction is reproducible (party + target are both defs); site-leader party is
+                    // resolved at apply time and is skipped.
+                    if (o.Diplomacy != null)
+                    {
+                        foreach (OutcomeDiplomacyChange d in o.Diplomacy)
+                        {
+                            AddDiplomacyNativeLine(data, mod, d);
+                        }
+                    }
+
+                    // Granted items — native item reward line [401]: localized item name + " x " + count.
+                    if (o.Items != null)
+                    {
+                        foreach (ItemUnit iu in o.Items)
+                        {
+                            AddItemNativeLine(data, mod, iu);
+                        }
+                    }
+
+                    // Flat scalar effects — each a full native "lost/gained {0}" sentence from the module's
+                    // own LocalizedTextBind with the magnitude substituted. Field -> key mapping (decompile
+                    // UIModuleSiteEncounters.cs lines in brackets):
+                    //   DamageCurrentSoldiers -> AircraftSoldiersInjuredTextKey [440]
+                    //   DamageAllSoldiers     -> AllSoldierInjuredTextKey       [451]
+                    //   TireCurrentSoldiers   -> AircraftSoldiersTiredTextKey   [446]
+                    //   TireAllSoldiers       -> AllSoldierTiredTextKey         [456]
+                    //   DamageCurrentAircraft -> AircraftDamageTextKey          [434]
+                    //   FactionSkillPoints    -> AddSkillPointsTextKey          [466]
+                    // HavenPopulationChange (needs the haven name) and SDIChange (no native reward line) are
+                    // intentionally skipped rather than rendered with an invented label.
                     AddNativeLine(data, mod.AircraftSoldiersInjuredTextKey, o.DamageCurrentSoldiers);
                     AddNativeLine(data, mod.AllSoldierInjuredTextKey, o.DamageAllSoldiers);
                     AddNativeLine(data, mod.AircraftSoldiersTiredTextKey, o.TireCurrentSoldiers);
@@ -235,15 +199,165 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
+        /// Append the native site-reveal sentence for a single <see cref="OutcomeSiteTag"/>, reproducing
+        /// <c>UIModuleSiteEncounters.GenerateSitesRewardStrings</c> [516] for the case we can resolve from the
+        /// def alone: a type-based, non-haven reveal. The name text is <c>GeoSiteType.ToString()</c> — the
+        /// SAME untranslated token the game itself shows (e.g. "Scavenging") — and the singular/plural key +
+        /// count match native exactly (SiteRevealedTextKey / MultipleSiteRevealedTextKey). Encounter-tag
+        /// reveals (SiteTag set) and haven-type reveals are skipped: their native name needs a specific live
+        /// site / runtime owner that does not exist before the choice is applied.
+        /// </summary>
+        private static void AddRevealSiteNativeLine(EventOutcomeData data, UIModuleSiteEncounters mod, OutcomeSiteTag st)
+        {
+            try
+            {
+                // Tag-based reveal: native resolves a live site's encounter Title at apply time. Skip.
+                if (!string.IsNullOrEmpty(st.SiteTag))
+                {
+                    return;
+                }
+                // Type-based reveal. Haven uses the runtime owner's localized faction name (apply-time); None
+                // is a non-type. Only a concrete, non-haven site type is reproducible from the def.
+                if (st.Type == GeoSiteType.None || st.Type == GeoSiteType.Haven)
+                {
+                    return;
+                }
+                int count = st.Count == int.MaxValue ? 1 : st.Count;
+                if (count <= 0)
+                {
+                    return;
+                }
+
+                string text = st.Type.ToString();
+                Base.UI.LocalizedTextBind key = (count != 1) ? mod.MultipleSiteRevealedTextKey : mod.SiteRevealedTextKey;
+                if (key == null || string.IsNullOrEmpty(key.LocalizationKey))
+                {
+                    return;
+                }
+                string pattern = key.Localize();
+                if (string.IsNullOrEmpty(pattern))
+                {
+                    return;
+                }
+                string line = (count != 1) ? string.Format(pattern, count, text) : string.Format(pattern, text);
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddRevealSiteNativeLine failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Append the native faction-diplomacy sentence for a single <see cref="OutcomeDiplomacyChange"/>,
+        /// reproducing <c>UIModuleSiteEncounters.ShowReward</c> [392]:
+        /// <c>Format(EncounterFactionDiplomacyChangedTextKey, partyName, targetName, colouredSignedValue)</c>.
+        /// Party and target names use the SAME source as the native line — <c>GeoFaction.ToString()</c> resolves
+        /// to <c>Def.GeoFactionViewDef.Name.Localize()</c>, which we read directly off the def. Only
+        /// <c>PartyType==Faction</c> is rendered (both party and target are defs); a site-leader party is
+        /// resolved at apply time and is skipped.
+        /// </summary>
+        private static void AddDiplomacyNativeLine(EventOutcomeData data, UIModuleSiteEncounters mod, OutcomeDiplomacyChange d)
+        {
+            try
+            {
+                if (d.Value == 0 || d.PartyType != OutcomeDiplomacyChange.ChangeTarget.Faction)
+                {
+                    return;
+                }
+                if ((UnityEngine.Object)(object)d.PartyFaction == (UnityEngine.Object)null
+                    || (UnityEngine.Object)(object)d.TargetFaction == (UnityEngine.Object)null)
+                {
+                    return;
+                }
+                string party = FactionViewName(d.PartyFaction);
+                string target = FactionViewName(d.TargetFaction);
+                if (string.IsNullOrEmpty(party) || string.IsNullOrEmpty(target))
+                {
+                    return;
+                }
+                Base.UI.LocalizedTextBind key = mod.EncounterFactionDiplomacyChangedTextKey;
+                if (key == null || string.IsNullOrEmpty(key.LocalizationKey))
+                {
+                    return;
+                }
+                string pattern = key.Localize();
+                if (string.IsNullOrEmpty(pattern))
+                {
+                    return;
+                }
+                string value = Colorize(mod, d.Value.ToString("+#;-#"), d.Value > 0);
+                string line = string.Format(pattern, party, target, value);
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddDiplomacyNativeLine failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Append the native granted-item line for a single <see cref="ItemUnit"/>, reproducing
+        /// <c>UIModuleSiteEncounters.ShowReward</c> [401]: localized display name + " x " + count (the count
+        /// wrapped in the native positive-reward colour when the module exposes it). The display name uses the
+        /// item's own <c>ViewElementDef.DisplayName1</c> — the same source the native line reads. No row when
+        /// the item has no resolvable name.
+        /// </summary>
+        private static void AddItemNativeLine(EventOutcomeData data, UIModuleSiteEncounters mod, ItemUnit iu)
+        {
+            try
+            {
+                string name = ItemName(iu);
+                if (string.IsNullOrEmpty(name))
+                {
+                    return;
+                }
+                int count = ItemCount(iu);
+                string countText = Colorize(mod, count.ToString(), positive: true);
+                data.NativeLines.Add(name + " x " + countText);
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddItemNativeLine failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Wrap <paramref name="raw"/> in the module's native positive/negative reward colour pattern
+        /// (<c>PositiveRewardTextPattern</c> / <c>NegativeRewardTextPattern</c>, e.g.
+        /// <c>&lt;color="#hex"&gt;{0}&lt;/color&gt;</c>) exactly as the native reward UI does. When the pattern is
+        /// unavailable (not yet initialised), returns the raw text so the native SENTENCE still renders.
+        /// </summary>
+        private static string Colorize(UIModuleSiteEncounters mod, string raw, bool positive)
+        {
+            try
+            {
+                string pattern = positive ? mod.PositiveRewardTextPattern : mod.NegativeRewardTextPattern;
+                if (!string.IsNullOrEmpty(pattern))
+                {
+                    return string.Format(pattern, raw);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.Colorize failed: " + ex.Message);
+            }
+            return raw;
+        }
+
+        /// <summary>
         /// Resource display name resolved EXACTLY like the native reward line
         /// (<c>UIModuleSiteEncounters.ShowReward</c>, decompile line 417): the live encounter module's
         /// <c>ResourcesList</c> NamedListDef is keyed by the resource's enum name and returns a
         /// <see cref="ViewElementDef"/> whose <c>DisplayName1</c> carries the localized, already-upper-cased
-        /// label ("МАТЕРИАЛЫ", "ТЕХНОЛОГИИ"). The OLD path used <c>GeoscapeView.GetProperResourceViewElementDef</c>,
-        /// which returns the unrelated geoscape <c>ResourceViewElementDef</c> family whose <c>DisplayName</c>
-        /// LocalizedTextBind is empty for these resources -> <c>.Localize()</c> yielded "" -> we fell back to
-        /// the raw enum name. We now mirror the native source, with that geoscape def and finally the enum
-        /// name kept only as defensive fallbacks.
+        /// label ("МАТЕРИАЛЫ", "ТЕХНОЛОГИИ"). The geoscape def and the enum name are kept only as defensive
+        /// fallbacks.
         /// </summary>
         private static string ResourceName(ResourceType type)
         {
@@ -294,73 +408,59 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Faction display label. <see cref="GeoFactionDef"/> exposes no ViewElementDef; its
-        /// <see cref="PPFactionDef"/> carries the human name via <c>GetName()</c> (strips the "_FactionDef"
-        /// suffix). Falls back to the def's own name, then a generic "Reputation" label.
+        /// Localized faction name as the native diplomacy line resolves it: <c>GeoFaction.ToString()</c> ==
+        /// <c>Def.GeoFactionViewDef.Name.Localize()</c> [GeoFaction.cs:143]. We read the same
+        /// <c>GeoFactionViewDef.Name</c> straight off the def. Returns empty (row skipped) when it cannot be
+        /// resolved — never an invented codename.
         /// </summary>
-        private static string FactionLabel(GeoFactionDef faction)
+        private static string FactionViewName(GeoFactionDef faction)
         {
             try
             {
-                if ((UnityEngine.Object)(object)faction != (UnityEngine.Object)null)
+                if ((UnityEngine.Object)(object)faction != (UnityEngine.Object)null
+                    && (UnityEngine.Object)(object)faction.GeoFactionViewDef != (UnityEngine.Object)null
+                    && faction.GeoFactionViewDef.Name != null)
                 {
-                    if ((UnityEngine.Object)(object)faction.PPFactionDef != (UnityEngine.Object)null)
+                    string s = faction.GeoFactionViewDef.Name.Localize();
+                    if (!string.IsNullOrEmpty(s))
                     {
-                        string name = faction.PPFactionDef.GetName();
-                        if (!string.IsNullOrEmpty(name))
-                        {
-                            return name;
-                        }
-                    }
-                    string defName = faction.name;
-                    if (!string.IsNullOrEmpty(defName))
-                    {
-                        return defName;
+                        return s;
                     }
                 }
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] EventOutcomeAdapter.FactionLabel failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.FactionViewName failed: " + ex.Message);
             }
-            // No invented label: if the faction can't be named from the game's own data, return empty so the
-            // row is skipped rather than show a crutch string.
             return string.Empty;
         }
 
-        private static string SubFactionLabel(PhoenixPoint.Geoscape.Levels.Factions.GeoSubFactionDef sub)
-        {
-            try
-            {
-                if ((UnityEngine.Object)(object)sub != (UnityEngine.Object)null)
-                {
-                    return sub.name;
-                }
-            }
-            catch (Exception ex)
-            {
-                OracleLog.Debug("[Oracle] EventOutcomeAdapter.SubFactionLabel failed: " + ex.Message);
-            }
-            // No invented label: empty -> row skipped, never a crutch string.
-            return string.Empty;
-        }
-
+        /// <summary>
+        /// Item display name resolved EXACTLY like the native reward line: native uses
+        /// <c>CommonItemData.GetDisplayName()</c> == <c>ItemDef.GetDisplayName().Localize()</c>
+        /// [ItemDef.cs:154], which prefers <c>ViewElementDef.DisplayName2</c> and falls back to
+        /// <c>DisplayName1</c> — and NEVER to the raw def codename. We mirror that and return empty (row
+        /// skipped) when neither localizes, so we never show a codename crutch.
+        /// </summary>
         private static string ItemName(ItemUnit iu)
         {
             try
             {
-                if ((UnityEngine.Object)(object)iu.ItemDef != (UnityEngine.Object)null)
+                if ((UnityEngine.Object)(object)iu.ItemDef != (UnityEngine.Object)null
+                    && (UnityEngine.Object)(object)iu.ItemDef.ViewElementDef != (UnityEngine.Object)null)
                 {
-                    if ((UnityEngine.Object)(object)iu.ItemDef.ViewElementDef != (UnityEngine.Object)null
-                        && iu.ItemDef.ViewElementDef.DisplayName1 != null)
+                    Base.UI.LocalizedTextBind name2 = iu.ItemDef.ViewElementDef.DisplayName2;
+                    Base.UI.LocalizedTextBind name = (name2 != null && !string.IsNullOrEmpty(name2.LocalizationKey))
+                        ? name2
+                        : iu.ItemDef.ViewElementDef.DisplayName1;
+                    if (name != null)
                     {
-                        string s = iu.ItemDef.ViewElementDef.DisplayName1.Localize();
+                        string s = name.Localize();
                         if (!string.IsNullOrEmpty(s))
                         {
                             return s;
                         }
                     }
-                    return iu.ItemDef.name;
                 }
             }
             catch (Exception ex)
