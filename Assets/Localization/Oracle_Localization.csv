@@ -27,3 +27,4 @@ ORACLE_OUTCOME_AIRCRAFT,Aircraft,飞行器,Aéronef,Flugzeug,Velivolo,Pojazd pow
 ORACLE_OUTCOME_SKILLPOINTS,Skill Points,技能点,Points de compétence,Fähigkeitspunkte,Punti abilità,Punkty umiejętności,Очки навыков,Puntos de habilidad
 ORACLE_OUTCOME_HAVENPOP,Haven Population,庇护所人口,Population du refuge,Hort-Bevölkerung,Popolazione rifugio,Populacja przystani,Население убежища,Población del refugio
 ORACLE_OUTCOME_SDI,SDI,战略防御计划,IDS,SDI,SDI,SDI,СОИ,SDI
+ORACLE_OUTCOME_HEADER,Outcome,结果,Résultat,Ergebnis,Esito,Wynik,Исход,Resultado

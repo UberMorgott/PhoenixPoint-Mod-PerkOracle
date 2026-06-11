@@ -1,32 +1,43 @@
 using System;
 using System.Collections.Generic;
-using Base.Core;
-using PhoenixPoint.Geoscape.Levels;
+using System.Linq;
+using System.Text;
+using PhoenixPoint.Geoscape.View.ViewControllers.Roster;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Morgott.Oracle
 {
     /// <summary>
-    /// A lightweight framed tooltip that lists outcome-preview rows (label + value) next to the hovered
-    /// event choice. One live instance owned statically: <see cref="Show"/> builds (or rebuilds) it under
-    /// the supplied root canvas; <see cref="Hide"/> tears it down. Styled to match the mod's wiki panel
-    /// (dark translucent frame, game Phoenixpedia font). Every public entry point is wrapped in try/catch +
-    /// <see cref="OracleLog"/> so a UI hiccup can never throw back into the event screen. Mirrors the
-    /// try/catch + cursor->canvas-local positioning of <see cref="WikiAbilityTooltipTrigger"/>.
+    /// Shows the event-outcome preview using the SAME framed widget the perk wiki uses: it clones the
+    /// game's native <see cref="GeoRosterAbilityDetailTooltip"/> GameObject (exactly like
+    /// <see cref="PerkWikiPanel.CreateTooltipClone"/>) so we inherit its real frame sprite, font,
+    /// fontSize, padding and content-size fitting for free. Instead of calling the widget's data-bound
+    /// <c>Show(abilityDef, view, ...)</c> -- which strictly requires a ViewElementDef and cannot accept
+    /// arbitrary rows -- we repurpose its existing text fields: the ability-title line becomes the
+    /// "Outcome" header and the ability-description becomes the composed, sign-coloured row list. The
+    /// icon and skill-cost groups are deactivated. One live instance owned statically: <see cref="Show"/>
+    /// builds it under the supplied root canvas; <see cref="Hide"/> tears it down. Every public entry
+    /// point is wrapped in try/catch + <see cref="OracleLog"/> so a UI hiccup can never throw back into
+    /// the event screen. Mirrors the try/catch + cursor->canvas-local positioning + CanvasGroup
+    /// blocksRaycasts=false flicker fix of <see cref="WikiAbilityTooltipTrigger"/> / PerkWikiPanel.
     /// </summary>
     public static class EventOutcomeTooltip
     {
-        private const float Width = 320f;
-        private const float RowHeight = 26f;
-        private const float Padding = 12f;
+        // Standard reward sign colours, readable on the native dark frame. Used in place of the
+        // def-driven RewardsColorsDef.PrimaryUIColor/SecondaryUIColor (UIModuleSiteEncounters.cs:173-174):
+        // those are only assembled into PositiveRewardTextPattern/NegativeRewardTextPattern inside that
+        // module's Awake and are not reachable as a stable static here, so we fall back to plain
+        // green / red rich-text tags (the prompt's documented fallback path).
+        private const string PositiveColor = "#6FCF6F";
+        private const string NegativeColor = "#E06C6C";
+
         private const float CursorXOffset = 18f;
 
         private static GameObject _root;
         private static RectTransform _rootRt;
         private static RectTransform _canvasRect;
         private static Canvas _rootCanvas;
-        private static Font _font;
 
         /// <summary>True while a tooltip instance is live.</summary>
         public static bool IsShown => (UnityEngine.Object)(object)_root != (UnityEngine.Object)null;
@@ -34,7 +45,8 @@ namespace Morgott.Oracle
         /// <summary>
         /// Build + show the tooltip for <paramref name="rows"/> parented to <paramref name="anchorCanvas"/>'s
         /// root canvas, positioned at the current mouse position. No-op (and hides any prior instance) when
-        /// rows is null/empty or the canvas is missing. Localizes any label that is an <c>ORACLE_*</c> key.
+        /// rows is null/empty, the canvas is missing, or no native tooltip template can be cloned.
+        /// Localizes any label that is an <c>ORACLE_*</c> key.
         /// </summary>
         public static void Show(List<EventOutcomeRow> rows, Canvas anchorCanvas)
         {
@@ -55,39 +67,18 @@ namespace Morgott.Oracle
                     ? _rootCanvas.transform as RectTransform
                     : null;
 
-                float panelHeight = rows.Count * RowHeight + 2f * Padding;
-
-                _root = new GameObject("OracleEventOutcomeTooltip", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
-                _root.transform.SetParent(rootParent, false);
-                _rootRt = _root.GetComponent<RectTransform>();
-                _rootRt.anchorMin = new Vector2(0.5f, 0.5f);
-                _rootRt.anchorMax = new Vector2(0.5f, 0.5f);
-                _rootRt.pivot = new Vector2(0f, 1f); // top-left pivot so it grows down-right from the cursor
-                _rootRt.sizeDelta = new Vector2(Width, panelHeight);
-
-                var bg = _root.GetComponent<Image>();
-                ((Graphic)bg).color = new Color(0f, 0.05f, 0.086f, 0.96f); // matches PerkWikiPanel
-                bg.raycastTarget = false;
-
-                // Never intercept pointer events (mirrors PerkWikiPanel tooltip clone's blocksRaycasts=false
-                // flicker fix): the tooltip must not steal the hover from the choice button beneath it.
-                var cg = _root.GetComponent<CanvasGroup>();
-                cg.blocksRaycasts = false;
-                cg.interactable = false;
-
-                var layout = _root.AddComponent<VerticalLayoutGroup>();
-                layout.padding = new RectOffset((int)Padding, (int)Padding, (int)Padding, (int)Padding);
-                layout.spacing = 0f;
-                layout.childForceExpandWidth = true;
-                layout.childForceExpandHeight = false;
-                layout.childControlWidth = true;
-                layout.childControlHeight = true;
-
-                foreach (EventOutcomeRow row in rows)
+                GeoRosterAbilityDetailTooltip tip = CloneNativeTooltip(rootParent);
+                if ((UnityEngine.Object)(object)tip == (UnityEngine.Object)null)
                 {
-                    BuildRow(_root.transform, row);
+                    // No native template available on this screen; show nothing rather than fall back to
+                    // an unstyled box (the framed look depends entirely on the cloned widget).
+                    Hide();
+                    return;
                 }
 
+                PopulateTooltip(tip, rows);
+
+                _root.SetActive(true);
                 _root.transform.SetAsLastSibling(); // render above the event module
                 Position();
             }
@@ -119,36 +110,142 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Build one "label .... value" line. A label that begins with "ORACLE_" is treated as a loc key
-        /// and resolved via <see cref="Loc"/> (the pure formatter emits raw keys for fixed scalar rows);
-        /// any other label is already-localized text from <see cref="EventOutcomeAdapter"/>.
+        /// Clone the game's native ability-detail tooltip GameObject under <paramref name="rootParent"/>
+        /// (mirrors <see cref="PerkWikiPanel.CreateTooltipClone"/>): prefer a live in-scene instance, else
+        /// any inactive scene instance. The clone is kept inactive while it is configured, never blocks
+        /// raycasts (so it cannot steal the hover from the choice button beneath it) and is full size.
+        /// Stores the clone in <see cref="_root"/>/<see cref="_rootRt"/>. Returns the widget component or
+        /// null when no template exists / the clone fails.
         /// </summary>
-        private static void BuildRow(Transform parent, EventOutcomeRow row)
+        private static GeoRosterAbilityDetailTooltip CloneNativeTooltip(Transform rootParent)
         {
-            var rowGo = new GameObject("Row", typeof(RectTransform), typeof(HorizontalLayoutGroup));
-            rowGo.transform.SetParent(parent, false);
-            var hl = rowGo.GetComponent<HorizontalLayoutGroup>();
-            hl.childForceExpandWidth = false;
-            hl.childForceExpandHeight = false;
-            hl.childControlWidth = true;
-            hl.childControlHeight = true;
-            hl.spacing = 8f;
-
-            var le = rowGo.AddComponent<LayoutElement>();
-            le.minHeight = RowHeight;
-            le.preferredHeight = RowHeight;
-
-            string label = row.Label ?? string.Empty;
-            if (label.StartsWith("ORACLE_"))
+            try
             {
-                label = Loc.Get(label, FallbackLabel(label));
+                var template = UnityEngine.Object.FindObjectsOfType<GeoRosterAbilityDetailTooltip>().FirstOrDefault();
+                if ((UnityEngine.Object)(object)template == (UnityEngine.Object)null)
+                {
+                    template = Resources.FindObjectsOfTypeAll<GeoRosterAbilityDetailTooltip>()
+                        .FirstOrDefault(t => (UnityEngine.Object)(object)t != (UnityEngine.Object)null
+                            && t.gameObject.scene.IsValid()); // a scene instance, not a prefab asset
+                }
+                if ((UnityEngine.Object)(object)template == (UnityEngine.Object)null)
+                {
+                    return null;
+                }
+
+                _root = UnityEngine.Object.Instantiate(template.gameObject, rootParent, false);
+                _root.name = "OracleEventOutcomeTooltip";
+                _root.transform.localScale = Vector3.one; // full size (NOT 0.5)
+                _root.SetActive(false); // stay hidden until populated
+
+                // Never intercept pointer events (mirrors the wiki tooltip clone's blocksRaycasts=false
+                // flicker fix): the tooltip must not steal the hover from the choice button beneath it.
+                var cg = _root.GetComponent<CanvasGroup>() ?? _root.AddComponent<CanvasGroup>();
+                cg.blocksRaycasts = false;
+                cg.interactable = false;
+
+                _rootRt = _root.GetComponent<RectTransform>();
+                return _root.GetComponent<GeoRosterAbilityDetailTooltip>();
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeTooltip.CloneNativeTooltip failed: " + ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Repurpose the cloned widget's text fields for the outcome preview instead of an ability:
+        /// the title line shows the localized "Outcome" header and the description line shows the
+        /// composed, sign-coloured rows. The ability icon and the SP/AP/WP skill-cost groups are
+        /// deactivated so only the framed title + body remain.
+        /// </summary>
+        private static void PopulateTooltip(GeoRosterAbilityDetailTooltip tip, List<EventOutcomeRow> rows)
+        {
+            if ((UnityEngine.Object)(object)tip.AbilityTitleText != (UnityEngine.Object)null)
+            {
+                tip.AbilityTitleText.text = Loc.Get("ORACLE_OUTCOME_HEADER", "Outcome");
+            }
+            if ((UnityEngine.Object)(object)tip.AbilityDescription != (UnityEngine.Object)null)
+            {
+                tip.AbilityDescription.text = ComposeBody(rows);
             }
 
-            MakeText(rowGo.transform, label, TextAnchor.MiddleLeft, flexibleWidth: 1f);
-            if (!string.IsNullOrEmpty(row.Value))
+            SetActiveSafe(tip.AbilityIcon);
+            SetActiveSafe(tip.AbilitySkillCostGroup);
+            SetActiveSafe(tip.AbilitySkillCostText);
+            SetActiveSafe(tip.AbilitySkillAPCostText);
+            SetActiveSafe(tip.AbilitySkillWPCostText);
+            SetActiveSafe(tip.SkillCostHeaderText);
+        }
+
+        /// <summary>Deactivate the GameObject behind a widget field (a Component), if present.</summary>
+        private static void SetActiveSafe(Component c)
+        {
+            if ((UnityEngine.Object)(object)c != (UnityEngine.Object)null)
             {
-                MakeText(rowGo.transform, row.Value, TextAnchor.MiddleRight, flexibleWidth: 0f);
+                c.gameObject.SetActive(false);
             }
+        }
+
+        /// <summary>Deactivate a widget field that is exposed directly as a GameObject, if present.</summary>
+        private static void SetActiveSafe(GameObject go)
+        {
+            if ((UnityEngine.Object)(object)go != (UnityEngine.Object)null)
+            {
+                go.SetActive(false);
+            }
+        }
+
+        /// <summary>
+        /// Compose the body text: one line per row as "label   value", with the value wrapped in a
+        /// green (positive "+") / red (negative "-") rich-text colour tag; other values (ranges, "xN",
+        /// "N%") and name-only rows stay the field's default colour. A label that begins with "ORACLE_"
+        /// is treated as a loc key and resolved via <see cref="Loc"/> (the pure formatter emits raw keys
+        /// for fixed scalar rows); any other label is already-localized text from
+        /// <see cref="EventOutcomeAdapter"/>.
+        /// </summary>
+        private static string ComposeBody(List<EventOutcomeRow> rows)
+        {
+            var sb = new StringBuilder();
+            for (int i = 0; i < rows.Count; i++)
+            {
+                EventOutcomeRow row = rows[i];
+                string label = row.Label ?? string.Empty;
+                if (label.StartsWith("ORACLE_"))
+                {
+                    label = Loc.Get(label, FallbackLabel(label));
+                }
+
+                if (i > 0)
+                {
+                    sb.Append('\n');
+                }
+                sb.Append(label);
+                if (!string.IsNullOrEmpty(row.Value))
+                {
+                    sb.Append("   ").Append(Colorize(row.Value));
+                }
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>Wrap a signed value in a green/red rich-text colour tag; leave neutral values plain.</summary>
+        private static string Colorize(string value)
+        {
+            if (value.Length == 0)
+            {
+                return value;
+            }
+            if (value[0] == '+')
+            {
+                return "<color=" + PositiveColor + ">" + value + "</color>";
+            }
+            if (value[0] == '-')
+            {
+                return "<color=" + NegativeColor + ">" + value + "</color>";
+            }
+            return value;
         }
 
         /// <summary>English fallback strings for the fixed-scalar ORACLE_ row keys (CSV provides translations).</summary>
@@ -168,24 +265,7 @@ namespace Morgott.Oracle
             }
         }
 
-        private static void MakeText(Transform parent, string content, TextAnchor anchor, float flexibleWidth)
-        {
-            var go = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
-            go.transform.SetParent(parent, false);
-            var text = go.GetComponent<Text>();
-            text.text = content;
-            text.font = GetFont();
-            text.fontSize = 16;
-            ((Graphic)text).color = Color.white;
-            text.alignment = anchor;
-            text.horizontalOverflow = HorizontalWrapMode.Overflow;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-            text.raycastTarget = false;
-            var le = go.AddComponent<LayoutElement>();
-            le.flexibleWidth = flexibleWidth;
-        }
-
-        /// <summary>Position the tooltip's top-left near the cursor (mirrors WikiAbilityTooltipTrigger.Position).</summary>
+        /// <summary>Position the tooltip near the cursor (mirrors WikiAbilityTooltipTrigger.Position).</summary>
         private static void Position()
         {
             try
@@ -208,34 +288,6 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] EventOutcomeTooltip.Position failed: " + ex.Message);
             }
-        }
-
-        /// <summary>The game's Phoenixpedia entry-title font (cached); Arial fallback. Mirrors PerkWikiPanel.GetTitleFont.</summary>
-        private static Font GetFont()
-        {
-            if ((UnityEngine.Object)(object)_font != (UnityEngine.Object)null)
-            {
-                return _font;
-            }
-            try
-            {
-                Font native = GameUtl.CurrentLevel()
-                    .GetComponent<GeoLevelController>()
-                    .View.GeoscapeModules.PhoenixpediaModule.EntryTitle.font;
-                if ((UnityEngine.Object)(object)native != (UnityEngine.Object)null)
-                {
-                    _font = native;
-                }
-            }
-            catch (Exception ex)
-            {
-                OracleLog.Debug("[Oracle] EventOutcomeTooltip.GetFont failed: " + ex.Message);
-            }
-            if ((UnityEngine.Object)(object)_font == (UnityEngine.Object)null)
-            {
-                _font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            }
-            return _font;
         }
     }
 }
