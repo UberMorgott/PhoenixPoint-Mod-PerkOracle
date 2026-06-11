@@ -10,10 +10,11 @@
 [/list]
 
 [h1]Co robi[/h1]
-Oracle ma dwa pomocniki.
+Oracle ma trzy pomocniki.
 [list]
 [*][b]Wgląd w perki.[/b] Na ekranie postępu umiejętności losowe („wylosowane") perki osobiste są wyróżnione, dzięki czemu od razu widać, co pochodzi z losowania, a co ze stałej ścieżki klasy. Otwórz wyskakujące okno wiki perków, aby zobaczyć każdy perk, który mógł trafić do danego slotu, z natywnymi ikonami i podpowiedziami gry. Opcjonalna, zależna od badania wymiana perków pozwala zamienić wyuczony perk na inny już istniejący.
 [*][b]Podgląd wyboru w wydarzeniu.[/b] Najedź kursorem na opcję odpowiedzi w wydarzeniu eksploracyjnym na geoskali, a podpowiedź pokaże skutek tego wyboru [i]zanim[/i] go dokonasz: zasoby, reputację, kondycję i punkty życia żołnierzy, przedmioty, odkryte lokacje i więcej. Wartości odpowiadają temu, co gra faktycznie przyzna, łącznie z modyfikatorami TFTV, a etykiety korzystają z natywnych, przetłumaczonych tekstów gry.
+[*][b]Podgląd podklasy.[/b] Gdy przy awansie wybierasz drugą klasę żołnierza, kliknięcie podklasy najpierw pokazuje wszystkie jej perki i zdolności wprost w oknie potwierdzenia, z natywnymi ikonami i podpowiedziami gry, dzięki czemu widzisz, co otrzymasz, zanim zatwierdzisz. Niezbadane podklasy są wyświetlane jako wyszarzone i można je obejrzeć w ten sam sposób.
 [/list]
 
 [h1]Co nowego w v1.3.0[/h1]
@@ -37,7 +38,7 @@ English, 简体中文 (chiński uproszczony), Français, Deutsch, Italiano, Pols
 [list=1]
 [*][b]Zasubskrybuj[/b] Oracle w Warsztacie. (Jeśli używasz TFTV, zainstaluj go również; Oracle ładuje się po nim.)
 [*]Uruchom Phoenix Point i [b]włącz Oracle[/b] w menedżerze modów w grze.
-[*]Otwórz ekran postępu umiejętności żołnierza i najedź kursorem na wylosowany perk albo najedź na opcję odpowiedzi w wydarzeniu eksploracyjnym.
+[*]Otwórz ekran postępu umiejętności żołnierza i najedź kursorem na wylosowany perk, najedź na opcję odpowiedzi w wydarzeniu eksploracyjnym albo przy awansie kliknij podklasę na ekranie wyboru drugiej klasy, aby zobaczyć jej pełne perki i zdolności.
 [/list]
 
 [h1]Zgłaszanie błędów / Wsparcie[/h1]

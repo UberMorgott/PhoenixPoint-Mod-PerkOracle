@@ -10,10 +10,11 @@
 [/list]
 
 [h1]Cosa fa[/h1]
-Oracle ha due assistenti.
+Oracle ha tre assistenti.
 [list]
 [*][b]Previsione dei perk.[/b] Nella schermata di progressione delle abilità, i perk personali casuali (estratti casualmente) vengono evidenziati, così capisci a colpo d'occhio quali provengono dall'estrazione e quali dal ramo di classe fisso. Apri la finestra wiki dei perk per vedere ogni perk che avrebbe potuto cadere in uno slot, con le icone e i tooltip nativi del gioco. Uno scambio dei perk opzionale, subordinato a una ricerca, ti permette di sostituire un perk appreso con un altro già esistente.
 [*][b]Anteprima delle scelte negli eventi.[/b] Passa il cursore su un'opzione di risposta in un evento di esplorazione sulla mappa strategica e un tooltip mostra l'esito di quella scelta [i]prima[/i] di selezionarla: risorse, reputazione, stamina e PS dei soldati, oggetti, siti rivelati e altro ancora. I valori corrispondono a ciò che il gioco assegnerà davvero, compresi i modificatori di TFTV, e le etichette usano il testo localizzato nativo del gioco.
+[*][b]Anteprima delle sottoclassi.[/b] Quando, all'avanzamento di livello, scegli la seconda classe di un soldato, fai clic su una sottoclasse e la finestra di conferma ne mostra subito tutti i perk e le abilità, con le icone e i tooltip nativi del gioco, così vedi cosa ottieni [i]prima[/i] di confermare la scelta. Le sottoclassi non ancora ricercate compaiono in grigio e si possono visualizzare in anteprima allo stesso modo.
 [/list]
 
 [h1]Novità nella v1.3.0[/h1]

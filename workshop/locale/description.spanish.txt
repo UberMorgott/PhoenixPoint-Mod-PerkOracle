@@ -10,10 +10,11 @@
 [/list]
 
 [h1]Qué hace[/h1]
-Oracle tiene dos ayudantes.
+Oracle tiene tres ayudantes.
 [list]
 [*][b]Anticipación de perks.[/b] En la pantalla de progresión de habilidades, los perks personales aleatorios (obtenidos al azar) aparecen resaltados, para que veas de un vistazo cuáles provienen del azar y cuáles de la vía de clase fija. Abre la ventana «wiki» de perks para ver todos los perks que podrían haber caído en una ranura, con los iconos e información emergente nativos del juego. Un intercambio de perks opcional, sujeto a investigación, te permite cambiar un perk aprendido por otro ya existente.
 [*][b]Vista previa de opciones de eventos.[/b] Pasa el cursor sobre una respuesta en un evento de exploración del geoscape y una información emergente muestra el resultado de esa opción [i]antes[/i] de elegirla: recursos, reputación, vigor y PV del soldado, objetos, lugares revelados y más. Los valores coinciden con lo que el juego concederá realmente, incluidos los modificadores de TFTV, y las etiquetas usan el propio texto localizado del juego.
+[*][b]Vista previa de subclases.[/b] Cuando eliges la segunda clase de un soldado al subir de nivel, hacer clic primero en una subclase muestra todos sus perks y habilidades directamente en la confirmación, con los iconos e información emergente nativos del juego, para que veas lo que vas a obtener antes de confirmar. Las subclases aún no investigadas aparecen en gris y puedes previsualizarlas de la misma manera.
 [/list]
 
 [h1]Novedades de la v1.3.0[/h1]
@@ -37,7 +38,7 @@ English, 简体中文 (chino simplificado), Français, Deutsch, Italiano, Polski
 [list=1]
 [*][b]Suscríbete[/b] a Oracle en el Workshop. (Si usas TFTV, instálalo también; Oracle se carga después de él.)
 [*]Inicia Phoenix Point y [b]activa Oracle[/b] en el gestor de mods del juego.
-[*]Abre la pantalla de progresión de habilidades de un soldado y pasa el cursor sobre un perk obtenido al azar, o pasa el cursor sobre una respuesta en un evento de exploración.
+[*]Abre la pantalla de progresión de habilidades de un soldado y pasa el cursor sobre un perk obtenido al azar, pasa el cursor sobre una respuesta en un evento de exploración, o, al elegir la segunda clase de un soldado en la pantalla de subida de nivel, haz clic en una subclase para previsualizar sus perks.
 [/list]
 
 [h1]Informes de errores / Soporte[/h1]

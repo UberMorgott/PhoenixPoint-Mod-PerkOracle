@@ -10,10 +10,11 @@
 [/list]
 
 [h1]Was es macht[/h1]
-Oracle hat zwei Helfer.
+Oracle hat drei Helfer.
 [list]
 [*][b]Perk-Voraussicht.[/b] Im Fähigkeiten-Fortschrittsbildschirm werden die zufälligen (ausgewürfelten) persönlichen Perks hervorgehoben, sodass du auf einen Blick erkennst, was aus dem Zufall stammt und was aus der festen Klassenspur. Öffne ein Perk-Wiki-Popup, um jeden Perk zu sehen, der in einem Slot hätte landen können, jeweils mit den eigenen Symbolen und Tooltips des Spiels. Ein optionaler, forschungsgesperrter Perk-Tausch erlaubt dir, einen gelernten Perk durch einen anderen vorhandenen zu ersetzen.
 [*][b]Vorschau von Ereignis-Entscheidungen.[/b] Bewege den Mauszeiger über eine Antwortoption in einem Geoscape-Erkundungsereignis, und ein Tooltip zeigt das Ergebnis dieser Wahl, [i]bevor[/i] du sie triffst: Ressourcen, Ruf, Soldaten-Ausdauer und Lebenspunkte, Gegenstände, aufgedeckte Orte und mehr. Die Werte entsprechen dem, was das Spiel tatsächlich gewährt, inklusive der Modifikatoren von TFTV, und die Bezeichnungen nutzen den eigenen lokalisierten Text des Spiels.
+[*][b]Unterklassen-Vorschau.[/b] Wenn du beim Stufenaufstieg die zweite Klasse eines Soldaten auswählst, zeigt dir ein Klick auf eine Unterklasse zuerst deren vollständige Perks und Fähigkeiten direkt im Bestätigungsfenster, jeweils mit den eigenen Symbolen und Tooltips des Spiels, sodass du vor der Entscheidung siehst, was du bekommst. Noch nicht erforschte Unterklassen werden ausgegraut dargestellt und lassen sich auf dieselbe Weise in der Vorschau ansehen.
 [/list]
 
 [h1]Neu in v1.3.0[/h1]
@@ -37,7 +38,7 @@ English, 简体中文 (Vereinfachtes Chinesisch), Français, Deutsch, Italiano, 
 [list=1]
 [*][b]Abonniere[/b] Oracle im Workshop. (Wenn du TFTV nutzt, installiere es ebenfalls; Oracle lädt danach.)
 [*]Starte Phoenix Point und [b]aktiviere Oracle[/b] im Ingame-Mod-Manager.
-[*]Öffne den Fähigkeiten-Fortschrittsbildschirm eines Soldaten und fahre über einen ausgewürfelten Perk, oder fahre über eine Antwortoption in einem Erkundungsereignis.
+[*]Öffne den Fähigkeiten-Fortschrittsbildschirm eines Soldaten und fahre über einen ausgewürfelten Perk, fahre über eine Antwortoption in einem Erkundungsereignis, oder klicke beim Stufenaufstieg im Unterklassen-Auswahlbildschirm auf eine Unterklasse.
 [/list]
 
 [h1]Fehlerberichte / Support[/h1]

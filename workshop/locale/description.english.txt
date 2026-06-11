@@ -10,10 +10,11 @@
 [/list]
 
 [h1]What it does[/h1]
-Oracle has two helpers.
+Oracle has three helpers.
 [list]
 [*][b]Perk foresight.[/b] On the ability-progression screen, the random ("rolled") personal perks are highlighted, so you can tell at a glance which came from the roll and which from the fixed class track. Open a perk wiki popup to see every perk that could have landed in a slot, with the game's own icons and tooltips. An optional, research-gated perk swap lets you change a learned perk for another existing one.
 [*][b]Event choice preview.[/b] Hover an answer option in a geoscape exploration event and a tooltip shows that choice's outcome [i]before[/i] you pick it: resources, reputation, soldier stamina and HP, items, sites revealed, and more. Values match what the game will actually grant, including TFTV's modifiers, and the labels use the game's own localized text.
+[*][b]Subclass preview.[/b] When you pick a soldier's second class at level-up, clicking a subclass first shows its full perks and abilities right in the confirmation, with the game's own icons and tooltips, so you see what you are getting before you commit. Unresearched subclasses are shown greyed out and can be previewed the same way.
 [/list]
 
 [h1]What's new in v1.3.0[/h1]

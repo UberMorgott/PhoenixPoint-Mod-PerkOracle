@@ -6,10 +6,11 @@
 
 Oracle reads what the game already knows and shows it to you on hover. It does not create, add, or change game content; it only previews it. There is one exception, an optional and off-by-default perk swap (see below), for players who want more control.
 
-Oracle has two helpers:
+Oracle has three helpers:
 
 - **Perk foresight.** On the ability-progression screen, the random ("rolled") personal perks are highlighted, so you can tell at a glance which came from the roll and which from the fixed class track. Open a perk wiki popup to see every perk that could have landed in a slot, with the game's own icons and tooltips. An optional, research-gated perk swap can change a learned perk for another existing one.
 - **Event choice preview.** Hover an answer option in a geoscape exploration event and a tooltip shows that choice's outcome *before* you pick it: resources, reputation, soldier stamina and HP, items, sites revealed, and more. Values match what the game will actually grant, including TFTV's modifiers, and the labels use the game's own localized text.
+- **Subclass preview.** When you pick a soldier's second class at level-up, clicking a subclass first shows its full perks and abilities right in the confirmation, with the game's own icons and tooltips, so you see what you are getting before you commit. Unresearched subclasses are shown greyed out and can be previewed the same way.
 
 > **Steam Workshop:** <https://steamcommunity.com/sharedfiles/filedetails/?id=3739613434>
 
@@ -118,10 +119,11 @@ Oracle © 2026 Morgott. Licensed under [CC BY-NC 4.0](https://creativecommons.or
 
 Oracle читает то, что игра уже знает, и показывает вам при наведении. Он не создаёт, не добавляет и не меняет игровой контент, а лишь показывает его заранее. Есть одно исключение: необязательная и по умолчанию выключенная замена перков (см. ниже) для тех, кому нужно больше контроля.
 
-У Oracle два помощника:
+У Oracle три помощника:
 
 - **Предвидение перков.** На экране прогрессии способностей случайные («роленые») персональные перки подсвечены, чтобы сразу было видно, что выпало случайно, а что взято из фиксированной классовой ветки. Окно-вики показывает все перки, которые могли выпасть в слот, с родными иконками и подсказками игры. Опциональная замена перков (с гейтом по исследованию) может сменить выученный перк на другой существующий.
 - **Предпросмотр выбора в событиях.** Наведите курсор на вариант ответа в событии исследования на геоскейпе, и подсказка покажет его исход *до* того, как вы выберете: ресурсы, репутацию, выносливость и здоровье бойцов, предметы, открытые точки и не только. Значения совпадают с тем, что игра реально выдаст, включая модификаторы TFTV, а названия берутся из родного локализованного текста игры.
+- **Предпросмотр подкласса.** Когда на повышении вы выбираете второй класс бойца, клик по подклассу сразу показывает все его перки и способности прямо в подтверждении, с родными иконками и подсказками игры, чтобы вы видели, что получаете, до того как согласитесь. Неисследованные подклассы показаны затенёнными, и их можно так же предпросмотреть.
 
 > **Steam Workshop:** <https://steamcommunity.com/sharedfiles/filedetails/?id=3739613434>
 

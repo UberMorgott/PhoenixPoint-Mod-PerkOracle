@@ -10,10 +10,11 @@
 [/list]
 
 [h1]Ce qu'il fait[/h1]
-Oracle propose deux aides.
+Oracle propose trois aides.
 [list]
 [*][b]Anticipation des perks.[/b] Sur l'écran de progression des compétences, les perks personnels aléatoires (« tirés au sort ») sont mis en évidence, pour distinguer d'un coup d'œil ce qui vient du tirage et ce qui vient de la voie de classe fixe. Ouvrez une fenêtre wiki des perks pour voir chaque perk qui aurait pu tomber dans un emplacement, avec les icônes et infobulles natives du jeu. Un échange de perks optionnel, verrouillé par une recherche, vous permet de remplacer un perk appris par un autre perk existant.
 [*][b]Aperçu des choix d'événement.[/b] Survolez une option de réponse dans un événement d'exploration sur le géoscape et une infobulle affiche le résultat de ce choix [i]avant[/i] que vous le validiez : ressources, réputation, endurance et PV des soldats, objets, sites révélés, et plus encore. Les valeurs correspondent à ce que le jeu accordera réellement, modificateurs de TFTV inclus, et les libellés reprennent le texte localisé natif du jeu.
+[*][b]Aperçu des sous-classes.[/b] Lorsque vous choisissez la seconde classe d'un soldat à la montée de niveau, cliquer sur une sous-classe en affiche aussitôt tous les perks et capacités, directement dans l'écran de confirmation, avec les icônes et infobulles natives du jeu : vous voyez exactement ce que vous obtenez avant de valider. Les sous-classes non encore recherchées apparaissent grisées et se prévisualisent de la même manière.
 [/list]
 
 [h1]Nouveautés de la v1.3.0[/h1]
@@ -37,7 +38,7 @@ English, 简体中文 (chinois simplifié), Français, Deutsch, Italiano, Polski
 [list=1]
 [*][b]Abonnez-vous[/b] à Oracle sur le Workshop. (Si vous utilisez TFTV, installez-le aussi ; Oracle se charge après lui.)
 [*]Lancez Phoenix Point et [b]activez Oracle[/b] dans le gestionnaire de mods en jeu.
-[*]Ouvrez l'écran de progression des compétences d'un soldat et survolez un perk tiré au sort, ou survolez une option de réponse dans un événement d'exploration.
+[*]Ouvrez l'écran de progression des compétences d'un soldat et survolez un perk tiré au sort, survolez une option de réponse dans un événement d'exploration, ou cliquez sur une sous-classe lors du choix de la seconde classe à la montée de niveau.
 [/list]
 
 [h1]Signalement de bugs / Support[/h1]
