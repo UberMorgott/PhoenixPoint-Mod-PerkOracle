@@ -84,12 +84,15 @@ namespace Morgott.Oracle
                     return;
                 }
 
-                // Keep the body hidden while we re-populate, then flip it on (same proven order as the
-                // original build-once-then-activate path; nothing is re-instantiated here).
-                _root.SetActive(false);
+                // Activate FIRST, then populate + measure. Unity does NOT regenerate a Text's layout/text
+                // generator while its GameObject is inactive, so reading preferredWidth/preferredHeight on an
+                // inactive object returns a STALE value (the previous content's size, or the native default) —
+                // that was the nondeterministic-size bug. With the object active, PopulateTooltip can force a
+                // synchronous layout rebuild and read valid metrics. Order: SetActive(true) -> set text/colors
+                // -> ForceRebuild -> ResizeToContent (all inside PopulateTooltip) -> position.
+                _root.SetActive(true);
                 PopulateTooltip(_tip, rows);
 
-                _root.SetActive(true);
                 _root.transform.SetAsLastSibling(); // render above the event module
                 Position();
             }
@@ -159,6 +162,8 @@ namespace Morgott.Oracle
             // reward colours. Doing this once — not per Show — is the rest of the per-hover-cost saving.
             DeactivateUnusedGroups(_tip);
             CaptureNativeRewardColors();
+            DisableEnableAnimation();
+            StretchFrameChildren();
             return true;
         }
 
@@ -238,9 +243,21 @@ namespace Morgott.Oracle
         /// </summary>
         private static void PopulateTooltip(GeoRosterAbilityDetailTooltip tip, List<EventOutcomeRow> rows)
         {
-            if ((UnityEngine.Object)(object)tip.AbilityDescription != (UnityEngine.Object)null)
+            Text body = tip.AbilityDescription;
+            if ((UnityEngine.Object)(object)body != (UnityEngine.Object)null)
             {
-                tip.AbilityDescription.text = ComposeBody(rows);
+                body.text = ComposeBody(rows);
+
+                // Measure the text un-wrapped so preferredWidth/preferredHeight are DETERMINISTIC and not a
+                // function of the (varying) current rect width. This is layout overflow, not a font change.
+                body.horizontalOverflow = HorizontalWrapMode.Overflow;
+                body.verticalOverflow = VerticalWrapMode.Overflow;
+
+                // Force a SYNCHRONOUS text + layout rebuild now (the object is active) so the values read in
+                // ResizeToContent reflect the text we just set — not a stale generator cache. Without this the
+                // box size lags one hover behind / falls back to the native default.
+                Canvas.ForceUpdateCanvases();
+                LayoutRebuilder.ForceRebuildLayoutImmediate(body.rectTransform);
             }
 
             ResizeToContent(tip);
@@ -260,6 +277,88 @@ namespace Morgott.Oracle
             SetActiveSafe(tip.AbilitySkillAPCostText);
             SetActiveSafe(tip.AbilitySkillWPCostText);
             SetActiveSafe(tip.SkillCostHeaderText);
+        }
+
+        /// <summary>
+        /// Kill any enable-time animation on the cloned widget so re-showing it (SetActive(true) every hover)
+        /// is INSTANT — no fade/slide replay. The native ability tooltip prefab can carry an Animator
+        /// whose default state plays on enable; left running it replays each hover, which reads as a stutter
+        /// (the residual micro-lag). We disable the Animator and snap the CanvasGroup alpha to 1 so the tooltip
+        /// just appears at full opacity. Done ONCE at build time — purely visual, touches no font/colour/string.
+        /// </summary>
+        private static void DisableEnableAnimation()
+        {
+            try
+            {
+                // The Animator type lives in UnityEngine.AnimationModule (not referenced by this csproj), so
+                // match it by runtime type name on the Behaviour list instead of a typed generic — disabling
+                // any enable-time animator without taking the extra assembly reference.
+                foreach (var b in _root.GetComponentsInChildren<Behaviour>(true))
+                {
+                    if ((UnityEngine.Object)(object)b != (UnityEngine.Object)null
+                        && b.GetType().Name == "Animator")
+                    {
+                        b.enabled = false;
+                    }
+                }
+
+                var cg = _root.GetComponent<CanvasGroup>();
+                if ((UnityEngine.Object)(object)cg != (UnityEngine.Object)null)
+                {
+                    cg.alpha = 1f; // snap to fully visible; no per-hover fade-in
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeTooltip.DisableEnableAnimation failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Stretch every background/frame <see cref="Image"/> child of the clone to fill the root, so when
+        /// <see cref="ResizeToContent"/> shrinks <see cref="_rootRt"/> the visible frame shrinks WITH it instead
+        /// of keeping its original full native footprint (the "big frame, content in the corner" symptom).
+        /// Only direct children that are pure frame Images (an Image with no Text in their subtree, and not the
+        /// body's own rect) are restretched — the body text and the deactivated title/icon/cost groups are left
+        /// untouched. Done ONCE at build time. Anchors are layout only; no sprite/font/colour change.
+        /// </summary>
+        private static void StretchFrameChildren()
+        {
+            try
+            {
+                RectTransform bodyRt = ((UnityEngine.Object)(object)_tip != (UnityEngine.Object)null
+                    && (UnityEngine.Object)(object)_tip.AbilityDescription != (UnityEngine.Object)null)
+                    ? _tip.AbilityDescription.rectTransform
+                    : null;
+
+                for (int i = 0; i < _rootRt.childCount; i++)
+                {
+                    var child = _rootRt.GetChild(i) as RectTransform;
+                    if ((UnityEngine.Object)(object)child == (UnityEngine.Object)null)
+                    {
+                        continue;
+                    }
+                    if ((UnityEngine.Object)(object)child == (UnityEngine.Object)bodyRt)
+                    {
+                        continue; // never restretch the body — ResizeToContent owns its rect
+                    }
+                    // A frame/background panel: has an Image but no Text anywhere beneath it. Layout groups that
+                    // host text (title/cost) are skipped so we don't disturb them.
+                    if ((UnityEngine.Object)(object)child.GetComponent<Image>() == (UnityEngine.Object)null
+                        || child.GetComponentInChildren<Text>(true) != null)
+                    {
+                        continue;
+                    }
+                    child.anchorMin = Vector2.zero;
+                    child.anchorMax = Vector2.one;
+                    child.offsetMin = Vector2.zero;
+                    child.offsetMax = Vector2.zero;
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeTooltip.StretchFrameChildren failed: " + ex.Message);
+            }
         }
 
         // Inset between the framed background edge and the body text, in canvas units. Small but enough
@@ -298,9 +397,9 @@ namespace Morgott.Oracle
                     return;
                 }
 
-                // Measured from the current text + existing font (no font/size change). preferredWidth can
-                // include the full unwrapped line; clamp to the body's current width if it already wraps so a
-                // wrapped paragraph keeps its height rather than ballooning back to one long line.
+                // Measured from the current text + existing font (no font/size change). The body is now in
+                // Overflow mode (set in PopulateTooltip) and was force-rebuilt while active, so these are the
+                // text's true single-pass preferred extents — deterministic, independent of the current width.
                 float prefW = body.preferredWidth;
                 float prefH = body.preferredHeight;
                 if (prefW <= 0f || prefH <= 0f)
@@ -315,8 +414,14 @@ namespace Morgott.Oracle
                 bodyRt.sizeDelta = new Vector2(prefW, prefH);
                 bodyRt.anchoredPosition = new Vector2(PadX, -PadY);
 
-                // Size the framed root to hug that content (a stretched background child follows the root).
+                // Size the framed root to hug that content.
                 _rootRt.sizeDelta = new Vector2(prefW + 2f * PadX, prefH + 2f * PadY);
+
+                // Make the visible frame follow: any background/frame Image children were stretched to fill the
+                // root once at build time (StretchFrameChildren), so they already track _rootRt here. Force a
+                // final rebuild so the resized frame + repositioned body are flushed this frame (no one-frame
+                // pop where the big native frame is briefly visible).
+                LayoutRebuilder.ForceRebuildLayoutImmediate(_rootRt);
             }
             catch (Exception ex)
             {
