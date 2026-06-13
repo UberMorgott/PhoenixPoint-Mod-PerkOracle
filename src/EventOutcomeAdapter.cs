@@ -146,6 +146,16 @@ namespace Morgott.Oracle
                             AddVariableRangeLine(data, vc);
                         }
                     }
+
+                    // SubfactionFactionMissionWeight — List<OutcomeFactionMissionWeightChange>; no native
+                    // branch. Author "Mission weight: [Min..Max]" per entry from its RangeDataInt.
+                    if (o.SubfactionFactionMissionWeight != null)
+                    {
+                        foreach (OutcomeFactionMissionWeightChange wc in o.SubfactionFactionMissionWeight)
+                        {
+                            AddMissionWeightRangeLine(data, wc);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -377,6 +387,37 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddVariableRangeLine failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Append an authored sub-faction mission-weight line "Mission weight: [Min..Max]" from the
+        /// entry's RangeDataInt. Collapses when Min == Max; skips a 0..0 change. The range field is read
+        /// inside the try so an unexpected struct shape simply yields no row rather than throwing.
+        /// Confirmed at the decompiled struct: the RangeDataInt member is <c>Value</c> (struct also has
+        /// <c>SubFaction</c>), NOT <c>Weight</c> as an earlier draft assumed.
+        /// </summary>
+        private static void AddMissionWeightRangeLine(EventOutcomeData data, OutcomeFactionMissionWeightChange wc)
+        {
+            try
+            {
+                RangeDataInt range = wc.Value;
+                int min = range.Min;
+                int max = range.Max;
+                if (min == 0 && max == 0)
+                {
+                    return;
+                }
+                string pattern = Loc.Get("ORACLE_EVT_MISSIONWEIGHT", "Mission weight: {0}");
+                string line = EventOutcomeFormat.Format1(pattern, EventOutcomeFormat.Range(min, max));
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddMissionWeightRangeLine failed: " + ex.Message);
             }
         }
 

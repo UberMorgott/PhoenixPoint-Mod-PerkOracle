@@ -69,5 +69,12 @@ namespace Morgott.Oracle.Tests
             string line = EventOutcomeFormat.Format1("Variable change: {0}", EventOutcomeFormat.Range(2, 5));
             Assert.Equal("Variable change: [2..5]", line);
         }
+
+        [Fact]
+        public void MissionWeight_Line_Uses_Range_Token()
+        {
+            string line = EventOutcomeFormat.Format1("Mission weight: {0}", EventOutcomeFormat.Range(1, 1));
+            Assert.Equal("Mission weight: 1", line); // collapses when Min == Max
+        }
     }
 }
