@@ -195,6 +195,18 @@ namespace Morgott.Oracle
                     {
                         AddVictoryLine(data, o.GameOverVictoryFaction);
                     }
+
+                    // DamageZones — List<OutcomeDamageZone> { ZoneKeyword(string), DamagePercentage(int) }.
+                    // The native HavenZoneDamageTextKey needs a live zone's absolute HP; the def carries only
+                    // a percentage, so we AUTHOR "<pct>% damage to <zoneKeyword>" (a % is the only def-true
+                    // figure). No absolute HP (resolved at apply time) is shown.
+                    if (o.DamageZones != null)
+                    {
+                        foreach (OutcomeDamageZone dz in o.DamageZones)
+                        {
+                            AddZoneDamageLine(data, dz);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -697,6 +709,36 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddVictoryLine failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Append an authored "&lt;pct&gt;% damage to &lt;zone&gt;" line for one <see cref="OutcomeDamageZone"/>.
+        /// Uses the def's <c>DamagePercentage</c> (the only def-true figure; native absolute HP needs a live
+        /// zone) and the raw <c>ZoneKeyword</c> token. No row when the percentage is 0 or the keyword is empty.
+        /// </summary>
+        private static void AddZoneDamageLine(EventOutcomeData data, OutcomeDamageZone dz)
+        {
+            try
+            {
+                if (dz.DamagePercentage == 0 || string.IsNullOrEmpty(dz.ZoneKeyword))
+                {
+                    return;
+                }
+                string pattern = Loc.Get("ORACLE_EVT_ZONE_DAMAGE", "{0}% damage to {1}");
+                if (string.IsNullOrEmpty(pattern))
+                {
+                    return;
+                }
+                string line = string.Format(pattern, dz.DamagePercentage, dz.ZoneKeyword);
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddZoneDamageLine failed: " + ex.Message);
             }
         }
 

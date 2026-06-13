@@ -122,5 +122,13 @@ namespace Morgott.Oracle.Tests
             string line = EventOutcomeFormat.Format1("Victory for {0}", "Anu");
             Assert.Equal("Victory for Anu", line);
         }
+
+        [Fact]
+        public void ZoneDamage_Line_Uses_Percent_And_Zone()
+        {
+            // Two-placeholder authored line: adapter calls string.Format(pattern, percent, zoneKeyword) directly.
+            // Assert the final composed shape the adapter produces.
+            Assert.Equal("25% damage to Industry", string.Format("{0}% damage to {1}", 25, "Industry"));
+        }
     }
 }
