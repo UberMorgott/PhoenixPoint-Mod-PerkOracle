@@ -178,6 +178,11 @@ namespace Morgott.Oracle
                     {
                         AddMissionLine(data, o.StartMission);
                     }
+
+                    // Follow-up event chain — TriggerEncounterID (string) + SetEvents[].EventID (string).
+                    // No native branch. Author "Leads to: <id>, <id>" (raw event id; no localized title is
+                    // resolvable from the choice pre-apply, and the id is the same token the game keys on).
+                    AddFollowUpEventsLine(data, o.TriggerEncounterID, o.SetEvents);
                 }
             }
             catch (Exception ex)
@@ -578,6 +583,49 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddMissionLine failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Append an authored "Leads to: id, id" line from the follow-up event chain: the single
+        /// <c>TriggerEncounterID</c> plus every <c>OutcomeEncounterSet.EventID</c>. Both are raw event id
+        /// strings (no def / localized title is resolvable from the choice pre-apply). Empty ids are skipped;
+        /// no row when none are present.
+        /// </summary>
+        private static void AddFollowUpEventsLine(EventOutcomeData data, string triggerId, List<OutcomeEncounterSet> setEvents)
+        {
+            try
+            {
+                var ids = new List<string>();
+                if (!string.IsNullOrEmpty(triggerId))
+                {
+                    ids.Add(triggerId);
+                }
+                if (setEvents != null)
+                {
+                    foreach (OutcomeEncounterSet es in setEvents)
+                    {
+                        if (!string.IsNullOrEmpty(es.EventID))
+                        {
+                            ids.Add(es.EventID);
+                        }
+                    }
+                }
+                string joined = EventOutcomeFormat.JoinNames(ids, ", ");
+                if (string.IsNullOrEmpty(joined))
+                {
+                    return;
+                }
+                string pattern = Loc.Get("ORACLE_EVT_FOLLOWUP", "Leads to: {0}");
+                string line = EventOutcomeFormat.Format1(pattern, joined);
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddFollowUpEventsLine failed: " + ex.Message);
             }
         }
 

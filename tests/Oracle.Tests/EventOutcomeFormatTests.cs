@@ -99,5 +99,13 @@ namespace Morgott.Oracle.Tests
             string line = EventOutcomeFormat.Format1("Mission: {0}", "Ambush");
             Assert.Equal("Mission: Ambush", line);
         }
+
+        [Fact]
+        public void FollowUp_Line_Joins_Event_Ids()
+        {
+            var ids = new System.Collections.Generic.List<string> { "PROG_AN_22", "PROG_NJ_05" };
+            string line = EventOutcomeFormat.Format1("Leads to: {0}", EventOutcomeFormat.JoinNames(ids, ", "));
+            Assert.Equal("Leads to: PROG_AN_22, PROG_NJ_05", line);
+        }
     }
 }
