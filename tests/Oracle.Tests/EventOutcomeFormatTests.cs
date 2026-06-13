@@ -76,5 +76,13 @@ namespace Morgott.Oracle.Tests
             string line = EventOutcomeFormat.Format1("Mission weight: {0}", EventOutcomeFormat.Range(1, 1));
             Assert.Equal("Mission weight: 1", line); // collapses when Min == Max
         }
+
+        [Fact]
+        public void Research_Line_Joins_Resolved_Names()
+        {
+            var names = new System.Collections.Generic.List<string> { "Operative Reconditioning", "Mutoid Tech" };
+            string line = EventOutcomeFormat.Format1("Research: {0}", EventOutcomeFormat.JoinNames(names, ", "));
+            Assert.Equal("Research: Operative Reconditioning, Mutoid Tech", line);
+        }
     }
 }

@@ -156,6 +156,14 @@ namespace Morgott.Oracle
                             AddMissionWeightRangeLine(data, wc);
                         }
                     }
+
+                    // GiveResearches — list of research id strings; no native branch. Resolve each id to its
+                    // ResearchDef display name and author "Research: <name>, <name>". Ids that don't resolve
+                    // are dropped (never shown as a raw codename).
+                    if (o.GiveResearches != null && o.GiveResearches.Count > 0)
+                    {
+                        AddResearchNamesLine(data, o.GiveResearches);
+                    }
                 }
             }
             catch (Exception ex)
@@ -419,6 +427,73 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddMissionWeightRangeLine failed: " + ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Append an authored "Research: name, name" line by resolving each research id to its
+        /// <c>ResearchDef.ViewElementDef.DisplayName1</c> (the same localized name the research UI shows).
+        /// Unresolvable ids are skipped; no row when none resolve. Read-only def lookup, never the apply path.
+        /// </summary>
+        private static void AddResearchNamesLine(EventOutcomeData data, List<string> researchIds)
+        {
+            try
+            {
+                var names = new List<string>();
+                DefRepository repo = GameUtl.GameComponent<DefRepository>();
+                foreach (string id in researchIds)
+                {
+                    if (string.IsNullOrEmpty(id))
+                    {
+                        continue;
+                    }
+                    string name = ResearchDisplayName(repo, id);
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        names.Add(name);
+                    }
+                }
+                string joined = EventOutcomeFormat.JoinNames(names, ", ");
+                if (string.IsNullOrEmpty(joined))
+                {
+                    return;
+                }
+                string pattern = Loc.Get("ORACLE_EVT_RESEARCH", "Research: {0}");
+                string line = EventOutcomeFormat.Format1(pattern, joined);
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddResearchNamesLine failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>Resolve a research id to its localized display name; empty if not found / no name.</summary>
+        private static string ResearchDisplayName(DefRepository repo, string id)
+        {
+            try
+            {
+                foreach (ResearchDef rd in repo.GetAllDefs<ResearchDef>())
+                {
+                    if (rd != null && rd.Id == id
+                        && (UnityEngine.Object)(object)rd.ViewElementDef != (UnityEngine.Object)null
+                        && rd.ViewElementDef.DisplayName1 != null)
+                    {
+                        string s = rd.ViewElementDef.DisplayName1.Localize();
+                        if (!string.IsNullOrEmpty(s))
+                        {
+                            return s;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.ResearchDisplayName failed: " + ex.Message);
+            }
+            return string.Empty;
         }
 
         /// <summary>
