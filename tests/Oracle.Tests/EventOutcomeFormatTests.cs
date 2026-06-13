@@ -92,5 +92,12 @@ namespace Morgott.Oracle.Tests
             string line = EventOutcomeFormat.Format1("Phoenixpedia: {0}", EventOutcomeFormat.JoinNames(names, ", "));
             Assert.Equal("Phoenixpedia: The Pure", line);
         }
+
+        [Fact]
+        public void Mission_Line_Uses_Type_Token()
+        {
+            string line = EventOutcomeFormat.Format1("Mission: {0}", "Ambush");
+            Assert.Equal("Mission: Ambush", line);
+        }
     }
 }

@@ -171,6 +171,13 @@ namespace Morgott.Oracle
                     {
                         AddPhoenixpediaNamesLine(data, o.GivePhoenixpediaEntries);
                     }
+
+                    // StartMission — OutcomeStartMission; no native branch. Author "Mission: <type>" using the
+                    // mission-type def name (a def-derived token, not a live mission instance name).
+                    if (o.StartMission != null)
+                    {
+                        AddMissionLine(data, o.StartMission);
+                    }
                 }
             }
             catch (Exception ex)
@@ -540,6 +547,37 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddPhoenixpediaNamesLine failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Append an authored "Mission: <type>" line from <c>OutcomeStartMission.MissionTypeDef.name</c>
+        /// (the def-derived mission-type token; no live mission instance exists pre-apply). No row when the
+        /// mission type def is missing.
+        /// </summary>
+        private static void AddMissionLine(EventOutcomeData data, OutcomeStartMission mission)
+        {
+            try
+            {
+                if ((UnityEngine.Object)(object)mission.MissionTypeDef == (UnityEngine.Object)null)
+                {
+                    return;
+                }
+                string token = mission.MissionTypeDef.name;
+                if (string.IsNullOrEmpty(token))
+                {
+                    return;
+                }
+                string pattern = Loc.Get("ORACLE_EVT_MISSION", "Mission: {0}");
+                string line = EventOutcomeFormat.Format1(pattern, token);
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddMissionLine failed: " + ex.Message);
             }
         }
 
