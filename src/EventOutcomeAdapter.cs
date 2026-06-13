@@ -249,6 +249,13 @@ namespace Morgott.Oracle
                     {
                         AddHavenPopulationLine(data, mod, o.HavenPopulationChange);
                     }
+
+                    // SpawnAlienHavenAttacksNearPalace — int (count). Native MultipleHavensAttackedTextKey
+                    // takes ZERO placeholders (a plain .Localize() presence line). Emit it when count > 0.
+                    if (o.SpawnAlienHavenAttacksNearPalace > 0)
+                    {
+                        AddHavenAttacksLine(data, mod);
+                    }
                 }
             }
             catch (Exception ex)
@@ -976,6 +983,33 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddHavenPopulationLine failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Append the "multiple havens attacked" presence line. The native
+        /// <c>MultipleHavensAttackedTextKey</c> is rendered by ShowReward with NO placeholders (a plain
+        /// <c>.Localize()</c>), so we emit the localized string verbatim — no value substitution. No row when
+        /// the key is missing.
+        /// </summary>
+        private static void AddHavenAttacksLine(EventOutcomeData data, UIModuleSiteEncounters mod)
+        {
+            try
+            {
+                Base.UI.LocalizedTextBind key = mod.MultipleHavensAttackedTextKey;
+                if (key == null || string.IsNullOrEmpty(key.LocalizationKey))
+                {
+                    return;
+                }
+                string line = key.Localize();
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddHavenAttacksLine failed: " + ex.Message);
             }
         }
 
