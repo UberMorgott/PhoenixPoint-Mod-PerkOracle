@@ -235,6 +235,13 @@ namespace Morgott.Oracle
                             AddFactionKeyLine(data, mod.NewDiplomaticObjectiveTextKey, dobj.WithFaction);
                         }
                     }
+
+                    // ConvertSiteToPhoenixBase — bool. Native NewPhoenixBaseTextKey ({0}=live base site name).
+                    // The site is apply-time; substitute a generic authored token.
+                    if (o.ConvertSiteToPhoenixBase)
+                    {
+                        AddConvertBaseLine(data, mod);
+                    }
                 }
             }
             catch (Exception ex)
@@ -898,6 +905,34 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddFactionKeyLine failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Append the convert-to-Phoenix-base line using the native <c>NewPhoenixBaseTextKey</c> ({0}=base
+        /// site name). The actual site is resolved at apply time, so a generic authored token ("a Phoenix
+        /// base") fills the name slot. No row when the key is missing.
+        /// </summary>
+        private static void AddConvertBaseLine(EventOutcomeData data, UIModuleSiteEncounters mod)
+        {
+            try
+            {
+                Base.UI.LocalizedTextBind key = mod.NewPhoenixBaseTextKey;
+                if (key == null || string.IsNullOrEmpty(key.LocalizationKey))
+                {
+                    return;
+                }
+                string pattern = key.Localize();
+                string token = Loc.Get("ORACLE_EVT_TOK_BASE", "a Phoenix base");
+                string line = EventOutcomeFormat.Format1(pattern, token);
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddConvertBaseLine failed: " + ex.Message);
             }
         }
 
