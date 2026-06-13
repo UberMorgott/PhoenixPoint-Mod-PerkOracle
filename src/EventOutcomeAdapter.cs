@@ -1,12 +1,17 @@
 using System;
+using System.Collections.Generic;
 using Base.Core;
+using Base.Defs;
+using Base.Utils;
 using PhoenixPoint.Common.Core;
 using PhoenixPoint.Common.Entities.Items;
 using PhoenixPoint.Common.UI;
 using PhoenixPoint.Geoscape;
+using PhoenixPoint.Geoscape.Entities.Research;
 using PhoenixPoint.Geoscape.Events;
 using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Geoscape.View.ViewModules;
+using PhoenixPoint.Tactical.Entities;
 
 namespace Morgott.Oracle
 {
@@ -131,6 +136,16 @@ namespace Morgott.Oracle
                     AddNativeLine(data, mod.AllSoldierTiredTextKey, o.TireAllSoldiers);
                     AddNativeLine(data, mod.AircraftDamageTextKey, o.DamageCurrentAircraft);
                     AddNativeLine(data, mod.AddSkillPointsTextKey, o.FactionSkillPoints);
+
+                    // VariablesChange — no native ShowReward branch. Author "Variable change: [Min..Max]"
+                    // per entry, NEVER a fabricated single roll (RangeDataInt is rolled at apply time).
+                    if (o.VariablesChange != null)
+                    {
+                        foreach (OutcomeVariableChange vc in o.VariablesChange)
+                        {
+                            AddVariableRangeLine(data, vc);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -334,6 +349,34 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddItemNativeLine failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Append an authored variable-change line "Variable change: [Min..Max]" using the
+        /// <c>RangeDataInt</c> bounds straight off the def. Shows a single value when Min == Max.
+        /// Skips zero-only changes where Min == Max == 0. Localized pattern via Loc (English fallback).
+        /// </summary>
+        private static void AddVariableRangeLine(EventOutcomeData data, OutcomeVariableChange vc)
+        {
+            try
+            {
+                int min = vc.Value.Min;
+                int max = vc.Value.Max;
+                if (min == 0 && max == 0)
+                {
+                    return;
+                }
+                string pattern = Loc.Get("ORACLE_EVT_VARIABLE", "Variable change: {0}");
+                string line = EventOutcomeFormat.Format1(pattern, EventOutcomeFormat.Range(min, max));
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddVariableRangeLine failed: " + ex.Message);
             }
         }
 

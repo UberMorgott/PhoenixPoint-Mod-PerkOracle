@@ -61,5 +61,13 @@ namespace Morgott.Oracle.Tests
             Assert.Equal(string.Empty, EventOutcomeFormat.JoinNames(new System.Collections.Generic.List<string>(), ", "));
             Assert.Equal(string.Empty, EventOutcomeFormat.JoinNames(null, ", "));
         }
+
+        [Fact]
+        public void Variable_Line_Uses_Range_Token()
+        {
+            // The adapter builds the variable line as Format1(pattern, Range(min, max)); assert the composed shape.
+            string line = EventOutcomeFormat.Format1("Variable change: {0}", EventOutcomeFormat.Range(2, 5));
+            Assert.Equal("Variable change: [2..5]", line);
+        }
     }
 }
