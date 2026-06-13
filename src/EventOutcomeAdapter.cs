@@ -207,6 +207,12 @@ namespace Morgott.Oracle
                             AddZoneDamageLine(data, dz);
                         }
                     }
+
+                    // Units + CustomCharacters — List<TacCharacterDef>; recruited soldiers. Live name is
+                    // apply-time, so substitute a def-derived token (count + class/template display) into the
+                    // native RecruitSingleSoldierTextKey ({0}=name). Resolved design: count + class, no name.
+                    AddRecruitLines(data, mod, o.Units);
+                    AddRecruitLines(data, mod, o.CustomCharacters);
                 }
             }
             catch (Exception ex)
@@ -769,6 +775,76 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddZoneDamageLine failed: " + ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Append a recruit line per <see cref="TacCharacterDef"/> using the native
+        /// <c>RecruitSingleSoldierTextKey</c> ({0}=name). The live soldier name does not exist pre-apply, so
+        /// we substitute a def-derived token: the character's <c>GetViewElementDef().DisplayName1</c> (class /
+        /// template display). Defs without a resolvable display name are skipped (never a raw codename).
+        /// </summary>
+        private static void AddRecruitLines(EventOutcomeData data, UIModuleSiteEncounters mod, System.Collections.Generic.List<TacCharacterDef> chars)
+        {
+            try
+            {
+                if (chars == null || chars.Count == 0)
+                {
+                    return;
+                }
+                Base.UI.LocalizedTextBind key = mod.RecruitSingleSoldierTextKey;
+                if (key == null || string.IsNullOrEmpty(key.LocalizationKey))
+                {
+                    return;
+                }
+                string pattern = key.Localize();
+                if (string.IsNullOrEmpty(pattern))
+                {
+                    return;
+                }
+                foreach (TacCharacterDef def in chars)
+                {
+                    if ((UnityEngine.Object)(object)def == (UnityEngine.Object)null)
+                    {
+                        continue;
+                    }
+                    string token = CharacterDisplayToken(def);
+                    if (string.IsNullOrEmpty(token))
+                    {
+                        continue;
+                    }
+                    string line = string.Format(pattern, token);
+                    if (!string.IsNullOrEmpty(line))
+                    {
+                        data.NativeLines.Add(line);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddRecruitLines failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>Def-derived display token for a recruited character: ViewElementDef.DisplayName1; empty if none.</summary>
+        private static string CharacterDisplayToken(TacCharacterDef def)
+        {
+            try
+            {
+                ViewElementDef ved = def.GetViewElementDef();
+                if ((UnityEngine.Object)(object)ved != (UnityEngine.Object)null && ved.DisplayName1 != null)
+                {
+                    string s = ved.DisplayName1.Localize();
+                    if (!string.IsNullOrEmpty(s))
+                    {
+                        return s;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.CharacterDisplayToken failed: " + ex.Message);
+            }
+            return string.Empty;
         }
 
         /// <summary>
