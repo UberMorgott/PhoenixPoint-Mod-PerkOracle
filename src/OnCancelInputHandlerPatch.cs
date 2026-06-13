@@ -45,19 +45,22 @@ namespace Morgott.Oracle
                 // Resolve the shown soldier once; used by the Mutoid gate and the swap context below.
                 var character = CharacterField?.GetValue(__instance) as GeoCharacter;
 
+                // Resolve the class name once up front: the rolled-cell gate now needs it to resolve
+                // the slot's rolled pool (the poolMember half), and the wiki pool below reuses it.
+                string className = GetClassName(__instance);
+
                 // RISK (verify in-game): the Cancel action maps to BOTH RMB and Esc, so we cannot
                 // rely on GetMouseButtonDown(1) being true here (RMB may already be consumed by input
                 // routing). We therefore key off "pointer over a rolled cell" instead: if the user is
                 // hovering a rolled Personal cell when cancel fires we treat it as an inspect request.
                 // Consequence: Esc while hovering a rolled cell opens the wiki (Esc again closes it),
                 // which the design accepts. Cancel anywhere else falls through to the normal back.
-                AbilityTrackSkillEntryElement cell = FindRolledCellUnderPointer(out int level0);
+                AbilityTrackSkillEntryElement cell = FindRolledCellUnderPointer(className, out int level0);
                 if (cell == null)
                 {
                     return true; // not over a rolled cell -> normal back
                 }
 
-                string className = GetClassName(__instance);
                 List<TacticalAbilityDef> defs = PerkWikiPool.ResolveForSlot(level0, className);
                 if (defs == null || defs.Count == 0)
                 {
@@ -90,9 +93,10 @@ namespace Morgott.Oracle
         /// <summary>
         /// Raycast the UI at the current mouse position and return the first rolled Personal
         /// AbilityTrackSkillEntryElement under the pointer (with its 0-based slot index in
-        /// <paramref name="level0"/>), or null (level0 = -1).
+        /// <paramref name="level0"/>), or null (level0 = -1). <paramref name="className"/> feeds the
+        /// rolled-pool gate's poolMember half.
         /// </summary>
-        private static AbilityTrackSkillEntryElement FindRolledCellUnderPointer(out int level0)
+        private static AbilityTrackSkillEntryElement FindRolledCellUnderPointer(string className, out int level0)
         {
             level0 = -1;
             EventSystem es = EventSystem.current;
@@ -112,7 +116,7 @@ namespace Morgott.Oracle
                     continue;
                 }
                 var cell = hit.gameObject.GetComponentInParent<AbilityTrackSkillEntryElement>();
-                if (cell != null && IsRolled(cell, out level0))
+                if (cell != null && IsRolled(cell, className, out level0))
                 {
                     return cell;
                 }
@@ -139,9 +143,10 @@ namespace Morgott.Oracle
 
         /// <summary>
         /// Reuse the highlight classifier: a rolled cell is a Personal slot classed Rolled. Outputs
-        /// the resolved 0-based slot index so callers need not recompute it.
+        /// the resolved 0-based slot index so callers need not recompute it. <paramref name="className"/>
+        /// feeds the rolled-pool gate's poolMember half.
         /// </summary>
-        private static bool IsRolled(AbilityTrackSkillEntryElement cell, out int level0)
+        private static bool IsRolled(AbilityTrackSkillEntryElement cell, string className, out int level0)
         {
             level0 = -1;
             if (cell.TrackSource != AbilityTrackSource.Personal)
@@ -155,9 +160,9 @@ namespace Morgott.Oracle
             }
             bool abilityPresent = (UnityEngine.Object)(object)cell.AbilityDef != (UnityEngine.Object)null;
             // A Personal cell is a rolled perk only if its ability is a member of the engine's random
-            // rolled-perk pool (carries PersonalProgressionTag). Augmentation / custom-mod abilities
-            // (PersonalTrackTags empty) are never rolled -> no wiki gate.
-            bool isPoolMember = RolledPoolMembership.IsRolledPoolMember(cell.AbilityDef);
+            // rolled-perk pool — either tagged with PersonalProgressionTag (vanilla / TheTurned
+            // arm-marker) OR present in this slot's resolved rolled pool (TFTV human perks, untagged).
+            bool isPoolMember = RolledPoolMembership.IsRolledPoolMember(cell.AbilityDef, level0, className);
             PerkKind kind = PerkClassification.Classify(
                 AbilityTrackSource.Personal,
                 level0,
