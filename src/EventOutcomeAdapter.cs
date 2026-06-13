@@ -340,12 +340,13 @@ namespace Morgott.Oracle
         {
             try
             {
-                if (d.Value == 0 || d.PartyType != OutcomeDiplomacyChange.ChangeTarget.Faction)
+                if (d.Value == 0)
                 {
                     return;
                 }
-                if ((UnityEngine.Object)(object)d.PartyFaction == (UnityEngine.Object)null
-                    || (UnityEngine.Object)(object)d.TargetFaction == (UnityEngine.Object)null)
+                bool isLeader = d.PartyType == OutcomeDiplomacyChange.ChangeTarget.SiteLeader;
+                if ((UnityEngine.Object)(object)d.TargetFaction == (UnityEngine.Object)null
+                    || (!isLeader && (UnityEngine.Object)(object)d.PartyFaction == (UnityEngine.Object)null))
                 {
                     return;
                 }
@@ -358,24 +359,52 @@ namespace Morgott.Oracle
                 {
                     return;
                 }
-                string party = FactionViewName(d.PartyFaction);
-                string target = FactionViewName(d.TargetFaction);
-                if (string.IsNullOrEmpty(party) || string.IsNullOrEmpty(target))
-                {
-                    return;
-                }
-                Base.UI.LocalizedTextBind key = mod.EncounterFactionDiplomacyChangedTextKey;
-                if (key == null || string.IsNullOrEmpty(key.LocalizationKey))
-                {
-                    return;
-                }
-                string pattern = key.Localize();
-                if (string.IsNullOrEmpty(pattern))
-                {
-                    return;
-                }
                 string value = Colorize(mod, scaled.ToString("+#;-#"), scaled > 0);
-                string line = string.Format(pattern, party, target, value);
+                string target = FactionViewName(d.TargetFaction);
+                if (string.IsNullOrEmpty(target))
+                {
+                    return;
+                }
+
+                string line;
+                if (isLeader)
+                {
+                    // Site-leader party is the live haven leader (unknown pre-apply); substitute a generic
+                    // authored token into the native 2-arg EncounterLeaderDiplomacyChangedTextKey
+                    // ({0}=leader, {1}=signed value). The target name is itself the live leader, so the native
+                    // key's single name slot receives the generic token + colored value.
+                    Base.UI.LocalizedTextBind leaderKey = mod.EncounterLeaderDiplomacyChangedTextKey;
+                    if (leaderKey == null || string.IsNullOrEmpty(leaderKey.LocalizationKey))
+                    {
+                        return;
+                    }
+                    string leaderPattern = leaderKey.Localize();
+                    if (string.IsNullOrEmpty(leaderPattern))
+                    {
+                        return;
+                    }
+                    string leaderToken = Loc.Get("ORACLE_EVT_TOK_HAVEN_LEADER", "haven leader");
+                    line = string.Format(leaderPattern, leaderToken, value);
+                }
+                else
+                {
+                    string party = FactionViewName(d.PartyFaction);
+                    if (string.IsNullOrEmpty(party))
+                    {
+                        return;
+                    }
+                    Base.UI.LocalizedTextBind key = mod.EncounterFactionDiplomacyChangedTextKey;
+                    if (key == null || string.IsNullOrEmpty(key.LocalizationKey))
+                    {
+                        return;
+                    }
+                    string pattern = key.Localize();
+                    if (string.IsNullOrEmpty(pattern))
+                    {
+                        return;
+                    }
+                    line = string.Format(pattern, party, target, value);
+                }
                 if (!string.IsNullOrEmpty(line))
                 {
                     data.NativeLines.Add(line);
