@@ -25,12 +25,21 @@ namespace Morgott.Oracle
         /// Personal track is rolled, so a present Personal perk is treated as Rolled.
         /// </param>
         /// <param name="isSlotRandom">Looks up whether a given Personal level slot is random (TFTV config).</param>
+        /// <param name="abilityIsRolledPoolMember">
+        /// True when the cell's ability is a member of the engine's random rolled-perk pool (its
+        /// CharacterProgressionData carries the PersonalProgressionTag). Augmentation / custom-mod
+        /// abilities (PersonalTrackTags empty) are never randomly rolled, so a present Personal cell
+        /// is always Fixed for them. This is the engine's OWN pool-membership test, hierarchy- and
+        /// owner-independent. Defaults to true, so callers that do not pass it (and the pure unit
+        /// tests) keep the existing human behavior unchanged.
+        /// </param>
         public static PerkKind Classify(
             AbilityTrackSource source,
             int level0,
             bool abilityPresent,
             bool bridgeAvailable,
-            Func<int, bool> isSlotRandom)
+            Func<int, bool> isSlotRandom,
+            bool abilityIsRolledPoolMember = true)
         {
             if (!abilityPresent)
             {
@@ -39,6 +48,14 @@ namespace Morgott.Oracle
 
             // Class rows are always fixed.
             if (source != AbilityTrackSource.Personal)
+            {
+                return PerkKind.Fixed;
+            }
+
+            // A Personal cell can be Rolled ONLY if its ability is a member of the engine's random
+            // rolled-perk pool (carries PersonalProgressionTag). Augmentation / custom-mod abilities
+            // (PersonalTrackTags empty) are never rolled -> Fixed. Gates every Rolled path below.
+            if (!abilityIsRolledPoolMember)
             {
                 return PerkKind.Fixed;
             }

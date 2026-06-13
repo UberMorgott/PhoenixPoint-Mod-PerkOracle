@@ -42,6 +42,9 @@ namespace Morgott.Oracle
                     return false;
                 }
 
+                // Resolve the shown soldier once; used by the Mutoid gate and the swap context below.
+                var character = CharacterField?.GetValue(__instance) as GeoCharacter;
+
                 // RISK (verify in-game): the Cancel action maps to BOTH RMB and Esc, so we cannot
                 // rely on GetMouseButtonDown(1) being true here (RMB may already be consumed by input
                 // routing). We therefore key off "pointer over a rolled cell" instead: if the user is
@@ -71,7 +74,6 @@ namespace Morgott.Oracle
 
                 // Build the swap context so wiki left-clicks can replace this slot's perk (gated by the
                 // AllowPerkSwap config at click time). Null character/slot just disables swapping.
-                var character = CharacterField?.GetValue(__instance) as GeoCharacter;
                 var swapContext = new PerkSwapContext(character, cell.TrackSlot, __instance, level0);
 
                 PerkWikiPanel.Open(canvas, defs, swapContext);
@@ -152,12 +154,17 @@ namespace Morgott.Oracle
                 return false;
             }
             bool abilityPresent = (UnityEngine.Object)(object)cell.AbilityDef != (UnityEngine.Object)null;
+            // A Personal cell is a rolled perk only if its ability is a member of the engine's random
+            // rolled-perk pool (carries PersonalProgressionTag). Augmentation / custom-mod abilities
+            // (PersonalTrackTags empty) are never rolled -> no wiki gate.
+            bool isPoolMember = RolledPoolMembership.IsRolledPoolMember(cell.AbilityDef);
             PerkKind kind = PerkClassification.Classify(
                 AbilityTrackSource.Personal,
                 level0,
                 abilityPresent,
                 TftvConfigBridge.Available,
-                TftvConfigBridge.IsSlotRandom);
+                TftvConfigBridge.IsSlotRandom,
+                abilityIsRolledPoolMember: isPoolMember);
             return kind == PerkKind.Rolled;
         }
 

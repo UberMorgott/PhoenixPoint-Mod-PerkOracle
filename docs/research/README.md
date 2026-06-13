@@ -9,3 +9,7 @@ mod source.
   geoscape-modal input routing (RMB → `UIStateGeoModal.OnCancel`, only Left reaches pointer-clicks),
   native yes/no prompt (`MessageBox.ShowSimplePrompt` via `GameUtl.GetMessageBox()`), and the confirm-dialog
   layout/sorting hierarchy used to inject the perk-icon row.
+- [2026-06-13-rolled-pool-membership-fix.md](2026-06-13-rolled-pool-membership-fix.md) — rolled-highlight
+  fix: a Personal cell is Rolled only if its ability carries `PersonalProgressionTag` (the engine's
+  `AbilityTrack.CreatePersonalAbilityTrack` filter), not slot level-index/owner — stops custom-mod
+  monster + Mutoid-augmentation abilities (empty `PersonalTrackTags`) from being mis-highlighted.

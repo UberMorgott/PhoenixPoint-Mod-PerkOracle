@@ -57,12 +57,18 @@ namespace Morgott.Oracle
                 }
                 int level0 = level - 1;
 
+                // A Personal cell is Rolled only if its ability is a member of the engine's random
+                // rolled-perk pool (carries PersonalProgressionTag). Augmentation / custom-mod
+                // abilities (PersonalTrackTags empty) are never rolled -> never highlighted.
+                bool isPoolMember = RolledPoolMembership.IsRolledPoolMember(__instance.AbilityDef);
+
                 PerkKind kind = PerkClassification.Classify(
                     AbilityTrackSource.Personal,
                     level0,
                     abilityPresent: true,
                     bridgeAvailable: TftvConfigBridge.Available,
-                    isSlotRandom: TftvConfigBridge.IsSlotRandom);
+                    isSlotRandom: TftvConfigBridge.IsSlotRandom,
+                    abilityIsRolledPoolMember: isPoolMember);
 
                 CellBackground.Apply(__instance, kind == PerkKind.Rolled);
             }

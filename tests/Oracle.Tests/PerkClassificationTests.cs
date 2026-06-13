@@ -72,5 +72,72 @@ namespace Morgott.Oracle.Tests
                 AbilityTrackSource.Personal, 0, true, bridgeAvailable: false, isSlotRandom: null);
             Assert.Equal(PerkKind.Rolled, kind);
         }
+
+        [Theory]
+        // Not a rolled-pool member (ability lacks PersonalProgressionTag: augmentation / custom-mod
+        // ability): present Personal cells are never rolled perks -> Fixed, regardless of TFTV bridge
+        // state, slot index, or IsSlotRandom result. This is the bug fix: tagless augmentation cells
+        // share the Personal track with a human's rolled perks but must not be highlighted.
+        [InlineData(0, true, true)]   // bridge available, would-be-random slot under TFTV
+        [InlineData(3, true, true)]   // another would-be-random slot
+        [InlineData(1, true, true)]   // would-be-fixed slot (still Fixed)
+        [InlineData(0, true, false)]  // no TFTV: whole Personal track would otherwise be Rolled
+        [InlineData(4, true, false)]  // no TFTV, different slot
+        public void Personal_NotPoolMember_IsFixed_NotRolled(int level0, bool bridgeAvailable, bool useShippedRandom)
+        {
+            Func<int, bool> lookup = useShippedRandom ? ShippedRandom : NeverRandom;
+            PerkKind kind = PerkClassification.Classify(
+                AbilityTrackSource.Personal, level0, abilityPresent: true,
+                bridgeAvailable: bridgeAvailable, isSlotRandom: lookup, abilityIsRolledPoolMember: false);
+            Assert.Equal(PerkKind.Fixed, kind);
+        }
+
+        [Theory]
+        // Contrast: the SAME inputs for a rolled-pool member (tagged ability) keep the existing
+        // human (vanilla / TFTV) behavior byte-for-byte.
+        [InlineData(0, true, true, PerkKind.Rolled)]   // TFTV random slot -> Rolled
+        [InlineData(1, true, true, PerkKind.Fixed)]    // TFTV fixed slot -> Fixed
+        [InlineData(0, false, true, PerkKind.Rolled)]  // no TFTV -> Rolled
+        public void Personal_PoolMember_UnchangedBehavior(
+            int level0, bool bridgeAvailable, bool useShippedRandom, PerkKind expected)
+        {
+            Func<int, bool> lookup = useShippedRandom ? ShippedRandom : NeverRandom;
+            PerkKind kind = PerkClassification.Classify(
+                AbilityTrackSource.Personal, level0, abilityPresent: true,
+                bridgeAvailable: bridgeAvailable, isSlotRandom: lookup, abilityIsRolledPoolMember: true);
+            Assert.Equal(expected, kind);
+        }
+
+        [Fact]
+        public void EmptyCell_NotPoolMember_IsUnknown()
+        {
+            // The empty-cell short-circuit precedes the pool-membership precondition: nothing to classify.
+            PerkKind kind = PerkClassification.Classify(
+                AbilityTrackSource.Personal, 0, abilityPresent: false,
+                bridgeAvailable: true, isSlotRandom: ShippedRandom, abilityIsRolledPoolMember: false);
+            Assert.Equal(PerkKind.Unknown, kind);
+        }
+
+        [Fact]
+        public void Personal_NotPoolMember_NoBridge_GatesWholeTrackRolled()
+        {
+            // Precedence: the precondition gates the no-bridge (vanilla) whole-Personal-track-Rolled
+            // path -- the most aggressive Rolled branch. Tagless ability -> Fixed, not Rolled.
+            PerkKind kind = PerkClassification.Classify(
+                AbilityTrackSource.Personal, 0, abilityPresent: true,
+                bridgeAvailable: false, isSlotRandom: NeverRandom, abilityIsRolledPoolMember: false);
+            Assert.Equal(PerkKind.Fixed, kind);
+        }
+
+        [Fact]
+        public void Personal_NotPoolMember_TftvRandomSlot_GatesIsSlotRandom()
+        {
+            // Precedence: the precondition gates the TFTV IsSlotRandom==true branch too. Tagless
+            // ability whose slot index would be random under TFTV -> Fixed, not Rolled.
+            PerkKind kind = PerkClassification.Classify(
+                AbilityTrackSource.Personal, 0, abilityPresent: true,
+                bridgeAvailable: true, isSlotRandom: _ => true, abilityIsRolledPoolMember: false);
+            Assert.Equal(PerkKind.Fixed, kind);
+        }
     }
 }
