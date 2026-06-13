@@ -44,6 +44,20 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
+        /// Fill a two-placeholder localized pattern with <paramref name="arg0"/> and <paramref name="arg1"/>.
+        /// Returns empty when the pattern is null/empty (the caller then adds no row), so a missing loc term
+        /// never yields a stray "{0}: {1}" line. The pattern is supplied by the engine layer; this stays pure.
+        /// </summary>
+        public static string Format2(string pattern, object arg0, object arg1)
+        {
+            if (string.IsNullOrEmpty(pattern))
+            {
+                return string.Empty;
+            }
+            return string.Format(pattern, arg0, arg1);
+        }
+
+        /// <summary>
         /// Join already-resolved display names with <paramref name="separator"/>, skipping null/empty
         /// entries. Returns empty when nothing remains (caller adds no row). Used for multi-research /
         /// multi-phoenixpedia / multi-event lines so a single sentence lists all granted names.

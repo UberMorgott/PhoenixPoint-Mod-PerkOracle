@@ -63,18 +63,44 @@ namespace Morgott.Oracle.Tests
         }
 
         [Fact]
-        public void Variable_Line_Uses_Range_Token()
+        public void Format2_Substitutes_Two_Args()
         {
-            // The adapter builds the variable line as Format1(pattern, Range(min, max)); assert the composed shape.
-            string line = EventOutcomeFormat.Format1("Variable change: {0}", EventOutcomeFormat.Range(2, 5));
-            Assert.Equal("Variable change: [2..5]", line);
+            Assert.Equal("Variable Seeds_of_Reformation: = 1",
+                EventOutcomeFormat.Format2("Variable {0}: {1}", "Seeds_of_Reformation", "= 1"));
         }
 
         [Fact]
-        public void MissionWeight_Line_Uses_Range_Token()
+        public void Format2_Empty_Pattern_Returns_Empty()
         {
-            string line = EventOutcomeFormat.Format1("Mission weight: {0}", EventOutcomeFormat.Range(1, 1));
-            Assert.Equal("Mission weight: 1", line); // collapses when Min == Max
+            Assert.Equal(string.Empty, EventOutcomeFormat.Format2(string.Empty, "a", "b"));
+            Assert.Equal(string.Empty, EventOutcomeFormat.Format2(null, "a", "b"));
+        }
+
+        [Fact]
+        public void Variable_Line_Shows_Name_And_Set_Add_Range()
+        {
+            // The adapter (AddVariableChangeLine) shows the variable NAME plus the operation+value via the
+            // repurposed 2-arg ORACLE_EVT_VARIABLE key ({0}=name, {1}=value expr). Mirror its composition:
+            //   • SET, Min==Max      -> "= X"
+            //   • SET, Min!=Max      -> "= [Min..Max]"
+            //   • additive, Min==Max -> signed "+X"/"-X"
+            //   • additive, Min!=Max -> signed range "+[Min..Max]"
+            const string pattern = "Variable {0}: {1}";
+
+            // SET single value.
+            Assert.Equal("Variable Seeds_of_Reformation: = 1",
+                EventOutcomeFormat.Format2(pattern, "Seeds_of_Reformation", "= " + EventOutcomeFormat.Range(1, 1)));
+            // SET range.
+            Assert.Equal("Variable Tempo: = [2..5]",
+                EventOutcomeFormat.Format2(pattern, "Tempo", "= " + EventOutcomeFormat.Range(2, 5)));
+            // Additive single value (signed).
+            Assert.Equal("Variable Threat: +3",
+                EventOutcomeFormat.Format2(pattern, "Threat", EventOutcomeFormat.Signed(3)));
+            Assert.Equal("Variable Threat: -2",
+                EventOutcomeFormat.Format2(pattern, "Threat", EventOutcomeFormat.Signed(-2)));
+            // Additive range (signed range).
+            Assert.Equal("Variable Mood: +[2..5]",
+                EventOutcomeFormat.Format2(pattern, "Mood", "+" + EventOutcomeFormat.Range(2, 5)));
         }
 
         [Fact]

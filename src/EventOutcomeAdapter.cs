@@ -140,23 +140,15 @@ namespace Morgott.Oracle
                     AddNativeLine(data, mod.AircraftDamageTextKey, o.DamageCurrentAircraft);
                     AddNativeLine(data, mod.AddSkillPointsTextKey, o.FactionSkillPoints);
 
-                    // VariablesChange — no native ShowReward branch. Author "Variable change: [Min..Max]"
-                    // per entry, NEVER a fabricated single roll (RangeDataInt is rolled at apply time).
+                    // VariablesChange — no native ShowReward branch. These hidden story variables matter to the
+                    // player, so author one line per entry showing the variable NAME plus the operation+value:
+                    // a SET shows "= X", an additive change shows the signed "+X"/"-X". RNG ranges render
+                    // [Min..Max], NEVER a fabricated single roll (RangeDataInt is rolled at apply time).
                     if (o.VariablesChange != null)
                     {
                         foreach (OutcomeVariableChange vc in o.VariablesChange)
                         {
-                            AddVariableRangeLine(data, vc);
-                        }
-                    }
-
-                    // SubfactionFactionMissionWeight — List<OutcomeFactionMissionWeightChange>; no native
-                    // branch. Author "Mission weight: [Min..Max]" per entry from its RangeDataInt.
-                    if (o.SubfactionFactionMissionWeight != null)
-                    {
-                        foreach (OutcomeFactionMissionWeightChange wc in o.SubfactionFactionMissionWeight)
-                        {
-                            AddMissionWeightRangeLine(data, wc);
+                            AddVariableChangeLine(data, vc);
                         }
                     }
 
@@ -495,53 +487,55 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Append an authored variable-change line "Variable change: [Min..Max]" using the
-        /// <c>RangeDataInt</c> bounds straight off the def. Shows a single value when Min == Max.
-        /// Skips zero-only changes where Min == Max == 0. Localized pattern via Loc (English fallback).
+        /// Append an authored line for one <see cref="OutcomeVariableChange"/> showing the variable NAME plus
+        /// the change, via the repurposed 2-arg <c>ORACLE_EVT_VARIABLE</c> key ({0}=name, {1}=value expr).
+        /// These hidden story variables matter to the player, so the name is always shown (it is a raw id —
+        /// acceptable; there is no localized title). The value expression mirrors the engine semantics
+        /// (struct confirmed: <c>VariableName</c>(string), <c>Value</c>(RangeDataInt), <c>IsSetOperation</c>(bool)):
+        ///   • SET      -> "= X"  (X = single value when Min==Max, else the [Min..Max] range)
+        ///   • additive -> signed "+X"/"-X" (or the signed range when Min!=Max)
+        /// RangeDataInt is rolled at apply time, so a distinct Min/Max is shown as the range, never a fabricated
+        /// roll. No row when the variable has no name, or for a 0..0 additive no-op.
         /// </summary>
-        private static void AddVariableRangeLine(EventOutcomeData data, OutcomeVariableChange vc)
+        private static void AddVariableChangeLine(EventOutcomeData data, OutcomeVariableChange vc)
         {
             try
             {
+                string name = vc.VariableName;
+                if (string.IsNullOrEmpty(name))
+                {
+                    return;
+                }
                 int min = vc.Value.Min;
                 int max = vc.Value.Max;
-                if (min == 0 && max == 0)
-                {
-                    return;
-                }
-                string pattern = Loc.Get("ORACLE_EVT_VARIABLE", "Variable change: {0}");
-                string line = EventOutcomeFormat.Format1(pattern, EventOutcomeFormat.Range(min, max));
-                if (!string.IsNullOrEmpty(line))
-                {
-                    data.NativeLines.Add(line);
-                }
-            }
-            catch (Exception ex)
-            {
-                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddVariableRangeLine failed: " + ex.Message);
-            }
-        }
 
-        /// <summary>
-        /// Append an authored sub-faction mission-weight line "Mission weight: [Min..Max]" from the
-        /// entry's RangeDataInt. Collapses when Min == Max; skips a 0..0 change. The range field is read
-        /// inside the try so an unexpected struct shape simply yields no row rather than throwing.
-        /// Confirmed at the decompiled struct: the RangeDataInt member is <c>Value</c> (struct also has
-        /// <c>SubFaction</c>), NOT <c>Weight</c> as an earlier draft assumed.
-        /// </summary>
-        private static void AddMissionWeightRangeLine(EventOutcomeData data, OutcomeFactionMissionWeightChange wc)
-        {
-            try
-            {
-                RangeDataInt range = wc.Value;
-                int min = range.Min;
-                int max = range.Max;
-                if (min == 0 && max == 0)
+                string valueExpr;
+                if (vc.IsSetOperation)
                 {
-                    return;
+                    // Assignment: "= X" (single value or [Min..Max] range). A set to 0 is still meaningful.
+                    valueExpr = "= " + EventOutcomeFormat.Range(min, max);
                 }
-                string pattern = Loc.Get("ORACLE_EVT_MISSIONWEIGHT", "Mission weight: {0}");
-                string line = EventOutcomeFormat.Format1(pattern, EventOutcomeFormat.Range(min, max));
+                else
+                {
+                    // Additive: a 0..0 change is a no-op — skip. Otherwise show the signed delta, or the signed
+                    // range when the bounds differ (e.g. "+[2..5]", "-3").
+                    if (min == 0 && max == 0)
+                    {
+                        return;
+                    }
+                    if (min == max)
+                    {
+                        valueExpr = EventOutcomeFormat.Signed(min);
+                    }
+                    else
+                    {
+                        string sign = max < 0 ? "-" : "+";
+                        valueExpr = sign + EventOutcomeFormat.Range(min, max);
+                    }
+                }
+
+                string pattern = Loc.Get("ORACLE_EVT_VARIABLE", "Variable {0}: {1}");
+                string line = EventOutcomeFormat.Format2(pattern, name, valueExpr);
                 if (!string.IsNullOrEmpty(line))
                 {
                     data.NativeLines.Add(line);
@@ -549,7 +543,7 @@ namespace Morgott.Oracle
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddMissionWeightRangeLine failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddVariableChangeLine failed: " + ex.Message);
             }
         }
 
