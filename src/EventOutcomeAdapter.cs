@@ -242,6 +242,13 @@ namespace Morgott.Oracle
                     {
                         AddConvertBaseLine(data, mod);
                     }
+
+                    // HavenPopulationChange — int. Native HavenPopulationChangeTextKey ({0}=live haven name,
+                    // {1}=int delta). Haven is apply-time; substitute a generic haven token + the signed delta.
+                    if (o.HavenPopulationChange != 0)
+                    {
+                        AddHavenPopulationLine(data, mod, o.HavenPopulationChange);
+                    }
                 }
             }
             catch (Exception ex)
@@ -933,6 +940,42 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddConvertBaseLine failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Append the haven-population line using the native 2-arg <c>HavenPopulationChangeTextKey</c>
+        /// ({0}=haven name, {1}=delta). The haven is resolved at apply time, so a generic authored token fills
+        /// the name slot; the delta is the signed def value. No row when the value is 0 or the key is missing.
+        /// </summary>
+        private static void AddHavenPopulationLine(EventOutcomeData data, UIModuleSiteEncounters mod, int delta)
+        {
+            try
+            {
+                if (delta == 0)
+                {
+                    return;
+                }
+                Base.UI.LocalizedTextBind key = mod.HavenPopulationChangeTextKey;
+                if (key == null || string.IsNullOrEmpty(key.LocalizationKey))
+                {
+                    return;
+                }
+                string pattern = key.Localize();
+                if (string.IsNullOrEmpty(pattern))
+                {
+                    return;
+                }
+                string token = Loc.Get("ORACLE_EVT_TOK_HAVEN", "a haven");
+                string line = string.Format(pattern, token, EventOutcomeFormat.Signed(delta));
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddHavenPopulationLine failed: " + ex.Message);
             }
         }
 
