@@ -26,5 +26,40 @@ namespace Morgott.Oracle.Tests
         {
             Assert.Equal("[-5..-1]", EventOutcomeFormat.Range(-5, -1));
         }
+
+        [Fact]
+        public void Signed_Formats_Positive_Negative_Zero()
+        {
+            Assert.Equal("+5", EventOutcomeFormat.Signed(5));
+            Assert.Equal("-8", EventOutcomeFormat.Signed(-8));
+            Assert.Equal("0", EventOutcomeFormat.Signed(0));
+        }
+
+        [Fact]
+        public void Format1_Substitutes_Single_Arg()
+        {
+            Assert.Equal("Leads to: PROG_AN_22", EventOutcomeFormat.Format1("Leads to: {0}", "PROG_AN_22"));
+        }
+
+        [Fact]
+        public void Format1_Empty_Pattern_Returns_Empty()
+        {
+            Assert.Equal(string.Empty, EventOutcomeFormat.Format1(string.Empty, "x"));
+            Assert.Equal(string.Empty, EventOutcomeFormat.Format1(null, "x"));
+        }
+
+        [Fact]
+        public void JoinNames_Joins_NonEmpty_With_Separator()
+        {
+            var names = new System.Collections.Generic.List<string> { "Alpha", "", null, "Beta" };
+            Assert.Equal("Alpha, Beta", EventOutcomeFormat.JoinNames(names, ", "));
+        }
+
+        [Fact]
+        public void JoinNames_Empty_List_Returns_Empty()
+        {
+            Assert.Equal(string.Empty, EventOutcomeFormat.JoinNames(new System.Collections.Generic.List<string>(), ", "));
+            Assert.Equal(string.Empty, EventOutcomeFormat.JoinNames(null, ", "));
+        }
     }
 }
