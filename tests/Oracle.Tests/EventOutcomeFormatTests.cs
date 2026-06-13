@@ -84,5 +84,13 @@ namespace Morgott.Oracle.Tests
             string line = EventOutcomeFormat.Format1("Research: {0}", EventOutcomeFormat.JoinNames(names, ", "));
             Assert.Equal("Research: Operative Reconditioning, Mutoid Tech", line);
         }
+
+        [Fact]
+        public void Phoenixpedia_Line_Joins_Resolved_Titles()
+        {
+            var names = new System.Collections.Generic.List<string> { "The Pure" };
+            string line = EventOutcomeFormat.Format1("Phoenixpedia: {0}", EventOutcomeFormat.JoinNames(names, ", "));
+            Assert.Equal("Phoenixpedia: The Pure", line);
+        }
     }
 }

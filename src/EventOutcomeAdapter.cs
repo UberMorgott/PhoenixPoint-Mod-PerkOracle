@@ -164,6 +164,13 @@ namespace Morgott.Oracle
                     {
                         AddResearchNamesLine(data, o.GiveResearches);
                     }
+
+                    // GivePhoenixpediaEntries — list of GeoPhoenixpediaEntryDef; no native branch. Author
+                    // "Phoenixpedia: <title>, <title>" from each entry's localized Entry.Title.
+                    if (o.GivePhoenixpediaEntries != null && o.GivePhoenixpediaEntries.Count > 0)
+                    {
+                        AddPhoenixpediaNamesLine(data, o.GivePhoenixpediaEntries);
+                    }
                 }
             }
             catch (Exception ex)
@@ -494,6 +501,46 @@ namespace Morgott.Oracle
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.ResearchDisplayName failed: " + ex.Message);
             }
             return string.Empty;
+        }
+
+        /// <summary>
+        /// Append an authored "Phoenixpedia: title, title" line from each entry's localized
+        /// <c>GeoPhoenixpediaEntryDef.Entry.Title</c>. Entries without a resolvable title are skipped.
+        /// </summary>
+        private static void AddPhoenixpediaNamesLine(EventOutcomeData data, List<GeoPhoenixpediaEntryDef> entries)
+        {
+            try
+            {
+                var names = new List<string>();
+                foreach (GeoPhoenixpediaEntryDef e in entries)
+                {
+                    if ((UnityEngine.Object)(object)e == (UnityEngine.Object)null
+                        || e.Entry == null || e.Entry.Title == null)
+                    {
+                        continue;
+                    }
+                    string s = e.Entry.Title.Localize();
+                    if (!string.IsNullOrEmpty(s))
+                    {
+                        names.Add(s);
+                    }
+                }
+                string joined = EventOutcomeFormat.JoinNames(names, ", ");
+                if (string.IsNullOrEmpty(joined))
+                {
+                    return;
+                }
+                string pattern = Loc.Get("ORACLE_EVT_PHOENIXPEDIA", "Phoenixpedia: {0}");
+                string line = EventOutcomeFormat.Format1(pattern, joined);
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddPhoenixpediaNamesLine failed: " + ex.Message);
+            }
         }
 
         /// <summary>
