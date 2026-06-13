@@ -107,5 +107,13 @@ namespace Morgott.Oracle.Tests
             string line = EventOutcomeFormat.Format1("Leads to: {0}", EventOutcomeFormat.JoinNames(ids, ", "));
             Assert.Equal("Leads to: PROG_AN_22, PROG_NJ_05", line);
         }
+
+        [Fact]
+        public void Sdi_Line_Substitutes_Absolute_Value()
+        {
+            // Adapter selects SDIIncrease/SDIDecrease key by sign, then substitutes the absolute value.
+            Assert.Equal("SDI increased by 4", EventOutcomeFormat.Format1("SDI increased by {0}", 4));
+            Assert.Equal("SDI decreased by 3", EventOutcomeFormat.Format1("SDI decreased by {0}", 3));
+        }
     }
 }

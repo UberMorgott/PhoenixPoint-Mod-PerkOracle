@@ -183,6 +183,11 @@ namespace Morgott.Oracle
                     // No native branch. Author "Leads to: <id>, <id>" (raw event id; no localized title is
                     // resolvable from the choice pre-apply, and the id is the same token the game keys on).
                     AddFollowUpEventsLine(data, o.TriggerEncounterID, o.SetEvents);
+
+                    // SDIChange — int. Native SDIIncreaseTextKey/SDIDecreaseTextKey exist but ShowReward
+                    // never renders them; we BORROW them (resolved design): pick by sign, substitute the
+                    // absolute value. No row when the change is 0 or the chosen key is missing.
+                    AddSdiLine(data, mod, o.SDIChange);
                 }
             }
             catch (Exception ex)
@@ -626,6 +631,38 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddFollowUpEventsLine failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Append the SDI-change line by borrowing the native <c>SDIIncreaseTextKey</c> /
+        /// <c>SDIDecreaseTextKey</c> (selected by sign) with the absolute value substituted. These keys
+        /// exist on the module but its ShowReward never renders them; reusing them keeps the wording + language
+        /// native with no new authored string. No row when the value is 0 or the key is missing/empty.
+        /// </summary>
+        private static void AddSdiLine(EventOutcomeData data, UIModuleSiteEncounters mod, int sdi)
+        {
+            try
+            {
+                if (sdi == 0)
+                {
+                    return;
+                }
+                Base.UI.LocalizedTextBind key = sdi > 0 ? mod.SDIIncreaseTextKey : mod.SDIDecreaseTextKey;
+                if (key == null || string.IsNullOrEmpty(key.LocalizationKey))
+                {
+                    return;
+                }
+                string pattern = key.Localize();
+                string line = EventOutcomeFormat.Format1(pattern, System.Math.Abs(sdi));
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddSdiLine failed: " + ex.Message);
             }
         }
 
