@@ -213,6 +213,28 @@ namespace Morgott.Oracle
                     // native RecruitSingleSoldierTextKey ({0}=name). Resolved design: count + class, no name.
                     AddRecruitLines(data, mod, o.Units);
                     AddRecruitLines(data, mod, o.CustomCharacters);
+
+                    // SetMaxDiplomacyStates — List<OutcomeMaxDiplomacyStateChange>; native
+                    // NewDiplomaticStateTextKey ({0}=faction name). Read the entry's faction def. NOTE: the
+                    // decompiled struct names the GeoFactionDef member "FacionDef" (engine typo), not "Faction".
+                    if (o.SetMaxDiplomacyStates != null)
+                    {
+                        foreach (OutcomeMaxDiplomacyStateChange ms in o.SetMaxDiplomacyStates)
+                        {
+                            AddFactionKeyLine(data, mod.NewDiplomaticStateTextKey, ms.FacionDef);
+                        }
+                    }
+
+                    // SetDiplomaticObjectives — List<OutcomeSetDiplomaticObjective>; native
+                    // NewDiplomaticObjectiveTextKey ({0}=faction name). The GeoFactionDef member is
+                    // "WithFaction" (confirmed at the decompiled struct), not "Faction".
+                    if (o.SetDiplomaticObjectives != null)
+                    {
+                        foreach (OutcomeSetDiplomaticObjective dobj in o.SetDiplomaticObjectives)
+                        {
+                            AddFactionKeyLine(data, mod.NewDiplomaticObjectiveTextKey, dobj.WithFaction);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -845,6 +867,38 @@ namespace Morgott.Oracle
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.CharacterDisplayToken failed: " + ex.Message);
             }
             return string.Empty;
+        }
+
+        /// <summary>
+        /// Append a 1-arg native line whose only placeholder is a faction display name, for the
+        /// new-diplomatic-state / new-diplomatic-objective outcomes. Resolves the name via
+        /// <see cref="FactionViewName"/> (same source the native lines use). No row when the key or the
+        /// faction name is missing.
+        /// </summary>
+        private static void AddFactionKeyLine(EventOutcomeData data, Base.UI.LocalizedTextBind key, GeoFactionDef faction)
+        {
+            try
+            {
+                if (key == null || string.IsNullOrEmpty(key.LocalizationKey))
+                {
+                    return;
+                }
+                string name = FactionViewName(faction);
+                if (string.IsNullOrEmpty(name))
+                {
+                    return;
+                }
+                string pattern = key.Localize();
+                string line = EventOutcomeFormat.Format1(pattern, name);
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddFactionKeyLine failed: " + ex.Message);
+            }
         }
 
         /// <summary>
