@@ -188,6 +188,13 @@ namespace Morgott.Oracle
                     // never renders them; we BORROW them (resolved design): pick by sign, substitute the
                     // absolute value. No row when the change is 0 or the chosen key is missing.
                     AddSdiLine(data, mod, o.SDIChange);
+
+                    // GameOverVictoryFaction — GeoFactionDef; means "win the game". Author "Victory for
+                    // <faction>" using the same GeoFactionViewDef.Name source the diplomacy lines use.
+                    if ((UnityEngine.Object)(object)o.GameOverVictoryFaction != (UnityEngine.Object)null)
+                    {
+                        AddVictoryLine(data, o.GameOverVictoryFaction);
+                    }
                 }
             }
             catch (Exception ex)
@@ -663,6 +670,33 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddSdiLine failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Append an authored "Victory for &lt;faction&gt;" line for a <c>GameOverVictoryFaction</c> (the
+        /// win-the-game outcome), reusing <see cref="FactionViewName"/> (the localized GeoFactionViewDef.Name).
+        /// No row when the faction name cannot be resolved.
+        /// </summary>
+        private static void AddVictoryLine(EventOutcomeData data, GeoFactionDef faction)
+        {
+            try
+            {
+                string name = FactionViewName(faction);
+                if (string.IsNullOrEmpty(name))
+                {
+                    return;
+                }
+                string pattern = Loc.Get("ORACLE_EVT_VICTORY", "Victory for {0}");
+                string line = EventOutcomeFormat.Format1(pattern, name);
+                if (!string.IsNullOrEmpty(line))
+                {
+                    data.NativeLines.Add(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddVictoryLine failed: " + ex.Message);
             }
         }
 

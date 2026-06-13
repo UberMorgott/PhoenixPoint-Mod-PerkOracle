@@ -115,5 +115,12 @@ namespace Morgott.Oracle.Tests
             Assert.Equal("SDI increased by 4", EventOutcomeFormat.Format1("SDI increased by {0}", 4));
             Assert.Equal("SDI decreased by 3", EventOutcomeFormat.Format1("SDI decreased by {0}", 3));
         }
+
+        [Fact]
+        public void Victory_Line_Uses_Faction_Name()
+        {
+            string line = EventOutcomeFormat.Format1("Victory for {0}", "Anu");
+            Assert.Equal("Victory for Anu", line);
+        }
     }
 }
