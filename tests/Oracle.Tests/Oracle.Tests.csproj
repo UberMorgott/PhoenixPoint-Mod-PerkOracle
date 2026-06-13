@@ -29,5 +29,8 @@
          so they link and unit-test under net8 exactly like PerkPoolResolver. -->
     <Compile Include="..\..\src\EventOutcomeData.cs" Link="EventOutcomeData.cs" />
     <Compile Include="..\..\src\EventOutcomePreview.cs" Link="EventOutcomePreview.cs" />
+    <!-- EventOutcomeFormat (pure authored-line formatting primitives) is engine-free, so it
+         links and unit-tests under net8 exactly like EventOutcomePreview. -->
+    <Compile Include="..\..\src\EventOutcomeFormat.cs" Link="EventOutcomeFormat.cs" />
   </ItemGroup>
 </Project>
