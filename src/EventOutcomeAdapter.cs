@@ -21,27 +21,30 @@ namespace Morgott.Oracle
     /// (that applies side-effects); only reads serialized def fields. Fully guarded so a malformed outcome
     /// yields an empty DTO, never throws.
     ///
-    /// EVERY line it emits is sourced from the game's OWN reward UI (<c>UIModuleSiteEncounters.ShowReward</c>,
+    /// Most lines are sourced from the game's OWN reward UI (<c>UIModuleSiteEncounters.ShowReward</c>,
     /// decompile lines in brackets) so the preview reads identically to the native post-choice reward text in
-    /// the current language. Two channels only:
+    /// the current language; the few kinds the native UI never renders are hand-authored via Oracle's own loc
+    /// keys (ORACLE_EVT_*), reusing native keys wherever they exist. Two channels only:
     ///   • <see cref="EventOutcomeData.Resources"/> — native resource line [417]: localized name + signed value.
-    ///   • <see cref="EventOutcomeData.NativeLines"/> — complete native reward sentences built from the live
-    ///     module's own <c>LocalizedTextBind</c> keys / native concatenation (site reveals, faction-party
-    ///     diplomacy, granted items, soldier/aircraft damage, tiredness, faction skill points).
+    ///   • <see cref="EventOutcomeData.NativeLines"/> — reward sentences: native-key lines (site reveals,
+    ///     faction + site-leader diplomacy, granted items, soldier/aircraft damage, tiredness, faction skill
+    ///     points, recruit, haven population, new diplomatic state/objective, convert-to-base, multi-haven
+    ///     attacks, SDI via borrowed keys) plus authored lines (research, phoenixpedia, mission, follow-up
+    ///     chain, victory, zone damage %, variable + sub-faction-mission-weight ranges).
     ///
-    /// Outcome kinds the native reward UI does NOT render, or that need apply-time data absent from a static
-    /// preview, are intentionally SKIPPED (no row), never shown as a raw codename / invented "xN":
-    ///   • Granted research (GiveResearches)         — no ShowReward branch.
-    ///   • Mission variables (VariablesChange)       — no ShowReward branch.
-    ///   • Sub-faction mission weight                — no ShowReward branch.
-    ///   • Zone damage (DamageZones)                 — native [476] needs a resolved GeoHavenZone + absolute
-    ///                                                 value; the def carries only a keyword + percentage.
-    ///   • Site-leader diplomacy (PartyType==SiteLeader) — native party is the site's haven leader, unknown
-    ///                                                 pre-apply.
+    /// Apply-time-resolved IDENTITIES are shown as a def-derived/generic token, never a fabricated name:
+    /// recruited soldier (class/template token), haven leader / haven / Phoenix base (generic token), revealed
+    /// site (type + count). RNG-valued kinds (variable, mission weight) render the [Min..Max] range, never a
+    /// single fabricated roll.
+    ///
+    /// Outcome kinds still intentionally SKIPPED (no row), because they need apply-time data absent from a
+    /// static preview or are low-value noise:
     ///   • Encounter-tag site reveals (SiteTag set)  — native resolves a specific live site's encounter Title
     ///                                                 at apply time (distance-ordered, non-deterministic).
     ///   • Haven-type site reveals (Type==Haven)     — native name is the runtime owner's localized faction
     ///                                                 name + " Haven"; not reproducible from the def alone.
+    ///   • Noise: timers, track/untrack/remove/reactive encounters, sub-faction activate/deactivate, unlock
+    ///     features, re-enable event, cinematic — no player-facing value in a hover preview.
     /// </summary>
     public static class EventOutcomeAdapter
     {
@@ -128,8 +131,8 @@ namespace Morgott.Oracle
                     //   TireAllSoldiers       -> AllSoldierTiredTextKey         [456]
                     //   DamageCurrentAircraft -> AircraftDamageTextKey          [434]
                     //   FactionSkillPoints    -> AddSkillPointsTextKey          [466]
-                    // HavenPopulationChange (needs the haven name) and SDIChange (no native reward line) are
-                    // intentionally skipped rather than rendered with an invented label.
+                    // HavenPopulationChange (generic-haven token) and SDIChange (borrowed SDI keys) are handled
+                    // below in their own helpers, not here, since they are not plain 1-arg int scalars.
                     AddNativeLine(data, mod.AircraftSoldiersInjuredTextKey, o.DamageCurrentSoldiers);
                     AddNativeLine(data, mod.AllSoldierInjuredTextKey, o.DamageAllSoldiers);
                     AddNativeLine(data, mod.AircraftSoldiersTiredTextKey, o.TireCurrentSoldiers);
