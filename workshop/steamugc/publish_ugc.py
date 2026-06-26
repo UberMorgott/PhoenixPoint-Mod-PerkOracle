@@ -237,8 +237,11 @@ def submit_description_for_language(steam, published_file_id: int, lang_code: st
                                     tags: list = None) -> int:
     """Push ONE localized description for ``lang_code`` and return its EResult.
 
-    Only sets the per-language description (no title/content/preview/visibility
-    touched), so nothing is re-uploaded and the Workshop brand title stays put.
+    Sets the per-language title (to the global English TITLE, so every language
+    shows the same name) plus the description (no content/preview/visibility
+    touched), so nothing is re-uploaded. SetItemTitle is REQUIRED per language:
+    scoping the update with SetItemUpdateLanguage otherwise writes an EMPTY title
+    for that language, leaving the store-page heading blank on non-english pages.
     If ``tags`` is given, also sets the item's (global) Workshop tags on this
     update -- intended for the english/default pass only, since tags are not
     per-language. Blocks on the SubmitItemUpdateResult_t callback. Returns the
@@ -246,6 +249,7 @@ def submit_description_for_language(steam, published_file_id: int, lang_code: st
     """
     handle = steam.Workshop.StartItemUpdate(APP_ID, published_file_id)
     steam.Workshop.SetItemUpdateLanguage(handle, lang_code)
+    steam.Workshop.SetItemTitle(handle, TITLE)
     steam.Workshop.SetItemDescription(handle, description)
     if tags:
         ok = steam.Workshop.SetItemTags(handle, tags)
