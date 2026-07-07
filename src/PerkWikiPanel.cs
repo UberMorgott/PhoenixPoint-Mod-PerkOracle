@@ -286,16 +286,11 @@ namespace Morgott.Oracle
         {
             try
             {
-                // Prefer a live (active) in-scene tooltip; if none is active (e.g. inside the dual-class
-                // MODAL the progression tooltip GO is inactive), fall back to Resources.FindObjectsOfTypeAll
-                // which also returns inactive scene instances so the class-perk banner still gets a tooltip.
-                var template = UnityEngine.Object.FindObjectsOfType<GeoRosterAbilityDetailTooltip>().FirstOrDefault();
-                if ((UnityEngine.Object)(object)template == (UnityEngine.Object)null)
-                {
-                    template = Resources.FindObjectsOfTypeAll<GeoRosterAbilityDetailTooltip>()
-                        .FirstOrDefault(t => (UnityEngine.Object)(object)t != (UnityEngine.Object)null
-                            && t.gameObject.scene.IsValid()); // a scene instance, not a prefab asset
-                }
+                // Clone a PRISTINE native tooltip. Must skip the mod's own repurposed clones (see
+                // WikiIconFactory.FindNativeTooltipTemplate): inside the dual-class picker the progression
+                // tooltip GO is inactive, so a plain lookup could otherwise pick EventOutcomeTooltip's
+                // title-less, wrap-disabled clone and the class-perk tooltip would overflow / look custom.
+                var template = WikiIconFactory.FindNativeTooltipTemplate();
                 if ((UnityEngine.Object)(object)template == (UnityEngine.Object)null)
                 {
                     return;

@@ -24,6 +24,60 @@ namespace Morgott.Oracle
         public const string CloneNamePrefix = "RolledPerkWikiCell";
 
         /// <summary>
+        /// Find a PRISTINE native <see cref="GeoRosterAbilityDetailTooltip"/> to clone, skipping any of the
+        /// mod's OWN clones. Prefer a live (active) native in-scene instance; else any inactive native scene
+        /// instance (e.g. inside the dual-class modal, where the progression tooltip GO is inactive).
+        ///
+        /// CRITICAL: this exclusion is what keeps the class-selection skill tooltip looking native. Other
+        /// Oracle features clone this same widget and REPURPOSE their copy — notably
+        /// <see cref="EventOutcomeTooltip"/>, which deactivates the title/icon/cost groups AND turns OFF the
+        /// description's word-wrap, then keeps that clone as a persistent inactive scene instance. A plain
+        /// FirstOrDefault() lookup can pick THAT mangled clone as the template on screens where no pristine
+        /// native tooltip is the first hit (the dual-class picker / confirm), yielding a title-less,
+        /// non-wrapping box whose text overflows the frame — exactly the "custom-looking" tooltip reported.
+        /// Skipping our own clones (by the name prefixes we stamp) guarantees a real native template, the same
+        /// one the roster screen clones. Mirrors TFTV's HavenRecruits tooltip finder, which likewise excludes
+        /// its own overlay clone.
+        /// </summary>
+        public static GeoRosterAbilityDetailTooltip FindNativeTooltipTemplate()
+        {
+            foreach (GeoRosterAbilityDetailTooltip t in
+                     UnityEngine.Object.FindObjectsOfType<GeoRosterAbilityDetailTooltip>())
+            {
+                if ((UnityEngine.Object)(object)t != (UnityEngine.Object)null && !IsOwnTooltipClone(t))
+                {
+                    return t;
+                }
+            }
+
+            foreach (GeoRosterAbilityDetailTooltip t in
+                     Resources.FindObjectsOfTypeAll<GeoRosterAbilityDetailTooltip>())
+            {
+                if ((UnityEngine.Object)(object)t != (UnityEngine.Object)null
+                    && t.gameObject.scene.IsValid() // a scene instance, not a prefab asset
+                    && !IsOwnTooltipClone(t))
+                {
+                    return t;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// True if the tooltip is one of the mod's OWN clones (never a valid clone template). Every Oracle
+        /// clone stamps a name starting with "Oracle" or "RolledPerk" (EventOutcomeTooltip -> "OracleEvent…",
+        /// PerkWikiPanel -> "RolledPerkWikiAbilityTooltip", SubclassConfirmPopupDecorator -> "OracleConfirm…").
+        /// Native tooltips never use those prefixes, so this excludes exactly our clones.
+        /// </summary>
+        private static bool IsOwnTooltipClone(GeoRosterAbilityDetailTooltip t)
+        {
+            string n = t.gameObject.name;
+            return n.StartsWith("Oracle", StringComparison.Ordinal)
+                || n.StartsWith("RolledPerk", StringComparison.Ordinal);
+        }
+
+        /// <summary>
         /// Create a candidate cell under <paramref name="parent"/> for <paramref name="def"/> by cloning
         /// <paramref name="template"/> (a live native cell). <paramref name="slot"/> is the REAL personal
         /// slot of the opened level (same slot the swap targets) — it is stored on the clone so the cell's

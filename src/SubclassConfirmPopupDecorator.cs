@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using Base.Core;
 using Base.UI.MessageBox.PromptControllers;
@@ -247,13 +246,10 @@ namespace Morgott.Oracle
             go = null;
             try
             {
-                var template = UnityEngine.Object.FindObjectsOfType<GeoRosterAbilityDetailTooltip>().FirstOrDefault();
-                if ((UnityEngine.Object)(object)template == (UnityEngine.Object)null)
-                {
-                    template = Resources.FindObjectsOfTypeAll<GeoRosterAbilityDetailTooltip>()
-                        .FirstOrDefault(t => (UnityEngine.Object)(object)t != (UnityEngine.Object)null
-                            && t.gameObject.scene.IsValid());
-                }
+                // Clone a PRISTINE native tooltip, skipping the mod's own repurposed clones
+                // (WikiIconFactory.FindNativeTooltipTemplate) — otherwise this popup could pick up
+                // EventOutcomeTooltip's title-less, wrap-disabled clone and the perk tooltip would overflow.
+                var template = WikiIconFactory.FindNativeTooltipTemplate();
                 if ((UnityEngine.Object)(object)template == (UnityEngine.Object)null)
                 {
                     return null;
