@@ -36,6 +36,9 @@ namespace Morgott.Oracle
         // Single native ability-tooltip clone, owned by the panel: created in Open, destroyed in Close.
         // Shared by every icon's WikiAbilityTooltipTrigger so there's exactly one live tooltip.
         private static GameObject _tooltipGo;
+        // Full-screen sorting wrapper that parents the tooltip clone; its overrideSorting Canvas keeps the
+        // tooltip topmost regardless of sibling order (destroying it also destroys the clone child).
+        private static GameObject _tooltipLayer;
         private static GeoRosterAbilityDetailTooltip _tooltip;
         private static Canvas _rootCanvas;
 
@@ -57,26 +60,38 @@ namespace Morgott.Oracle
                     return;
                 }
 
-                // Ride the OUTERMOST canvas (the same one UITooltipText/TTUtil.GetRootCanvas parents
-                // tooltips to). We do NOT add our own Canvas/overrideSorting/GraphicRaycaster: that
-                // would (1) render the native ability tooltip behind us and (2) add a fresh raycaster
-                // that delays pointer-enter under a stationary cursor. The root canvas already has a
-                // GraphicRaycaster covering our descendants, so our backdrop button still gets clicks.
+                // The PANEL rides the OUTERMOST canvas (same one UITooltipText/TTUtil.GetRootCanvas
+                // parents tooltips to) and deliberately gets NO Canvas/overrideSorting/GraphicRaycaster
+                // of its OWN: that would (1) render the native ability tooltip behind us and (2) add a
+                // fresh raycaster that delays pointer-enter under a stationary cursor. The root canvas
+                // already has a GraphicRaycaster covering our descendants, so the backdrop still clicks.
                 Canvas rootCanvas = canvas.rootCanvas;
                 Transform rootParent = ((UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null)
                     ? rootCanvas.transform
                     : canvas.transform;
                 _rootCanvas = rootCanvas;
 
-                // Clone ONE native ability tooltip onto the root canvas (canvas-local positioning).
-                // Shared by all icon triggers; destroyed in Close. Non-fatal if the template is absent.
-                CreateTooltipClone(rootParent);
+                // Clone ONE native ability tooltip, shared by all icon triggers (destroyed in Close;
+                // non-fatal if the template is absent). Sibling order alone can NOT keep it above elements
+                // that draw through their own sorting Canvas — a nested overrideSorting sub-canvas, or the
+                // modal we rode in on — which is the intermittent "tooltip renders behind other UI". So the
+                // clone lives under a full-screen sorting WRAPPER with overrideSorting (the wrapper carries
+                // the Canvas, NEVER the tooltip root — a Canvas there breaks the native ContentSizeFitter
+                // word-wrap). sortingOrder sits above the host/root canvas (+100, same convention as
+                // SubclassConfirmPopupDecorator); this mirrors TFTV's recruit overlay, which likewise puts
+                // overrideSorting on an ANCESTOR canvas, never on the tooltip.
+                int tooltipSortingOrder = canvas.sortingOrder;
+                if ((UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null)
+                {
+                    tooltipSortingOrder = Mathf.Max(tooltipSortingOrder, rootCanvas.sortingOrder);
+                }
+                CreateTooltipClone(rootParent, tooltipSortingOrder + 100);
 
                 _root = new GameObject("RolledPerkWiki", typeof(RectTransform));
                 _root.transform.SetParent(rootParent, false);
                 StretchFull(_root.GetComponent<RectTransform>());
-                // Draw above the progression cells. The native tooltip is cloned onto the same root
-                // canvas LATER, so as a later sibling it renders above this panel (fixes z-order).
+                // Keep the panel above sibling content of the root canvas (plain last-sibling). The
+                // tooltip's own overrideSorting wrapper (created above) keeps it above THIS panel in turn.
                 _root.transform.SetAsLastSibling();
 
                 // Backdrop: full-screen transparent button; clicking it (outside the panel) closes.
@@ -100,10 +115,17 @@ namespace Morgott.Oracle
         /// <summary>Destroy the live instance, if any. Safe to call when nothing is open.</summary>
         public static void Close()
         {
-            if ((UnityEngine.Object)(object)_tooltipGo != (UnityEngine.Object)null)
+            // Destroying the wrapper tears down the tooltip clone it parents; fall back to the clone
+            // itself if the wrapper is somehow absent.
+            if ((UnityEngine.Object)(object)_tooltipLayer != (UnityEngine.Object)null)
+            {
+                UnityEngine.Object.Destroy(_tooltipLayer);
+            }
+            else if ((UnityEngine.Object)(object)_tooltipGo != (UnityEngine.Object)null)
             {
                 UnityEngine.Object.Destroy(_tooltipGo);
             }
+            _tooltipLayer = null;
             _tooltipGo = null;
             _tooltip = null;
             _rootCanvas = null;
@@ -278,11 +300,15 @@ namespace Morgott.Oracle
 
         /// <summary>
         /// Instantiate a single live <see cref="GeoRosterAbilityDetailTooltip"/> from any in-scene
-        /// template, parented under the root canvas (so positioning math is canvas-local). Scaled to
-        /// Vector3.one (full size). Stored in <see cref="_tooltip"/>; torn down in <see cref="Close"/>.
-        /// Fully guarded: a missing template just leaves icons tooltip-less, never breaks the panel.
+        /// template, parented under a full-screen sorting WRAPPER (own overrideSorting Canvas at
+        /// <paramref name="sortingOrder"/>) so the tooltip always draws above the host surface. The Canvas
+        /// lives on the wrapper, NEVER on the tooltip root — a Canvas there breaks the native
+        /// ContentSizeFitter word-wrap. The wrapper is full-stretch (its rect == the root-canvas rect), so
+        /// the trigger's canvas-local positioning math is unchanged. Scaled to Vector3.one (full size).
+        /// Wrapper stored in <see cref="_tooltipLayer"/>, clone in <see cref="_tooltip"/>; both torn down in
+        /// <see cref="Close"/>. Fully guarded: a missing template just leaves icons tooltip-less.
         /// </summary>
-        private static void CreateTooltipClone(Transform rootParent)
+        private static void CreateTooltipClone(Transform rootParent, int sortingOrder)
         {
             try
             {
@@ -296,9 +322,24 @@ namespace Morgott.Oracle
                     return;
                 }
 
-                _tooltipGo = UnityEngine.Object.Instantiate(template.gameObject, rootParent, false);
+                // Full-screen sorting wrapper: overrideSorting lifts the tooltip above the panel, the modal
+                // and any nested sorting canvas. Full-stretch => wrapper rect == root-canvas rect, so the
+                // trigger keeps positioning the clone in the same (canvas-local) space.
+                var layer = new GameObject("RolledPerkWikiTooltipLayer", typeof(RectTransform));
+                layer.transform.SetParent(rootParent, false);
+                var layerRt = layer.GetComponent<RectTransform>();
+                layerRt.anchorMin = Vector2.zero;
+                layerRt.anchorMax = Vector2.one;
+                layerRt.offsetMin = Vector2.zero;
+                layerRt.offsetMax = Vector2.zero;
+                var layerCanvas = layer.AddComponent<Canvas>();
+                layerCanvas.overrideSorting = true;
+                layerCanvas.sortingOrder = sortingOrder;
+                _tooltipLayer = layer;
+
+                _tooltipGo = UnityEngine.Object.Instantiate(template.gameObject, layer.transform, false);
                 var tipCg = _tooltipGo.GetComponent<CanvasGroup>() ?? _tooltipGo.AddComponent<CanvasGroup>();
-                tipCg.blocksRaycasts = false;
+                tipCg.blocksRaycasts = false; // purely visual; no GraphicRaycaster on the wrapper
                 tipCg.interactable = false;
                 _tooltipGo.name = "RolledPerkWikiAbilityTooltip";
                 _tooltipGo.transform.localScale = Vector3.one; // full size (NOT 0.5)
@@ -308,6 +349,11 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] PerkWikiPanel.CreateTooltipClone failed: " + ex.Message);
+                if ((UnityEngine.Object)(object)_tooltipLayer != (UnityEngine.Object)null)
+                {
+                    UnityEngine.Object.Destroy(_tooltipLayer);
+                }
+                _tooltipLayer = null;
                 _tooltipGo = null;
                 _tooltip = null;
             }

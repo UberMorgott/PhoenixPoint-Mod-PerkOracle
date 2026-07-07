@@ -160,7 +160,9 @@ namespace Morgott.Oracle
                     tip.Show(Def, Def.ViewElementDef, false, 0);
                 }
 
-                tip.transform.SetAsLastSibling(); // render above our panel on the same root canvas
+                // Topmost z-order is guaranteed by the tooltip's overrideSorting wrapper (see
+                // PerkWikiPanel.CreateTooltipClone); this last-sibling nudge is a harmless belt-and-braces.
+                tip.transform.SetAsLastSibling();
                 Position(eventData);
             }
             catch (Exception ex)
