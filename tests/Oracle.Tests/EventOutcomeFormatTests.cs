@@ -127,11 +127,13 @@ namespace Morgott.Oracle.Tests
         }
 
         [Fact]
-        public void FollowUp_Line_Joins_Event_Ids()
+        public void FollowUp_Line_Joins_Event_Titles()
         {
-            var ids = new System.Collections.Generic.List<string> { "PROG_AN_22", "PROG_NJ_05" };
-            string line = EventOutcomeFormat.Format1("Leads to: {0}", EventOutcomeFormat.JoinNames(ids, ", "));
-            Assert.Equal("Leads to: PROG_AN_22, PROG_NJ_05", line);
+            // The adapter now resolves each follow-up event id to its localized GeoscapeEventData.Title
+            // before this pure join runs, so the row lists human titles, never raw internal ids.
+            var titles = new System.Collections.Generic.List<string> { "The Anu Envoy", "Jericho Ultimatum" };
+            string line = EventOutcomeFormat.Format1("Leads to: {0}", EventOutcomeFormat.JoinNames(titles, ", "));
+            Assert.Equal("Leads to: The Anu Envoy, Jericho Ultimatum", line);
         }
 
         [Fact]

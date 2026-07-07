@@ -22,10 +22,9 @@ ORACLE_EVT_PHOENIXPEDIA,Phoenixpedia: {0},凤凰百科：{0},Phoenixpédia : {0}
 ORACLE_EVT_MISSION,Mission: {0},任务：{0},Mission : {0},Mission: {0},Missione: {0},Misja: {0},Миссия: {0},Misión: {0}
 ORACLE_EVT_FOLLOWUP,Leads to: {0},触发后续：{0},Mène à : {0},Führt zu: {0},Conduce a: {0},Prowadzi do: {0},Ведёт к: {0},Conduce a: {0}
 ORACLE_EVT_VICTORY,Victory for {0},{0} 取得胜利,Victoire pour {0},Sieg für {0},Vittoria per {0},Zwycięstwo dla {0},Победа фракции {0},Victoria para {0}
-ORACLE_EVT_ZONE_DAMAGE,{0}% damage to {1},对 {1} 造成 {0}% 伤害,{0}% de dégâts à {1},{0}% Schaden an {1},{0}% di danni a {1},{0}% obrażeń dla {1},{0}% урона по {1},{0}% de daño a {1}
+ORACLE_EVT_ZONE_DAMAGE,Haven zone {0} damaged ({1}%),庇护所区域 {0} 受损（{1}%）,Zone de havre {0} endommagée ({1} %),Hafenzone {0} beschädigt ({1} %),Zona del rifugio {0} danneggiata ({1}%),Strefa przystani {0} uszkodzona ({1}%),Зона убежища {0} получила урон ({1}%),Zona del refugio {0} dañada ({1}%)
 ORACLE_EVT_VARIABLE,Variable {0}: {1},变量 {0}：{1},Variable {0} : {1},Variable {0}: {1},Variabile {0}: {1},Zmienna {0}: {1},Переменная {0}: {1},Variable {0}: {1}
 ORACLE_EVT_MISSIONWEIGHT,Mission weight: {0},任务权重：{0},Poids de mission : {0},Missionsgewichtung: {0},Peso missione: {0},Waga misji: {0},Вес миссии: {0},Peso de misión: {0}
-ORACLE_EVT_TOK_HAVEN_LEADER,haven leader,庇护所首领,chef de havre,Hafen-Anführer,leader del rifugio,przywódca przystani,глава убежища,líder del refugio
 ORACLE_EVT_TOK_HAVEN,a haven,某个庇护所,un havre,einem Hafen,un rifugio,przystań,убежище,un refugio
 ORACLE_EVT_TOK_BASE,a Phoenix base,一座凤凰基地,une base Phénix,einer Phoenix-Basis,una base Phoenix,baza Feniksa,база «Феникса»,una base Phoenix
 ORACLE_ITEM_SCRAP,Dismantle,拆解,Démantèlement,Zerlegen,Smantellamento,Demontaż,Разбор,Desmantelar

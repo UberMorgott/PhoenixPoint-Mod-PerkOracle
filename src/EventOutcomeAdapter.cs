@@ -33,7 +33,7 @@ namespace Morgott.Oracle
     ///     chain, victory, zone damage %, narrative story-variable prose, sub-faction-mission-weight ranges).
     ///
     /// Apply-time-resolved IDENTITIES are shown as a def-derived/generic token, never a fabricated name:
-    /// recruited soldier (class/template token), haven leader / haven / Phoenix base (generic token), revealed
+    /// recruited soldier (class/template token), haven / Phoenix base (generic token), revealed
     /// site (type + count). RNG-valued kinds (variable, mission weight) render the [Min..Max] range, never a
     /// single fabricated roll.
     ///
@@ -175,8 +175,9 @@ namespace Morgott.Oracle
                     }
 
                     // Follow-up event chain — TriggerEncounterID (string) + SetEvents[].EventID (string).
-                    // No native branch. Author "Leads to: <id>, <id>" (raw event id; no localized title is
-                    // resolvable from the choice pre-apply, and the id is the same token the game keys on).
+                    // No native branch. Resolve each id to its GeoscapeEventDef and author "Leads to: <title>,
+                    // <title>" from the localized GeoscapeEventData.Title; ids with no def / empty title are
+                    // hidden + logged once (never a raw internal id in the UI).
                     AddFollowUpEventsLine(data, o.TriggerEncounterID, o.SetEvents);
 
                     // SDIChange — int. Native SDIIncreaseTextKey/SDIDecreaseTextKey exist but ShowReward
@@ -376,9 +377,10 @@ namespace Morgott.Oracle
         /// reproducing <c>UIModuleSiteEncounters.ShowReward</c> [392]:
         /// <c>Format(EncounterFactionDiplomacyChangedTextKey, partyName, targetName, colouredSignedValue)</c>.
         /// Party and target names use the SAME source as the native line — <c>GeoFaction.ToString()</c> resolves
-        /// to <c>Def.GeoFactionViewDef.Name.Localize()</c>, which we read directly off the def. Only
-        /// <c>PartyType==Faction</c> is rendered (both party and target are defs); a site-leader party is
-        /// resolved at apply time and is skipped.
+        /// to <c>Def.GeoFactionViewDef.Name.Localize()</c>, which we read directly off the def. Both party
+        /// types render: for <c>PartyType==Faction</c> both party and target are defs; for a site-leader party
+        /// the live leader is baked into the native key TEMPLATE ("лидер убежища") and {0} carries the target
+        /// faction the leader's relation changes with (typically the player), read from <c>d.TargetFaction</c>.
         /// </summary>
         private static void AddDiplomacyNativeLine(EventOutcomeData data, UIModuleSiteEncounters mod, OutcomeDiplomacyChange d)
         {
@@ -413,10 +415,12 @@ namespace Morgott.Oracle
                 string line;
                 if (isLeader)
                 {
-                    // Site-leader party is the live haven leader (unknown pre-apply); substitute a generic
-                    // authored token into the native 2-arg EncounterLeaderDiplomacyChangedTextKey
-                    // ({0}=leader, {1}=signed value). The target name is itself the live leader, so the native
-                    // key's single name slot receives the generic token + colored value.
+                    // Native ShowReward leader branch [385]:
+                    // Format(EncounterLeaderDiplomacyChangedTextKey, <target-faction name>, <coloured value>).
+                    // The haven leader ("лидер убежища") is baked into the key TEMPLATE text; {0} is the OTHER
+                    // party the leader's relation changes WITH — the target faction (typically the player,
+                    // "Проект Феникс"), which in apply is level.GetFaction(TargetFaction) [GeoEventChoiceOutcome
+                    // .cs:210]. We already resolved that into `target`; do NOT substitute a generic leader token.
                     Base.UI.LocalizedTextBind leaderKey = mod.EncounterLeaderDiplomacyChangedTextKey;
                     if (leaderKey == null || string.IsNullOrEmpty(leaderKey.LocalizationKey))
                     {
@@ -427,8 +431,7 @@ namespace Morgott.Oracle
                     {
                         return;
                     }
-                    string leaderToken = Loc.Get("ORACLE_EVT_TOK_HAVEN_LEADER", "haven leader");
-                    line = string.Format(leaderPattern, leaderToken, value);
+                    line = string.Format(leaderPattern, target, value);
                 }
                 else
                 {
@@ -668,11 +671,17 @@ namespace Morgott.Oracle
             }
         }
 
+        /// <summary>Already-logged unresolved follow-up event ids, so each coverage gap is reported at most once.</summary>
+        private static readonly HashSet<string> _loggedUnresolvedEvents = new HashSet<string>();
+
         /// <summary>
-        /// Append an authored "Leads to: id, id" line from the follow-up event chain: the single
-        /// <c>TriggerEncounterID</c> plus every <c>OutcomeEncounterSet.EventID</c>. Both are raw event id
-        /// strings (no def / localized title is resolvable from the choice pre-apply). Empty ids are skipped;
-        /// no row when none are present.
+        /// Append an authored "Leads to: &lt;title&gt;, &lt;title&gt;" line from the follow-up event chain: the
+        /// single <c>TriggerEncounterID</c> plus every <c>OutcomeEncounterSet.EventID</c>. Each id is resolved
+        /// to its follow-up <c>GeoscapeEventDef</c> by <c>EventID</c> (mirroring
+        /// <c>GeoscapeEventSystem.GetEventByID</c> [282]) and its localized <c>GeoscapeEventData.Title</c> is
+        /// shown — NEVER the raw internal id. An id that resolves to no def / an empty title is hidden and
+        /// logged once (same no-raw-ids-in-UI policy as unmapped variables). Title only — no summary/body —
+        /// to stay spoiler-minimal. No row when no id resolves to a title.
         /// </summary>
         private static void AddFollowUpEventsLine(EventOutcomeData data, string triggerId, List<OutcomeEncounterSet> setEvents)
         {
@@ -693,7 +702,25 @@ namespace Morgott.Oracle
                         }
                     }
                 }
-                string joined = EventOutcomeFormat.JoinNames(ids, ", ");
+                if (ids.Count == 0)
+                {
+                    return;
+                }
+                DefRepository repo = GameUtl.GameComponent<DefRepository>();
+                var titles = new List<string>();
+                foreach (string id in ids)
+                {
+                    string title = EventTitle(repo, id);
+                    if (!string.IsNullOrEmpty(title))
+                    {
+                        titles.Add(title);
+                    }
+                    else if (_loggedUnresolvedEvents.Add(id))
+                    {
+                        OracleLog.Debug("[Oracle] unresolved follow-up event id '" + id + "'");
+                    }
+                }
+                string joined = EventOutcomeFormat.JoinNames(titles, ", ");
                 if (string.IsNullOrEmpty(joined))
                 {
                     return;
@@ -709,6 +736,40 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddFollowUpEventsLine failed: " + ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Resolve a follow-up event id to its localized title: the <c>GeoscapeEventDef</c> whose <c>EventID</c>
+        /// matches (mirroring <c>GeoscapeEventSystem.GetEventByID</c> [282], first match wins) and its
+        /// <c>GeoscapeEventData.Title.Localize()</c>. Empty when no def matches, the data/title is missing, or
+        /// the title does not localize (caller then hides + logs the id). Read-only def lookup; title only.
+        /// </summary>
+        private static string EventTitle(DefRepository repo, string eventId)
+        {
+            try
+            {
+                if (repo == null || string.IsNullOrEmpty(eventId))
+                {
+                    return string.Empty;
+                }
+                foreach (PhoenixPoint.Geoscape.Events.Eventus.GeoscapeEventDef ed
+                    in repo.GetAllDefs<PhoenixPoint.Geoscape.Events.Eventus.GeoscapeEventDef>())
+                {
+                    if (ed == null || ed.GeoscapeEventData == null
+                        || ed.GeoscapeEventData.EventID != eventId
+                        || ed.GeoscapeEventData.Title == null)
+                    {
+                        continue;
+                    }
+                    string s = ed.GeoscapeEventData.Title.Localize();
+                    return string.IsNullOrEmpty(s) ? string.Empty : s;
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.EventTitle failed: " + ex.Message);
+            }
+            return string.Empty;
         }
 
         /// <summary>
@@ -771,9 +832,14 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Append an authored "&lt;pct&gt;% damage to &lt;zone&gt;" line for one <see cref="OutcomeDamageZone"/>.
-        /// Uses the def's <c>DamagePercentage</c> (the only def-true figure; native absolute HP needs a live
-        /// zone) and the raw <c>ZoneKeyword</c> token. No row when the percentage is 0 or the keyword is empty.
+        /// Append the zone-damage line for one <see cref="OutcomeDamageZone"/> in the native tone
+        /// ("Haven zone &lt;name&gt; damaged (&lt;pct&gt;%)"). The zone name is resolved like native
+        /// <c>HavenZoneDamageTextKey</c> [474]: the <c>GeoHavenZoneDef.ViewElementDef.DisplayName1</c> of the
+        /// def whose Keywords match the outcome keyword (falling back to the raw keyword only if unresolved).
+        /// Native shows the live zone's ABSOLUTE HP loss (<c>Health.Max * pct/100</c> [GeoEventChoiceOutcome
+        /// .cs:395]); since <c>Health.Max = Def.Health * live-zone-count</c> it needs the target haven's zone
+        /// stack, which a static preview (outcome only, no site context) lacks, so the def-true percentage is
+        /// the only figure shown (with an explicit %). No row when the percentage is 0 or the keyword is empty.
         /// </summary>
         private static void AddZoneDamageLine(EventOutcomeData data, OutcomeDamageZone dz)
         {
@@ -783,12 +849,13 @@ namespace Morgott.Oracle
                 {
                     return;
                 }
-                string pattern = Loc.Get("ORACLE_EVT_ZONE_DAMAGE", "{0}% damage to {1}");
-                if (string.IsNullOrEmpty(pattern))
+                string zoneName = ZoneDisplayName(dz.ZoneKeyword);
+                if (string.IsNullOrEmpty(zoneName))
                 {
-                    return;
+                    zoneName = dz.ZoneKeyword;
                 }
-                string line = string.Format(pattern, dz.DamagePercentage, dz.ZoneKeyword);
+                string pattern = Loc.Get("ORACLE_EVT_ZONE_DAMAGE", "Haven zone {0} damaged ({1}%)");
+                string line = EventOutcomeFormat.Format2(pattern, zoneName, dz.DamagePercentage);
                 if (!string.IsNullOrEmpty(line))
                 {
                     data.NativeLines.Add(line);
@@ -798,6 +865,46 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] EventOutcomeAdapter.AddZoneDamageLine failed: " + ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Resolve a zone keyword to its localized facility name, mirroring native
+        /// <c>GenerateFactionReward</c> [GeoEventChoiceOutcome.cs:392-393]: lower-case the keyword and return
+        /// the <c>ViewElementDef.DisplayName1</c> of the first <c>GeoHavenZoneDef</c> whose <c>Keywords</c>
+        /// contain it — the SAME label native's zone-damage line reads off <c>zone.Def</c> [474]. Empty when no
+        /// def / no name resolves (caller then falls back to the raw keyword). Read-only def lookup.
+        /// </summary>
+        private static string ZoneDisplayName(string keyword)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(keyword))
+                {
+                    return string.Empty;
+                }
+                string needle = keyword.ToLowerInvariant();
+                DefRepository repo = GameUtl.GameComponent<DefRepository>();
+                foreach (PhoenixPoint.Geoscape.Entities.Sites.GeoHavenZoneDef zd
+                    in repo.GetAllDefs<PhoenixPoint.Geoscape.Entities.Sites.GeoHavenZoneDef>())
+                {
+                    if (zd == null || zd.Keywords == null || !zd.Keywords.Contains(needle)
+                        || (UnityEngine.Object)(object)zd.ViewElementDef == (UnityEngine.Object)null
+                        || zd.ViewElementDef.DisplayName1 == null)
+                    {
+                        continue;
+                    }
+                    string s = zd.ViewElementDef.DisplayName1.Localize();
+                    if (!string.IsNullOrEmpty(s))
+                    {
+                        return s;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] EventOutcomeAdapter.ZoneDisplayName failed: " + ex.Message);
+            }
+            return string.Empty;
         }
 
         /// <summary>
