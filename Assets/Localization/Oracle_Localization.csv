@@ -28,3 +28,10 @@ ORACLE_EVT_MISSIONWEIGHT,Mission weight: {0},任务权重：{0},Poids de mission
 ORACLE_EVT_TOK_HAVEN_LEADER,haven leader,庇护所首领,chef de havre,Hafen-Anführer,leader del rifugio,przywódca przystani,глава убежища,líder del refugio
 ORACLE_EVT_TOK_HAVEN,a haven,某个庇护所,un havre,einem Hafen,un rifugio,przystań,убежище,un refugio
 ORACLE_EVT_TOK_BASE,a Phoenix base,一座凤凰基地,une base Phénix,einer Phoenix-Basis,una base Phoenix,baza Feniksa,база «Феникса»,una base Phoenix
+ORACLE_ITEM_SCRAP,Dismantle,拆解,Démantèlement,Zerlegen,Smantellamento,Demontaż,Разбор,Desmantelar
+ORACLE_RES_MATERIALS,Materials,材料,Matériaux,Materialien,Materiali,Materiały,Материалы,Materiales
+ORACLE_RES_TECH,Tech,科技,Tech,Technik,Tecnologia,Technologia,Технологии,Tecnología
+ORACLE_RES_MUTAGEN,Mutagen,诱变剂,Mutagène,Mutagen,Mutageno,Mutagen,Мутаген,Mutágeno
+ORACLE_RES_LIVINGCRYSTALS,Living Crystals,活体晶体,Cristaux vivants,Lebende Kristalle,Cristalli viventi,Żywe kryształy,Живые кристаллы,Cristales vivos
+ORACLE_RES_ORICHALCUM,Orichalcum,山铜,Orichalque,Orichalcum,Oricalco,Orichalcum,Орихалк,Oricalco
+ORACLE_RES_PROTEANMUTANE,Protean Mutane,变形素,Mutane protéiforme,Proteanisches Mutan,Mutano proteiforme,Mutan proteuszowy,Протеановый мутан,Mutano proteico
