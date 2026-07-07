@@ -93,16 +93,21 @@ namespace Morgott.Oracle
                     UnityEngine.Object.DestroyImmediate(existing.gameObject);
                 }
 
-                // Z-ORDER base: an overrideSorting Canvas draws at its ABSOLUTE sortingOrder in the global
-                // overlay sort, so basing ours on the nearest ancestor canvas (GetComponentInParent) is
-                // unreliable — that can be a nested low-order canvas, and the message box's canvas order is
-                // prefab-authored (not set in code), so a fixed offset from ONE canvas need not beat every
-                // canvas of the dialog (the exact "tooltip behind the confirm window" symptom). Take the max
-                // sortingOrder over ALL active canvases now on screen and layer above it: dialog < icon row
-                // (+50) < tooltip (+100). Identical computation to PerkWikiPanel's tooltip => the two
-                // subclass surfaces behave the same. The dialog's root canvas is still the positioning space.
+                // Two DIFFERENT z-bases, because the row and the tooltip live in different parents:
+                //  - TOOLTIP is parented to the ROOT canvas (a sibling of the whole dialog), so it must clear
+                //    EVERY canvas of the dialog. The message box's canvas orders are prefab-authored and one
+                //    sits above what GetComponentInParent finds, so an offset from a single ancestor canvas
+                //    can land below it ("tooltip behind the confirm window"). Use the max sortingOrder over
+                //    ALL active canvases (same computation as PerkWikiPanel's tooltip) and layer +100 above.
+                //  - ROW is content INSIDE the dialog, nested under the dialog's OWN canvas; it only needs to
+                //    lift just above THAT canvas (dialogSortingOrder + 50) to clear the dialog scrim — NOT
+                //    above foreign scene canvases. Keying it to the scene-global max instead decoupled it from
+                //    its own dialog and hid the icon row entirely (regression fixed here). The dialog's root
+                //    canvas is still the tooltip positioning space.
                 int topmostOrder = WikiIconFactory.TopmostTooltipSortingOrder(0);
                 Canvas dialogCanvas = ((Component)__instance).GetComponentInParent<Canvas>();
+                int dialogSortingOrder = (UnityEngine.Object)(object)dialogCanvas != (UnityEngine.Object)null
+                    ? dialogCanvas.sortingOrder : 30000;
                 Canvas rootCanvas = (UnityEngine.Object)(object)dialogCanvas != (UnityEngine.Object)null
                     ? dialogCanvas.rootCanvas : null;
                 RectTransform canvasRect = (UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null
@@ -139,13 +144,14 @@ namespace Morgott.Oracle
 
                 // Z-ORDER + RAYCAST: as sibling-0 of the Dialog the row would render BEHIND the dialog's
                 // background/scrim (icons look dimmed) and stop receiving pointer events (no tooltip). Give
-                // the row its OWN sorting context ABOVE every current canvas but BELOW the tooltip, plus its
-                // own GraphicRaycaster so the icons are hit again. Final chain: dialog < icons (topmost + 50)
-                // < tooltip (topmost + 100). The row keeps its layout position (sibling-0, top), only its
-                // draw/raycast context changes — the Dialog VLG + ContentSizeFitter still place + grow it.
+                // the row its OWN sorting context just ABOVE its own dialog canvas but BELOW the tooltip, plus
+                // its own GraphicRaycaster so the icons are hit again. Final chain: dialog < icons
+                // (dialogSortingOrder + 50) < tooltip (topmost + 100). The row keeps its layout position
+                // (sibling-0, top), only its draw/raycast context changes — the Dialog VLG + ContentSizeFitter
+                // still place + grow it.
                 var rowCanvas = rowGo.AddComponent<Canvas>();
                 rowCanvas.overrideSorting = true;
-                rowCanvas.sortingOrder = topmostOrder + 50;
+                rowCanvas.sortingOrder = dialogSortingOrder + 50;
                 rowGo.AddComponent<GraphicRaycaster>();
 
                 foreach (TacticalAbilityDef def in marker.Perks)
