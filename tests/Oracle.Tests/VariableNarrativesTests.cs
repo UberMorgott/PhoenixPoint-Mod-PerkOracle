@@ -54,6 +54,25 @@ namespace Morgott.Oracle.Tests
         }
 
         [Fact]
+        public void Counter_Additive_Mixed_Range_Shows_Unsigned_Range_Suffix()
+        {
+            // A range straddling zero has no honest single sign, so it renders as-is with no leading +/-.
+            var line = VariableNarratives.Resolve("ProteanMutaneResearched", -5, 1, isSetOperation: false);
+            Assert.Equal(VariableNarratives.Status.Show, line.Status);
+            Assert.Equal(" ([-5..1])", line.Suffix);
+        }
+
+        [Fact]
+        public void Counter_Additive_Negative_Range_Shows_Single_Minus_Over_Magnitudes()
+        {
+            // A wholly-negative range carries one leading "-" over ascending magnitudes, e.g. -5..-2 -> "-[2..5]".
+            var line = VariableNarratives.Resolve("BC_SDI", -5, -2, isSetOperation: false);
+            Assert.Equal(VariableNarratives.Status.Show, line.Status);
+            Assert.Equal("ORACLE_VAR_BC_SDI_DOWN", line.LocKey);
+            Assert.Equal(" (-[2..5])", line.Suffix);
+        }
+
+        [Fact]
         public void Counter_Set_With_No_Set_Key_Is_Hidden_Unmapped()
         {
             // The mapped counters are only ever incremented in event defs, so none authors a set phrase;

@@ -112,9 +112,26 @@ namespace Morgott.Oracle
             }
 
             // Additive: signed delta, or the signed range when the RNG bounds differ (mirrors the old adapter).
-            string signedExpr = (min == max)
-                ? EventOutcomeFormat.Signed(min)
-                : (max < 0 ? "-" : "+") + EventOutcomeFormat.Range(min, max);
+            string signedExpr;
+            if (min == max)
+            {
+                signedExpr = EventOutcomeFormat.Signed(min);
+            }
+            else if (max < 0)
+            {
+                // Whole range is negative: one leading "-" over the ascending magnitudes, e.g. -5..-2 -> "-[2..5]".
+                signedExpr = "-" + EventOutcomeFormat.Range(-max, -min);
+            }
+            else if (min >= 0)
+            {
+                // Whole range is positive: one leading "+", e.g. 2..5 -> "+[2..5]".
+                signedExpr = "+" + EventOutcomeFormat.Range(min, max);
+            }
+            else
+            {
+                // Range straddles zero: no single sign is honest, so show the signed bounds as-is, e.g. "[-5..1]".
+                signedExpr = EventOutcomeFormat.Range(min, max);
+            }
             bool increase = max > 0;
             string upDownKey = increase ? e.UpKey : e.DownKey;
             string upDownEn = increase ? e.UpEn : e.DownEn;
