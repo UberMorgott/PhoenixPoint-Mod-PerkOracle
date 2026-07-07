@@ -76,6 +76,23 @@ git -C E:\DEV\PhoenixPoint\PerkOracle push origin main
 
 ---
 
+## Task: Local dev deploy (owner's own game — NOT a Workshop publish)
+
+The owner does **not** subscribe to the Workshop item; their game loads the mod
+from the native local mods folder. To let them test a new build in-game:
+
+```powershell
+pwsh -File workshop/pack-dist.ps1
+robocopy "E:\DEV\PhoenixPoint\PerkOracle\workshop\Dist" "D:\Steam\steamapps\common\Phoenix Point\Mods\Oracle" /MIR
+```
+
+- `robocopy` exit codes 0–7 = success (3 = copied + extras removed).
+- Game reads the folder at startup — the owner must **restart Phoenix Point**.
+- This ships nothing to subscribers; Workshop publish stays a separate explicit
+  `--update` run (see below).
+
+---
+
 ## Prerequisites (CRITICAL — read before any publish)
 
 1. **Steam desktop client must be RUNNING and LOGGED IN as the owner account
