@@ -104,8 +104,8 @@ namespace Morgott.Oracle
                 RectTransform canvasRect = (UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null
                     ? rootCanvas.transform as RectTransform : null;
 
-                // One tooltip clone for this popup, parented to the root canvas; torn down with the row. Its
-                // own overrideSorting Canvas (set inside) renders it above the dialog (dialogSortingOrder+100).
+                // One tooltip clone for this popup, parented to the root canvas; torn down with the row. A
+                // sorting-wrapper Canvas (set inside) renders it above the dialog (dialogSortingOrder+100).
                 GeoRosterAbilityDetailTooltip tooltip = CreateTooltip(
                     (UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null
                         ? rootCanvas.transform : dialog,
@@ -233,10 +233,13 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Clone one native ability tooltip parented under <paramref name="parent"/> (canvas-local), hidden
-        /// + non-raycasting, for the row's hover triggers. Mirrors PerkWikiPanel's tooltip clone but owned
-        /// locally so it never collides with a banner's static instance. Null on failure (icons just lose
-        /// their tooltip; the dialog still works).
+        /// Clone one native ability tooltip for the row's hover triggers, hidden + non-raycasting. The clone
+        /// is parented under a dedicated full-screen sorting WRAPPER (which carries the overrideSorting
+        /// Canvas), NOT given a Canvas of its own — so its native ContentSizeFitter/layout keeps sizing and
+        /// wrapping the description exactly as PerkWikiPanel's working clone does (a Canvas on the tooltip
+        /// root breaks that auto-layout → the description overflows the frame). Outputs the wrapper in
+        /// <paramref name="go"/> so the row's cleanup tears down wrapper + tooltip together. Null on failure
+        /// (icons just lose their tooltip; the dialog still works).
         /// </summary>
         private static GeoRosterAbilityDetailTooltip CreateTooltip(Transform parent, int dialogSortingOrder,
             out GameObject go)
@@ -256,25 +259,42 @@ namespace Morgott.Oracle
                     return null;
                 }
 
-                go = UnityEngine.Object.Instantiate(template.gameObject, parent, false);
-                var cg = go.GetComponent<CanvasGroup>() ?? go.AddComponent<CanvasGroup>();
-                cg.blocksRaycasts = false;
+                // Z-ORDER goes on a WRAPPER, never on the tooltip clone itself. The MessageBox overlay
+                // sorts high (130), so a plain sibling tooltip draws under it; we need an overrideSorting
+                // Canvas to lift it above. But the native tooltip root carries the layout components
+                // (ContentSizeFitter/LayoutGroup) that size the framed body to the description and wrap it —
+                // adding a Canvas directly onto that root breaks that auto-layout, so the description stops
+                // wrapping and overflows the frame to the right. PerkWikiPanel's working clone adds NO Canvas
+                // to the tooltip (see PerkWikiPanel.Open comment), and TFTV's recruit overlay sets
+                // overrideSorting on an ANCESTOR canvas (GetComponentInParent), never on the tooltip. Mirror
+                // that: a dedicated full-screen wrapper owns the sorting Canvas; the tooltip clone stays a
+                // pristine direct child of a Canvas boundary — byte-identical topology to the roster clone.
+                var layer = new GameObject("OracleConfirmTooltipLayer", typeof(RectTransform));
+                layer.transform.SetParent(parent, false);
+                var layerRt = layer.GetComponent<RectTransform>();
+                layerRt.anchorMin = Vector2.zero;
+                layerRt.anchorMax = Vector2.one;
+                layerRt.offsetMin = Vector2.zero;
+                layerRt.offsetMax = Vector2.zero; // full-stretch: wrapper rect == root-canvas rect (positioning unchanged)
+                layer.transform.SetAsLastSibling(); // above the dialog within the same parent
+
+                var layerCanvas = layer.AddComponent<Canvas>();
+                layerCanvas.overrideSorting = true;
+                layerCanvas.sortingOrder = dialogSortingOrder + 100;
+
+                // The wrapper is what the row's cleanup destroys (tears down the tooltip child with it).
+                go = layer;
+
+                var tipGo = UnityEngine.Object.Instantiate(template.gameObject, layer.transform, false);
+                var cg = tipGo.GetComponent<CanvasGroup>() ?? tipGo.AddComponent<CanvasGroup>();
+                cg.blocksRaycasts = false; // purely visual + non-interactive (no GraphicRaycaster on the wrapper)
                 cg.interactable = false;
-                go.name = "OracleConfirmTooltip";
-                go.transform.localScale = Vector3.one;
-                go.transform.SetAsLastSibling(); // above the dialog within the same parent
+                tipGo.name = "OracleConfirmTooltip";
+                tipGo.transform.localScale = Vector3.one;
+                tipGo.SetActive(false);
 
-                // Z-ORDER: the MessageBox overlay (and its prompt window) sorts high; a plain sibling still
-                // draws under it. Give the tooltip its OWN sorting context above the dialog's canvas so the
-                // ability description renders IN FRONT of the confirm window. No GraphicRaycaster is added
-                // (the CanvasGroup already blocks raycasts), so it stays purely visual + non-interactive.
-                var tipCanvas = go.GetComponent<Canvas>() ?? go.AddComponent<Canvas>();
-                tipCanvas.overrideSorting = true;
-                tipCanvas.sortingOrder = dialogSortingOrder + 100;
-
-                go.SetActive(false);
                 WikiAbilityTooltipTrigger.ResetPriming();
-                return go.GetComponent<GeoRosterAbilityDetailTooltip>();
+                return tipGo.GetComponent<GeoRosterAbilityDetailTooltip>();
             }
             catch (Exception ex)
             {
