@@ -72,20 +72,14 @@ namespace Morgott.Oracle
                 _rootCanvas = rootCanvas;
 
                 // Clone ONE native ability tooltip, shared by all icon triggers (destroyed in Close;
-                // non-fatal if the template is absent). Sibling order alone can NOT keep it above elements
-                // that draw through their own sorting Canvas — a nested overrideSorting sub-canvas, or the
-                // modal we rode in on — which is the intermittent "tooltip renders behind other UI". So the
-                // clone lives under a full-screen sorting WRAPPER with overrideSorting (the wrapper carries
-                // the Canvas, NEVER the tooltip root — a Canvas there breaks the native ContentSizeFitter
-                // word-wrap). sortingOrder sits above the host/root canvas (+100, same convention as
-                // SubclassConfirmPopupDecorator); this mirrors TFTV's recruit overlay, which likewise puts
-                // overrideSorting on an ANCESTOR canvas, never on the tooltip.
-                int tooltipSortingOrder = canvas.sortingOrder;
-                if ((UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null)
-                {
-                    tooltipSortingOrder = Mathf.Max(tooltipSortingOrder, rootCanvas.sortingOrder);
-                }
-                CreateTooltipClone(rootParent, tooltipSortingOrder + 100);
+                // non-fatal if the template is absent). It lives under a full-screen sorting WRAPPER with
+                // overrideSorting (the wrapper carries the Canvas, NEVER the tooltip root — a Canvas there
+                // breaks the native ContentSizeFitter word-wrap), mirroring TFTV's recruit overlay
+                // (overrideSorting on an ANCESTOR canvas, never on the tooltip). Its sortingOrder is computed
+                // to sit above EVERY UI surface currently on screen (see
+                // WikiIconFactory.TopmostTooltipSortingOrder — a single ancestor-canvas order is unreliable);
+                // same computation as SubclassConfirmPopupDecorator => identical z-behavior on both surfaces.
+                CreateTooltipClone(rootParent, WikiIconFactory.TopmostTooltipSortingOrder(100));
 
                 _root = new GameObject("RolledPerkWiki", typeof(RectTransform));
                 _root.transform.SetParent(rootParent, false);

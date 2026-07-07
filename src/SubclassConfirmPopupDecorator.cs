@@ -93,22 +93,27 @@ namespace Morgott.Oracle
                     UnityEngine.Object.DestroyImmediate(existing.gameObject);
                 }
 
-                // The dialog's own canvas drives its sorting; the tooltip must beat it. Read the nearest
-                // canvas for both its sortingOrder (z-order) and its root (tooltip positioning space).
+                // Z-ORDER base: an overrideSorting Canvas draws at its ABSOLUTE sortingOrder in the global
+                // overlay sort, so basing ours on the nearest ancestor canvas (GetComponentInParent) is
+                // unreliable — that can be a nested low-order canvas, and the message box's canvas order is
+                // prefab-authored (not set in code), so a fixed offset from ONE canvas need not beat every
+                // canvas of the dialog (the exact "tooltip behind the confirm window" symptom). Take the max
+                // sortingOrder over ALL active canvases now on screen and layer above it: dialog < icon row
+                // (+50) < tooltip (+100). Identical computation to PerkWikiPanel's tooltip => the two
+                // subclass surfaces behave the same. The dialog's root canvas is still the positioning space.
+                int topmostOrder = WikiIconFactory.TopmostTooltipSortingOrder(0);
                 Canvas dialogCanvas = ((Component)__instance).GetComponentInParent<Canvas>();
-                int dialogSortingOrder = (UnityEngine.Object)(object)dialogCanvas != (UnityEngine.Object)null
-                    ? dialogCanvas.sortingOrder : 30000;
                 Canvas rootCanvas = (UnityEngine.Object)(object)dialogCanvas != (UnityEngine.Object)null
                     ? dialogCanvas.rootCanvas : null;
                 RectTransform canvasRect = (UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null
                     ? rootCanvas.transform as RectTransform : null;
 
                 // One tooltip clone for this popup, parented to the root canvas; torn down with the row. A
-                // sorting-wrapper Canvas (set inside) renders it above the dialog (dialogSortingOrder+100).
+                // sorting-wrapper Canvas (set inside) renders it above the dialog + icon row (topmost + 100).
                 GeoRosterAbilityDetailTooltip tooltip = CreateTooltip(
                     (UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null
                         ? rootCanvas.transform : dialog,
-                    dialogSortingOrder,
+                    topmostOrder + 100,
                     out GameObject tooltipGo);
 
                 // Build the row: a child of the Dialog VLG, placed at the top (sibling 0 = above the text).
@@ -134,13 +139,13 @@ namespace Morgott.Oracle
 
                 // Z-ORDER + RAYCAST: as sibling-0 of the Dialog the row would render BEHIND the dialog's
                 // background/scrim (icons look dimmed) and stop receiving pointer events (no tooltip). Give
-                // the row its OWN sorting context ABOVE the dialog scrim but BELOW the tooltip, plus its own
-                // GraphicRaycaster so the icons are hit again. Final chain: dialog bg (130) < icons (180) <
-                // tooltip (230). The row keeps its layout position (sibling-0, top), only its draw/raycast
-                // context changes — the Dialog VLG + ContentSizeFitter still place + grow it normally.
+                // the row its OWN sorting context ABOVE every current canvas but BELOW the tooltip, plus its
+                // own GraphicRaycaster so the icons are hit again. Final chain: dialog < icons (topmost + 50)
+                // < tooltip (topmost + 100). The row keeps its layout position (sibling-0, top), only its
+                // draw/raycast context changes — the Dialog VLG + ContentSizeFitter still place + grow it.
                 var rowCanvas = rowGo.AddComponent<Canvas>();
                 rowCanvas.overrideSorting = true;
-                rowCanvas.sortingOrder = dialogSortingOrder + 50;
+                rowCanvas.sortingOrder = topmostOrder + 50;
                 rowGo.AddComponent<GraphicRaycaster>();
 
                 foreach (TacticalAbilityDef def in marker.Perks)
@@ -240,7 +245,7 @@ namespace Morgott.Oracle
         /// <paramref name="go"/> so the row's cleanup tears down wrapper + tooltip together. Null on failure
         /// (icons just lose their tooltip; the dialog still works).
         /// </summary>
-        private static GeoRosterAbilityDetailTooltip CreateTooltip(Transform parent, int dialogSortingOrder,
+        private static GeoRosterAbilityDetailTooltip CreateTooltip(Transform parent, int sortingOrder,
             out GameObject go)
         {
             go = null;
@@ -255,16 +260,17 @@ namespace Morgott.Oracle
                     return null;
                 }
 
-                // Z-ORDER goes on a WRAPPER, never on the tooltip clone itself. The MessageBox overlay
-                // sorts high (130), so a plain sibling tooltip draws under it; we need an overrideSorting
-                // Canvas to lift it above. But the native tooltip root carries the layout components
-                // (ContentSizeFitter/LayoutGroup) that size the framed body to the description and wrap it —
-                // adding a Canvas directly onto that root breaks that auto-layout, so the description stops
-                // wrapping and overflows the frame to the right. PerkWikiPanel's working clone adds NO Canvas
-                // to the tooltip (see PerkWikiPanel.Open comment), and TFTV's recruit overlay sets
-                // overrideSorting on an ANCESTOR canvas (GetComponentInParent), never on the tooltip. Mirror
-                // that: a dedicated full-screen wrapper owns the sorting Canvas; the tooltip clone stays a
-                // pristine direct child of a Canvas boundary — byte-identical topology to the roster clone.
+                // Z-ORDER goes on a WRAPPER, never on the tooltip clone itself. The message box sorts high,
+                // so a plain sibling tooltip draws under it; we need an overrideSorting Canvas to lift it
+                // above. But the native tooltip root carries the layout components (ContentSizeFitter/
+                // LayoutGroup) that size the framed body to the description and wrap it — adding a Canvas
+                // directly onto that root breaks that auto-layout, so the description stops wrapping and
+                // overflows the frame to the right. PerkWikiPanel's working clone adds NO Canvas to the
+                // tooltip, and TFTV's recruit overlay sets overrideSorting on an ANCESTOR canvas
+                // (GetComponentInParent), never on the tooltip. Mirror that: a dedicated full-screen wrapper
+                // owns the sorting Canvas at the caller-computed <paramref name="sortingOrder"/>; the tooltip
+                // clone stays a pristine direct child of a Canvas boundary — identical topology to the roster
+                // clone.
                 var layer = new GameObject("OracleConfirmTooltipLayer", typeof(RectTransform));
                 layer.transform.SetParent(parent, false);
                 var layerRt = layer.GetComponent<RectTransform>();
@@ -276,7 +282,7 @@ namespace Morgott.Oracle
 
                 var layerCanvas = layer.AddComponent<Canvas>();
                 layerCanvas.overrideSorting = true;
-                layerCanvas.sortingOrder = dialogSortingOrder + 100;
+                layerCanvas.sortingOrder = sortingOrder;
 
                 // The wrapper is what the row's cleanup destroys (tears down the tooltip child with it).
                 go = layer;

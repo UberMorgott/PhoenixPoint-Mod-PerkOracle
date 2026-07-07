@@ -78,6 +78,53 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
+        /// A sortingOrder that draws a tooltip layer ABOVE every UI surface currently on screen. A Canvas
+        /// with overrideSorting draws at its ABSOLUTE sortingOrder in the global overlay sort, so a value
+        /// derived from a single ancestor canvas (e.g. <c>GetComponentInParent&lt;Canvas&gt;()</c>, which can
+        /// resolve to a nested LOW-order canvas) is NOT guaranteed to beat a high-sorted geoscape modal or the
+        /// DontDestroyOnLoad system message box — whose canvas orders are prefab-authored, never set in code,
+        /// so a fixed offset from one canvas can land below another canvas of the same window. Instead scan
+        /// EVERY active, enabled Canvas in the scene and return the maximum sortingOrder + <paramref
+        /// name="margin"/>. Our own tooltip/row layers are skipped so repeated shows can't ratchet the value
+        /// upward. Self-correcting for any surface; used by both subclass paths so they behave identically.
+        /// </summary>
+        public static int TopmostTooltipSortingOrder(int margin)
+        {
+            int max = 0;
+            try
+            {
+                foreach (Canvas c in UnityEngine.Object.FindObjectsOfType<Canvas>())
+                {
+                    if ((UnityEngine.Object)(object)c == (UnityEngine.Object)null || !c.isActiveAndEnabled)
+                    {
+                        continue;
+                    }
+                    if (IsOwnSortingLayer(c))
+                    {
+                        continue; // skip our own tooltip/row canvases (else the value ratchets each show)
+                    }
+                    if (c.sortingOrder > max)
+                    {
+                        max = c.sortingOrder;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] WikiIconFactory.TopmostTooltipSortingOrder failed: " + ex.Message);
+            }
+            return max + margin;
+        }
+
+        /// <summary>True if the canvas belongs to one of the mod's own overlay/row/tooltip layers.</summary>
+        private static bool IsOwnSortingLayer(Canvas c)
+        {
+            string n = c.gameObject.name;
+            return n.StartsWith("Oracle", StringComparison.Ordinal)
+                || n.StartsWith("RolledPerk", StringComparison.Ordinal);
+        }
+
+        /// <summary>
         /// Create a candidate cell under <paramref name="parent"/> for <paramref name="def"/> by cloning
         /// <paramref name="template"/> (a live native cell). <paramref name="slot"/> is the REAL personal
         /// slot of the opened level (same slot the swap targets) — it is stored on the clone so the cell's
