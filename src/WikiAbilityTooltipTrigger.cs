@@ -160,8 +160,21 @@ namespace Morgott.Oracle
                     tip.Show(Def, Def.ViewElementDef, false, 0);
                 }
 
-                // Topmost z-order is guaranteed by the tooltip's overrideSorting wrapper (see
-                // PerkWikiPanel.CreateTooltipClone); this last-sibling nudge is a harmless belt-and-braces.
+                // Z-ORDER at SHOW time. The tooltip rides an overrideSorting WRAPPER (see
+                // PerkWikiPanel.CreateTooltipClone / SubclassConfirmPopupDecorator.CreateTooltip). Its
+                // sortingOrder is snapshotted when the wrapper is built, but the host surface can finalize
+                // its own canvas order LATER: the native message box is raised onto its DontDestroyOnLoad
+                // system canvas via a view-state + WindowShowEvent (and a deferred Update frame) AFTER our
+                // decorate-time Postfix, so that early snapshot goes stale and the tooltip renders BEHIND the
+                // confirm window. Recompute against every canvas on screen NOW and push it onto the wrapper
+                // (the wrapper — never the tooltip root — carries the Canvas, so ContentSizeFitter word-wrap
+                // is untouched; the wrapper rect is unchanged, so Position() math holds). Mirrors TFTV's
+                // HavenRecruitAbilityTooltipTrigger, which likewise bumps its ancestor canvas on each show.
+                Canvas layerCanvas = tip.GetComponentInParent<Canvas>();
+                if ((UnityEngine.Object)(object)layerCanvas != (UnityEngine.Object)null && layerCanvas.overrideSorting)
+                {
+                    layerCanvas.sortingOrder = WikiIconFactory.TopmostTooltipSortingOrder(100);
+                }
                 tip.transform.SetAsLastSibling();
                 Position(eventData);
             }
