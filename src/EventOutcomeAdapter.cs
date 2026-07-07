@@ -640,26 +640,40 @@ namespace Morgott.Oracle
             }
         }
 
+        /// <summary>Already-logged unresolved mission-type def names, so each coverage gap is reported at most once.</summary>
+        private static readonly HashSet<string> _loggedUnresolvedMissions = new HashSet<string>();
+
         /// <summary>
-        /// Append an authored "Mission: <type>" line from <c>OutcomeStartMission.MissionTypeDef.name</c>
-        /// (the def-derived mission-type token; no live mission instance exists pre-apply). No row when the
-        /// mission type def is missing.
+        /// Append an authored "Mission: &lt;type&gt;" line from the mission type's LOCALIZED display name
+        /// (<c>CustomMissionTypeDef.TypeName.Localize()</c> — the SAME <c>LocalizedTextBind</c> the game's own
+        /// mission UI reads, e.g. the save-file subtitle [PhoenixSaveManager 734] and the haven mission
+        /// buttons [HavenInteractionController 100]). NEVER the raw def codename (<c>.name</c>): a def whose
+        /// TypeName does not localize is hidden + logged once (same no-raw-ids-in-UI policy as unmapped
+        /// variables / follow-up events). No live mission instance exists pre-apply, so the type name is the
+        /// most specific def-true label. No row when the mission type def is missing.
         /// </summary>
         private static void AddMissionLine(EventOutcomeData data, OutcomeStartMission mission)
         {
             try
             {
-                if ((UnityEngine.Object)(object)mission.MissionTypeDef == (UnityEngine.Object)null)
+                var def = mission.MissionTypeDef;
+                if ((UnityEngine.Object)(object)def == (UnityEngine.Object)null)
                 {
                     return;
                 }
-                string token = mission.MissionTypeDef.name;
-                if (string.IsNullOrEmpty(token))
+                string name = (def.TypeName != null && !string.IsNullOrEmpty(def.TypeName.LocalizationKey))
+                    ? def.TypeName.Localize()
+                    : string.Empty;
+                if (string.IsNullOrEmpty(name))
                 {
+                    if (!string.IsNullOrEmpty(def.name) && _loggedUnresolvedMissions.Add(def.name))
+                    {
+                        OracleLog.Debug("[Oracle] unresolved mission type name '" + def.name + "'");
+                    }
                     return;
                 }
                 string pattern = Loc.Get("ORACLE_EVT_MISSION", "Mission: {0}");
-                string line = EventOutcomeFormat.Format1(pattern, token);
+                string line = EventOutcomeFormat.Format1(pattern, name);
                 if (!string.IsNullOrEmpty(line))
                 {
                     data.NativeLines.Add(line);
@@ -831,15 +845,20 @@ namespace Morgott.Oracle
             }
         }
 
+        /// <summary>Already-logged unresolved zone keywords, so each coverage gap is reported at most once.</summary>
+        private static readonly HashSet<string> _loggedUnresolvedZones = new HashSet<string>();
+
         /// <summary>
         /// Append the zone-damage line for one <see cref="OutcomeDamageZone"/> in the native tone
         /// ("Haven zone &lt;name&gt; damaged (&lt;pct&gt;%)"). The zone name is resolved like native
         /// <c>HavenZoneDamageTextKey</c> [474]: the <c>GeoHavenZoneDef.ViewElementDef.DisplayName1</c> of the
-        /// def whose Keywords match the outcome keyword (falling back to the raw keyword only if unresolved).
-        /// Native shows the live zone's ABSOLUTE HP loss (<c>Health.Max * pct/100</c> [GeoEventChoiceOutcome
-        /// .cs:395]); since <c>Health.Max = Def.Health * live-zone-count</c> it needs the target haven's zone
-        /// stack, which a static preview (outcome only, no site context) lacks, so the def-true percentage is
-        /// the only figure shown (with an explicit %). No row when the percentage is 0 or the keyword is empty.
+        /// def whose Keywords match the outcome keyword. A keyword that resolves to no localized name is
+        /// hidden + logged once (never the raw internal keyword in the UI — same no-raw-ids policy as unmapped
+        /// variables / follow-up events). Native shows the live zone's ABSOLUTE HP loss (<c>Health.Max *
+        /// pct/100</c> [GeoEventChoiceOutcome.cs:395]); since <c>Health.Max = Def.Health * live-zone-count</c>
+        /// it needs the target haven's zone stack, which a static preview (outcome only, no site context)
+        /// lacks, so the def-true percentage is the only figure shown (with an explicit %). No row when the
+        /// percentage is 0 or the keyword is empty.
         /// </summary>
         private static void AddZoneDamageLine(EventOutcomeData data, OutcomeDamageZone dz)
         {
@@ -852,7 +871,11 @@ namespace Morgott.Oracle
                 string zoneName = ZoneDisplayName(dz.ZoneKeyword);
                 if (string.IsNullOrEmpty(zoneName))
                 {
-                    zoneName = dz.ZoneKeyword;
+                    if (_loggedUnresolvedZones.Add(dz.ZoneKeyword))
+                    {
+                        OracleLog.Debug("[Oracle] unresolved zone keyword '" + dz.ZoneKeyword + "'");
+                    }
+                    return;
                 }
                 string pattern = Loc.Get("ORACLE_EVT_ZONE_DAMAGE", "Haven zone {0} damaged ({1}%)");
                 string line = EventOutcomeFormat.Format2(pattern, zoneName, dz.DamagePercentage);
