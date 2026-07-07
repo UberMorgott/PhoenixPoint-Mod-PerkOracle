@@ -30,7 +30,7 @@ namespace Morgott.Oracle
     ///     faction + site-leader diplomacy, granted items, soldier/aircraft damage, tiredness, faction skill
     ///     points, recruit, haven population, new diplomatic state/objective, convert-to-base, multi-haven
     ///     attacks, SDI via borrowed keys) plus authored lines (research, phoenixpedia, mission, follow-up
-    ///     chain, victory, zone damage %, variable + sub-faction-mission-weight ranges).
+    ///     chain, victory, zone damage %, narrative story-variable prose, sub-faction-mission-weight ranges).
     ///
     /// Apply-time-resolved IDENTITIES are shown as a def-derived/generic token, never a fabricated name:
     /// recruited soldier (class/template token), haven leader / haven / Phoenix base (generic token), revealed
@@ -140,10 +140,10 @@ namespace Morgott.Oracle
                     AddNativeLine(data, mod.AircraftDamageTextKey, o.DamageCurrentAircraft);
                     AddNativeLine(data, mod.AddSkillPointsTextKey, o.FactionSkillPoints);
 
-                    // VariablesChange — no native ShowReward branch. These hidden story variables matter to the
-                    // player, so author one line per entry showing the variable NAME plus the operation+value:
-                    // a SET shows "= X", an additive change shows the signed "+X"/"-X". RNG ranges render
-                    // [Min..Max], NEVER a fabricated single roll (RangeDataInt is rolled at apply time).
+                    // VariablesChange — no native ShowReward branch. Map each hidden story variable to a narrative
+                    // advisor sentence via VariableNarratives (amount tucked into a " (+N)"/" (=N)" suffix, flags
+                    // numberless). Unmapped variables / unhandled directions add no row (logged once). RNG ranges
+                    // render [Min..Max], NEVER a fabricated single roll (RangeDataInt is rolled at apply time).
                     if (o.VariablesChange != null)
                     {
                         foreach (OutcomeVariableChange vc in o.VariablesChange)
@@ -486,59 +486,42 @@ namespace Morgott.Oracle
             }
         }
 
+        /// <summary>Raw variable ids already logged as unmapped, so each coverage gap is reported at most once.</summary>
+        private static readonly HashSet<string> _loggedUnmappedVars = new HashSet<string>();
+
         /// <summary>
-        /// Append an authored line for one <see cref="OutcomeVariableChange"/> showing the variable NAME plus
-        /// the change, via the repurposed 2-arg <c>ORACLE_EVT_VARIABLE</c> key ({0}=name, {1}=value expr).
-        /// These hidden story variables matter to the player, so the name is always shown (it is a raw id —
-        /// acceptable; there is no localized title). The value expression mirrors the engine semantics
-        /// (struct confirmed: <c>VariableName</c>(string), <c>Value</c>(RangeDataInt), <c>IsSetOperation</c>(bool)):
-        ///   • SET      -> "= X"  (X = single value when Min==Max, else the [Min..Max] range)
-        ///   • additive -> signed "+X"/"-X" (or the signed range when Min!=Max)
-        /// RangeDataInt is rolled at apply time, so a distinct Min/Max is shown as the range, never a fabricated
-        /// roll. No row when the variable has no name, or for a 0..0 additive no-op.
+        /// Append a narrative advisor line for one <see cref="OutcomeVariableChange"/> via
+        /// <see cref="VariableNarratives"/>: the raw engine id (<c>VariableName</c>) maps to an in-world
+        /// sentence (loc key + English fallback) with the amount tucked into an unobtrusive suffix — a counter
+        /// shows " (+N)"/" (−N)"/" (=N)" (RNG ranges as "[a..b]"), a 0/1 flag shows the phrase with no number.
+        /// The engine struct is confirmed: <c>VariableName</c>(string), <c>Value</c>(RangeDataInt),
+        /// <c>IsSetOperation</c>(bool); RangeDataInt is rolled at apply time, so a distinct Min/Max renders the
+        /// range, never a fabricated roll. An UNMAPPED variable — or a mapped one changed in a direction/operation
+        /// we have no phrase for — adds NO row (user chose less noise over mechanical fallback) and logs the raw
+        /// name once so gaps can be reported. A 0..0 additive no-op is skipped silently.
         /// </summary>
         private static void AddVariableChangeLine(EventOutcomeData data, OutcomeVariableChange vc)
         {
             try
             {
                 string name = vc.VariableName;
-                if (string.IsNullOrEmpty(name))
+                VariableNarratives.Line line = VariableNarratives.Resolve(name, vc.Value.Min, vc.Value.Max, vc.IsSetOperation);
+                switch (line.Status)
                 {
-                    return;
-                }
-                int min = vc.Value.Min;
-                int max = vc.Value.Max;
-
-                string valueExpr;
-                if (vc.IsSetOperation)
-                {
-                    // Assignment: "= X" (single value or [Min..Max] range). A set to 0 is still meaningful.
-                    valueExpr = "= " + EventOutcomeFormat.Range(min, max);
-                }
-                else
-                {
-                    // Additive: a 0..0 change is a no-op — skip. Otherwise show the signed delta, or the signed
-                    // range when the bounds differ (e.g. "+[2..5]", "-3").
-                    if (min == 0 && max == 0)
-                    {
-                        return;
-                    }
-                    if (min == max)
-                    {
-                        valueExpr = EventOutcomeFormat.Signed(min);
-                    }
-                    else
-                    {
-                        string sign = max < 0 ? "-" : "+";
-                        valueExpr = sign + EventOutcomeFormat.Range(min, max);
-                    }
-                }
-
-                string pattern = Loc.Get("ORACLE_EVT_VARIABLE", "Variable {0}: {1}");
-                string line = EventOutcomeFormat.Format2(pattern, name, valueExpr);
-                if (!string.IsNullOrEmpty(line))
-                {
-                    data.NativeLines.Add(line);
+                    case VariableNarratives.Status.Show:
+                        string text = Loc.Get(line.LocKey, line.English) + line.Suffix;
+                        if (!string.IsNullOrEmpty(text))
+                        {
+                            data.NativeLines.Add(text);
+                        }
+                        break;
+                    case VariableNarratives.Status.HiddenUnmapped:
+                        if (!string.IsNullOrEmpty(name) && _loggedUnmappedVars.Add(name))
+                        {
+                            OracleLog.Debug("[Oracle] unmapped event variable '" + name + "'");
+                        }
+                        break;
+                    // HiddenNoOp: an additive 0..0 no-op — skip silently, not a coverage gap.
                 }
             }
             catch (Exception ex)

@@ -32,5 +32,8 @@
     <!-- EventOutcomeFormat (pure authored-line formatting primitives) is engine-free, so it
          links and unit-tests under net8 exactly like EventOutcomePreview. -->
     <Compile Include="..\..\src\EventOutcomeFormat.cs" Link="EventOutcomeFormat.cs" />
+    <!-- VariableNarratives (pure story-variable id -> narrative phrase/suffix mapping) is engine-free
+         (only depends on EventOutcomeFormat), so it links and unit-tests under net8. -->
+    <Compile Include="..\..\src\VariableNarratives.cs" Link="VariableNarratives.cs" />
   </ItemGroup>
 </Project>
