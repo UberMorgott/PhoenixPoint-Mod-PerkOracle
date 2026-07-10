@@ -41,11 +41,14 @@ namespace Morgott.Oracle
     /// END of the list → bottom of the tooltip; the tooltip's own <c>FadeInCrt</c> runs
     /// <c>ForceRebuildLayoutImmediate</c> AFTER this, so added rows never break the box height.
     ///
-    /// GetItemData is shared by six tooltips, so we gate on the instance type and act ONLY for the two hover
-    /// tooltips the feature targets (<see cref="UITacItemTooltip"/>, <see cref="UIGeoItemTooltip"/>). The
-    /// manufacturing tooltip already shows scrap natively (a row here would duplicate it); the phoenixpedia /
-    /// mutation / equip-inventory tooltips are out of scope. Fully guarded so a failure can never break the
-    /// tooltip. Live-gated by <see cref="OracleMain.ShowDismantleCompensation"/>.
+    /// GetItemData is shared by six tooltips (tactical, geoscape, the equip/loadout armory's
+    /// <see cref="UIInventoryTooltip"/>, mutation, manufacturing, phoenixpedia), so we gate on the instance
+    /// type with a BLACKLIST — show the dismantle yield everywhere EXCEPT the two where it does not belong:
+    /// <see cref="UIManufacturingTooltip"/> (already lists scrap natively, so a row here would duplicate it)
+    /// and <see cref="UIPhoenixpediaItemTooltip"/> (codex/reference view, not gear management). This is why the
+    /// equip-screen tooltip now shows the rows: it was previously off a whitelist of only the two hover
+    /// tooltips. Fully guarded so a failure can never break the tooltip. Live-gated by
+    /// <see cref="OracleMain.ShowDismantleCompensation"/>.
     /// </summary>
     [HarmonyPatch(typeof(UIItemTooltip), nameof(UIItemTooltip.GetItemData))]
     internal static class ItemScrapTooltipPatch
@@ -81,9 +84,13 @@ namespace Morgott.Oracle
                     return; // feature disabled -> no Dismantle row
                 }
 
-                // Only the two item hover tooltips — never manufacturing (native scrap already shown) or the
-                // phoenixpedia / mutation / equip-inventory tooltips.
-                if (!(__instance is UITacItemTooltip) && !(__instance is UIGeoItemTooltip))
+                // Blacklist, not whitelist: show the dismantle yield on EVERY item tooltip that routes through
+                // GetItemData (tactical, geoscape, the equip/loadout armory's UIInventoryTooltip, mutation) —
+                // the user wants it in the item-properties window generally — EXCEPT two:
+                //   * UIManufacturingTooltip  — already lists scrap natively (ScrapMaterials/ScrapTech rows), a
+                //                                row here would duplicate it.
+                //   * UIPhoenixpediaItemTooltip — the codex/reference view, not gear management; out of scope.
+                if (__instance is UIManufacturingTooltip || __instance is UIPhoenixpediaItemTooltip)
                 {
                     return;
                 }
