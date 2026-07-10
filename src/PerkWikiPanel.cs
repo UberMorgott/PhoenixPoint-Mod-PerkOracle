@@ -75,11 +75,11 @@ namespace Morgott.Oracle
                 // non-fatal if the template is absent). It lives under a full-screen sorting WRAPPER with
                 // overrideSorting (the wrapper carries the Canvas, NEVER the tooltip root — a Canvas there
                 // breaks the native ContentSizeFitter word-wrap), mirroring TFTV's recruit overlay
-                // (overrideSorting on an ANCESTOR canvas, never on the tooltip). Its sortingOrder is computed
-                // to sit above EVERY UI surface currently on screen (see
-                // WikiIconFactory.TopmostTooltipSortingOrder — a single ancestor-canvas order is unreliable);
-                // same computation as SubclassConfirmPopupDecorator => identical z-behavior on both surfaces.
-                CreateTooltipClone(rootParent, WikiIconFactory.TopmostTooltipSortingOrder(100));
+                // (overrideSorting on an ANCESTOR canvas, never on the tooltip). Its sortingOrder is a hard
+                // constant that sits above EVERY UI surface (see WikiIconFactory.TooltipSortingOrder — a
+                // single ancestor-canvas order is unreliable); same constant as SubclassConfirmPopupDecorator
+                // => identical z-behavior on both surfaces.
+                CreateTooltipClone(rootParent, WikiIconFactory.TooltipSortingOrder);
 
                 _root = new GameObject("RolledPerkWiki", typeof(RectTransform));
                 _root.transform.SetParent(rootParent, false);

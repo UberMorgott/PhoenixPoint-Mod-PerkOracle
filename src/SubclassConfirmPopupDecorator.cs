@@ -97,14 +97,14 @@ namespace Morgott.Oracle
                 //  - TOOLTIP is parented to the ROOT canvas (a sibling of the whole dialog), so it must clear
                 //    EVERY canvas of the dialog. The message box's canvas orders are prefab-authored and one
                 //    sits above what GetComponentInParent finds, so an offset from a single ancestor canvas
-                //    can land below it ("tooltip behind the confirm window"). Use the max sortingOrder over
-                //    ALL active canvases (same computation as PerkWikiPanel's tooltip) and layer +100 above.
+                //    can land below it ("tooltip behind the confirm window"). Use the hard
+                //    WikiIconFactory.TooltipSortingOrder constant (same constant as PerkWikiPanel's tooltip),
+                //    which sits above every canvas including the DontDestroyOnLoad SystemMessageCanvas.
                 //  - ROW is content INSIDE the dialog, nested under the dialog's OWN canvas; it only needs to
                 //    lift just above THAT canvas (dialogSortingOrder + 50) to clear the dialog scrim — NOT
                 //    above foreign scene canvases. Keying it to the scene-global max instead decoupled it from
                 //    its own dialog and hid the icon row entirely (regression fixed here). The dialog's root
                 //    canvas is still the tooltip positioning space.
-                int topmostOrder = WikiIconFactory.TopmostTooltipSortingOrder(0);
                 Canvas dialogCanvas = ((Component)__instance).GetComponentInParent<Canvas>();
                 int dialogSortingOrder = (UnityEngine.Object)(object)dialogCanvas != (UnityEngine.Object)null
                     ? dialogCanvas.sortingOrder : 30000;
@@ -118,7 +118,7 @@ namespace Morgott.Oracle
                 GeoRosterAbilityDetailTooltip tooltip = CreateTooltip(
                     (UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null
                         ? rootCanvas.transform : dialog,
-                    topmostOrder + 100,
+                    WikiIconFactory.TooltipSortingOrder,
                     out GameObject tooltipGo);
 
                 // Build the row: a child of the Dialog VLG, placed at the top (sibling 0 = above the text).

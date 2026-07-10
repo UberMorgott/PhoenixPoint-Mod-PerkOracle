@@ -165,15 +165,16 @@ namespace Morgott.Oracle
                 // sortingOrder is snapshotted when the wrapper is built, but the host surface can finalize
                 // its own canvas order LATER: the native message box is raised onto its DontDestroyOnLoad
                 // system canvas via a view-state + WindowShowEvent (and a deferred Update frame) AFTER our
-                // decorate-time Postfix, so that early snapshot goes stale and the tooltip renders BEHIND the
-                // confirm window. Recompute against every canvas on screen NOW and push it onto the wrapper
-                // (the wrapper — never the tooltip root — carries the Canvas, so ContentSizeFitter word-wrap
-                // is untouched; the wrapper rect is unchanged, so Position() math holds). Mirrors TFTV's
-                // HavenRecruitAbilityTooltipTrigger, which likewise bumps its ancestor canvas on each show.
+                // decorate-time Postfix, so an early snapshot goes stale and the tooltip renders BEHIND the
+                // confirm window. Re-stamp the hard TooltipSortingOrder constant onto the wrapper on EVERY
+                // show (the wrapper — never the tooltip root — carries the Canvas, so ContentSizeFitter
+                // word-wrap is untouched; the wrapper rect is unchanged, so Position() math holds) so a
+                // later-activated modal on the DontDestroyOnLoad SystemMessageCanvas can never outsort it.
+                // Mirrors TFTV's HavenRecruitAbilityTooltipTrigger, which likewise fixes its ancestor canvas.
                 Canvas layerCanvas = tip.GetComponentInParent<Canvas>();
                 if ((UnityEngine.Object)(object)layerCanvas != (UnityEngine.Object)null && layerCanvas.overrideSorting)
                 {
-                    layerCanvas.sortingOrder = WikiIconFactory.TopmostTooltipSortingOrder(100);
+                    layerCanvas.sortingOrder = WikiIconFactory.TooltipSortingOrder;
                 }
                 tip.transform.SetAsLastSibling();
                 Position(eventData);
