@@ -4,6 +4,36 @@ All notable changes to Oracle are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-07-11
+
+### Added
+- **Per-feature settings overhaul.** Every helper now has its own on/off toggle:
+  rolled-perk highlight, perk wiki, subclass-confirm preview, event outcome
+  preview, and dismantle yield. The rolled-perk highlight also gets a **color
+  picker** (Blue, Green, Gold, Red, Purple, White). All settings are localized in
+  8 languages.
+- **Dismantle yield in item tooltips.** Item tooltips on the equip/inventory,
+  geoscape, tactical, and mutation screens now show a native-styled **"DISMANTLE"**
+  stat row listing the resources recovered by scrapping the item — colored resource
+  icons with gold digits, right-aligned and visually separated in the footer. The
+  row is suppressed on manufacturing/Phoenixpedia tooltips (the game already shows
+  it there).
+- **Skill-point cost for perk swap.** When enabled (default), a perk swap now costs
+  the soldier skill points (default 50, configurable), charged through the game's
+  native progression spend flow. The cost is shown on the perk tooltip's SP row, and
+  the swap is blocked with a message when the soldier can't afford it. Turn it off
+  (or set the cost to 0) for free swaps.
+
+### Changed
+- The perk-swap research project ("Operative Reconditioning") now only exists while
+  **Perk Swap** is enabled. Toggling the setting mid-campaign hides or reveals the
+  project live, and is save-safe.
+
+### Fixed
+- Ability tooltips now render **above all windows and modal dialogs** (hard sorting
+  order), so a hovered perk/ability tooltip is no longer hidden behind the subclass
+  confirmation dialog.
+
 ## [1.4.0] - 2026-06-12
 
 > ### Upgrade notes (read before updating from PerkOracle)
@@ -99,6 +129,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: rolled-perk highlight, in-game candidate wiki with native ability
   tooltips, optional free perk swap, and 8-language localization.
 
+[1.5.0]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.5.0
 [1.4.0]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.4.0
 [1.3.0]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.3.0
 [1.2.1]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.2.1

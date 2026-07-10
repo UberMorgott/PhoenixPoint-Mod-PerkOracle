@@ -17,11 +17,12 @@ Oracle ma trzy pomocniki.
 [*][b]Podgląd podklasy.[/b] Gdy przy awansie wybierasz drugą klasę żołnierza, kliknięcie podklasy najpierw pokazuje wszystkie jej perki i zdolności wprost w oknie potwierdzenia, z natywnymi ikonami i podpowiedziami gry, dzięki czemu widzisz, co otrzymasz, zanim zatwierdzisz. Niezbadane podklasy są wyświetlane jako wyszarzone i można je obejrzeć w ten sam sposób.
 [/list]
 
-[h1]Co nowego w v1.3.0[/h1]
+[h1]Co nowego w v1.5.0[/h1]
 [list]
-[*][b]Przemianowano z PerkOracle na Oracle[/b] (ta sama strona Steam, ten sam przedmiot).
-[*][b]Nowość: podgląd skutków wyboru w wydarzeniu.[/b] Obramowana podpowiedź przy każdej odpowiedzi w wydarzeniu, zbudowana z natywnych, przetłumaczonych tekstów nagród gry, z wartościami zgodnymi z rzeczywistym przyznaniem (z uwzględnieniem mnożników TFTV).
-[*][b]Zapisy odporne na zmianę nazwy.[/b] Klucz zapisu badania moda jest teraz stabilnym, neutralnym identyfikatorem, więc przyszłe zmiany nazwy już go nie zresetują.
+[*][b]Przebudowa ustawień.[/b] Każdy pomocnik ma teraz własny przełącznik wł./wył. (podświetlanie, wiki perków, podgląd potwierdzenia podklasy, podgląd wyniku zdarzenia, zysk z demontażu), a podświetlanie losowych perków ma wybór koloru (Blue, Green, Gold, Red, Purple, White). Całość przetłumaczona na 8 języków.
+[*][b]Nowość: zysk z demontażu w podpowiedziach przedmiotów.[/b] Podpowiedzi przedmiotów (ekwipunek, geoskala, taktyka, ekrany mutacji) pokazują teraz wiersz „DISMANTLE" w natywnym stylu z zasobami odzyskiwanymi przy demontażu przedmiotu — kolorowe ikony zasobów i złote cyfry.
+[*][b]Wymiana perków kosztuje teraz punkty umiejętności.[/b] Po włączeniu (domyślnie) wymiana zużywa punkty umiejętności żołnierza (domyślnie 50, konfigurowalne) i jest blokowana, gdy go na nią nie stać; koszt jest pokazany w podpowiedzi perka. Badanie wymiany istnieje tylko wtedy, gdy wymiana perków jest włączona (przełączanie w trakcie kampanii jest bezpieczne dla zapisów).
+[*][b]Poprawka:[/b] podpowiedzi zdolności są teraz rysowane nad wszystkimi oknami i oknami dialogowymi (wcześniej mogły chować się za oknem potwierdzenia podklasy).
 [/list]
 
 [h1]Zgodność[/h1]

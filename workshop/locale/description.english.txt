@@ -17,11 +17,12 @@ Oracle has three helpers.
 [*][b]Subclass preview.[/b] When you pick a soldier's second class at level-up, clicking a subclass first shows its full perks and abilities right in the confirmation, with the game's own icons and tooltips, so you see what you are getting before you commit. Unresearched subclasses are shown greyed out and can be previewed the same way.
 [/list]
 
-[h1]What's new in v1.3.0[/h1]
+[h1]What's new in v1.5.0[/h1]
 [list]
-[*][b]Renamed from PerkOracle to Oracle[/b] (same Steam page, same item).
-[*][b]New: event choice outcome preview.[/b] A framed tooltip on each event answer, built from the game's own native localized reward strings, with values accurate to the real grant (TFTV multipliers included).
-[*][b]Rename-safe saves.[/b] The mod's research save key is now a stable neutral id, so future renames will not reset it again.
+[*][b]Settings overhaul.[/b] Every helper now has its own on/off toggle (highlight, perk wiki, subclass-confirm preview, event outcome preview, dismantle yield), and the rolled-perk highlight gets a color picker (Blue, Green, Gold, Red, Purple, White). All options are localized in 8 languages.
+[*][b]New: dismantle yield in item tooltips.[/b] Item tooltips (equip/inventory, geoscape, tactical, mutation screens) now show a native-styled "DISMANTLE" row with the resources you recover by scrapping the item — colored resource icons and gold digits.
+[*][b]Perk swap now costs Skill Points.[/b] When on (default), a swap spends the soldier's skill points (default 50, configurable) and is blocked if they can't afford it; the cost is shown on the perk's tooltip. The perk-swap research now exists only while Perk Swap is enabled (mid-campaign toggling is save-safe).
+[*][b]Fix:[/b] ability tooltips now render above all windows and modal dialogs (they could previously hide behind the subclass confirmation dialog).
 [/list]
 
 [h1]Compatibility[/h1]

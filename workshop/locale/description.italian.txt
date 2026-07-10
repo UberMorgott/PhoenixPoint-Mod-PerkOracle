@@ -17,11 +17,12 @@ Oracle ha tre assistenti.
 [*][b]Anteprima delle sottoclassi.[/b] Quando, all'avanzamento di livello, scegli la seconda classe di un soldato, fai clic su una sottoclasse e la finestra di conferma ne mostra subito tutti i perk e le abilità, con le icone e i tooltip nativi del gioco, così vedi cosa ottieni [i]prima[/i] di confermare la scelta. Le sottoclassi non ancora ricercate compaiono in grigio e si possono visualizzare in anteprima allo stesso modo.
 [/list]
 
-[h1]Novità nella v1.3.0[/h1]
+[h1]Novità nella v1.5.0[/h1]
 [list]
-[*][b]Rinominato da PerkOracle a Oracle[/b] (stessa pagina Steam, stesso elemento).
-[*][b]Nuovo: anteprima dell'esito delle scelte negli eventi.[/b] Un tooltip incorniciato su ogni risposta dell'evento, costruito dalle stringhe di ricompensa localizzate native del gioco, con valori accurati rispetto all'assegnazione reale (modificatori di TFTV inclusi).
-[*][b]Salvataggi a prova di rinomina.[/b] La chiave di salvataggio della ricerca del mod è ora un id neutro e stabile, così le future rinomine non la azzereranno più.
+[*][b]Revisione delle impostazioni.[/b] Ogni assistente ora ha il proprio interruttore on/off (evidenziazione, wiki dei perk, anteprima conferma sottoclasse, anteprima esito evento, resa smantellamento) e l'evidenziazione dei perk casuali offre una scelta del colore (Blue, Green, Gold, Red, Purple, White). Tutto localizzato in 8 lingue.
+[*][b]Nuovo: resa dello smantellamento nei tooltip degli oggetti.[/b] I tooltip degli oggetti (equipaggiamento/inventario, geoscape, tattica, schermate di mutazione) ora mostrano una riga «DISMANTLE» in stile nativo con le risorse che recuperi smantellando l'oggetto — icone delle risorse colorate e cifre dorate.
+[*][b]Lo scambio dei perk ora costa punti abilità.[/b] Quando è attivo (predefinito), uno scambio spende i punti abilità del soldato (50 predefiniti, configurabile) e viene bloccato se non può permetterselo; il costo è mostrato sul tooltip del perk. La ricerca dello scambio esiste solo finché lo scambio dei perk è attivo (cambiarlo a metà campagna è sicuro per i salvataggi).
+[*][b]Correzione:[/b] i tooltip delle abilità ora vengono disegnati sopra tutte le finestre e le finestre di dialogo modali (prima potevano nascondersi dietro la finestra di conferma della sottoclasse).
 [/list]
 
 [h1]Compatibilità[/h1]

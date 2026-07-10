@@ -17,11 +17,12 @@ Oracle propose trois aides.
 [*][b]Aperçu des sous-classes.[/b] Lorsque vous choisissez la seconde classe d'un soldat à la montée de niveau, cliquer sur une sous-classe en affiche aussitôt tous les perks et capacités, directement dans l'écran de confirmation, avec les icônes et infobulles natives du jeu : vous voyez exactement ce que vous obtenez avant de valider. Les sous-classes non encore recherchées apparaissent grisées et se prévisualisent de la même manière.
 [/list]
 
-[h1]Nouveautés de la v1.3.0[/h1]
+[h1]Nouveautés de la v1.5.0[/h1]
 [list]
-[*][b]Renommé de PerkOracle en Oracle[/b] (même page Steam, même article).
-[*][b]Nouveau : aperçu du résultat des choix d'événement.[/b] Une infobulle encadrée sur chaque réponse d'événement, construite à partir des chaînes de récompense localisées natives du jeu, avec des valeurs fidèles à l'octroi réel (multiplicateurs de TFTV inclus).
-[*][b]Sauvegardes résistantes au renommage.[/b] La clé de sauvegarde de recherche du mod est désormais un identifiant neutre et stable, afin que les futurs renommages ne la réinitialisent plus.
+[*][b]Refonte des paramètres.[/b] Chaque aide a désormais son propre interrupteur marche/arrêt (surlignage, wiki des perks, aperçu de confirmation de sous-classe, aperçu du résultat d'événement, rendement de démantèlement), et le surlignage des perks aléatoires dispose d'un choix de couleur (Blue, Green, Gold, Red, Purple, White). Le tout localisé en 8 langues.
+[*][b]Nouveau : rendement de démantèlement dans les infobulles d'objet.[/b] Les infobulles d'objet (équipement/inventaire, géoscape, tactique, écrans de mutation) affichent désormais une ligne « DISMANTLE » de style natif avec les ressources récupérées en démantelant l'objet — icônes de ressources colorées et chiffres dorés.
+[*][b]L'échange de perks coûte désormais des points de compétence.[/b] Quand il est activé (par défaut), un échange dépense les points de compétence du soldat (50 par défaut, configurable) et est bloqué s'il ne peut pas se le permettre ; le coût est indiqué sur l'infobulle du perk. La recherche d'échange n'existe plus que lorsque l'échange de perks est activé (le basculer en cours de partie est sûr pour les sauvegardes).
+[*][b]Correction :[/b] les infobulles de capacité s'affichent désormais au-dessus de toutes les fenêtres et boîtes de dialogue modales (elles pouvaient auparavant se cacher derrière la boîte de confirmation de sous-classe).
 [/list]
 
 [h1]Compatibilité[/h1]

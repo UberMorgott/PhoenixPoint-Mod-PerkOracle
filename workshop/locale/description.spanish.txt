@@ -17,11 +17,12 @@ Oracle tiene tres ayudantes.
 [*][b]Vista previa de subclases.[/b] Cuando eliges la segunda clase de un soldado al subir de nivel, hacer clic primero en una subclase muestra todos sus perks y habilidades directamente en la confirmación, con los iconos e información emergente nativos del juego, para que veas lo que vas a obtener antes de confirmar. Las subclases aún no investigadas aparecen en gris y puedes previsualizarlas de la misma manera.
 [/list]
 
-[h1]Novedades de la v1.3.0[/h1]
+[h1]Novedades de la v1.5.0[/h1]
 [list]
-[*][b]Cambio de nombre, de PerkOracle a Oracle[/b] (misma página de Steam, mismo artículo).
-[*][b]Nuevo: vista previa del resultado de las opciones de eventos.[/b] Una información emergente enmarcada en cada respuesta de evento, construida a partir de las cadenas de recompensa localizadas nativas del juego, con valores fieles a la concesión real (incluidos los multiplicadores de TFTV).
-[*][b]Partidas a salvo de cambios de nombre.[/b] La clave de guardado de la investigación del mod ahora es un id neutro y estable, así que futuros cambios de nombre no la volverán a reiniciar.
+[*][b]Revisión de los ajustes.[/b] Cada ayudante tiene ahora su propio interruptor de activación (resaltado, wiki de perks, vista previa de confirmación de subclase, vista previa del resultado de eventos, rendimiento de desmantelamiento), y el resaltado de perks aleatorios ofrece una selección de color (Blue, Green, Gold, Red, Purple, White). Todo localizado en 8 idiomas.
+[*][b]Nuevo: rendimiento de desmantelamiento en la información de objetos.[/b] La información emergente de los objetos (equipo/inventario, geoscape, táctico, pantallas de mutación) ahora muestra una fila «DISMANTLE» de estilo nativo con los recursos que recuperas al desmantelar el objeto — iconos de recursos coloreados y cifras doradas.
+[*][b]El intercambio de perks ahora cuesta puntos de habilidad.[/b] Cuando está activado (por defecto), un intercambio gasta los puntos de habilidad del soldado (50 por defecto, configurable) y se bloquea si no puede permitírselo; el coste se muestra en la información del perk. La investigación de intercambio solo existe mientras el intercambio de perks está activado (cambiarlo a mitad de campaña es seguro para las partidas guardadas).
+[*][b]Corrección:[/b] la información emergente de habilidades ahora se dibuja por encima de todas las ventanas y diálogos modales (antes podían ocultarse tras el diálogo de confirmación de subclase).
 [/list]
 
 [h1]Compatibilidad[/h1]
