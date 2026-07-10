@@ -80,6 +80,69 @@ namespace Morgott.Oracle
         }
     }
 
+    /// <summary>
+    /// Second, independent postfix on the same populate seam. When the cell is the soldier's FIRST
+    /// main-class skill — the already-trained level-1 <see cref="AbilityTrackSource.PrimaryClass"/> cell —
+    /// attach the <see cref="ClassWikiClickHandler"/> so a left-click opens the class wiki. Every other
+    /// cell (secondary/personal rows, buyable/empty cells, non-level-1 primary cells) and mutoids (whose
+    /// cells live under a <see cref="MutoidAbilityTrackContainerElement"/>) are skipped. Attach is
+    /// idempotent (check-before-add) because the cell GO is pooled and re-populated on every refresh /
+    /// soldier switch. The native cell left-click no-ops on a trained skill (OnPointerClick returns early
+    /// when !IsBuyableSkill), so intercepting the click here is safe. Kept separate from the tint postfix
+    /// above so neither disturbs the other; fully guarded so it can never break the UI build.
+    /// </summary>
+    [HarmonyPatch(typeof(AbilityTrackSkillEntryElement), "SetSkillState",
+        new[] { typeof(bool), typeof(bool), typeof(bool), typeof(bool) })]
+    internal static class ClassWikiCellPatch
+    {
+        private static void Postfix(AbilityTrackSkillEntryElement __instance)
+        {
+            try
+            {
+                if (!OracleMain.EnablePerkWiki)
+                {
+                    return; // feature gate (live) — also enforced in the handler + the panel open path
+                }
+
+                // Wiki clones re-enter SetSkillState with a Personal slot; never a progression cell.
+                if (((Component)__instance).gameObject.name.StartsWith(WikiIconFactory.CloneNamePrefix, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                // Only the trained FIRST main-class cell: PrimaryClass + known + not buyable + level-1 slot.
+                if (__instance.TrackSource != AbilityTrackSource.PrimaryClass
+                    || !__instance.KnownSkill
+                    || __instance.IsBuyableSkill)
+                {
+                    return;
+                }
+                AbilityTrackSlot slot = __instance.TrackSlot;
+                if (slot == null || slot.AbilityTrack == null || slot.AbilityTrack.GetAbilityLevel(slot) != 1)
+                {
+                    return; // not the level-1 (first) cell
+                }
+
+                // Mutoids use MutoidAbilityTrackContainerElement + a non-standard progression: never a target.
+                if ((UnityEngine.Object)(object)((Component)__instance).GetComponentInParent<MutoidAbilityTrackContainerElement>()
+                    != (UnityEngine.Object)null)
+                {
+                    return;
+                }
+
+                // Idempotent: the cell GO is reused across refreshes/soldiers, so add at most one handler.
+                if ((UnityEngine.Object)(object)((Component)__instance).GetComponent<ClassWikiClickHandler>() == (UnityEngine.Object)null)
+                {
+                    ((Component)__instance).gameObject.AddComponent<ClassWikiClickHandler>();
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] ClassWikiCellPatch postfix failed: " + ex.Message);
+            }
+        }
+    }
+
     /// <summary>Empty cells bypass SetSkillState; hide our background there too.</summary>
     [HarmonyPatch(typeof(AbilityTrackSkillEntryElement), "SetEmpty")]
     internal static class SetEmptyPatch

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Base.Core;
+using PhoenixPoint.Common.Entities;
 using PhoenixPoint.Common.Entities.Characters;
 using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Geoscape.View.ViewControllers;
@@ -29,6 +30,22 @@ namespace Morgott.Oracle
         // I2 term for the wiki title; the literal is the English fallback when the term is missing.
         private const string TitleTerm = "ORACLE_WIKI_TITLE";
         private const string TitleFallback = "POSSIBLE SKILLS";
+
+        // Section headers for the two-section class wiki (I2 terms + English fallbacks).
+        private const string SectionClassTerm = "ORACLE_WIKI_SECTION_CLASS";
+        private const string SectionClassFallback = "CLASS ABILITIES";
+        private const string SectionRandomTerm = "ORACLE_WIKI_SECTION_RANDOM";
+        private const string SectionRandomFallback = "RANDOM PERKS";
+
+        // Left class-strip layout.
+        private const float StripIconSize = 56f;
+        private const float StripSpacing = 6f;
+        private const float StripPadding = 8f;
+        private const float StripLeftMargin = 24f;
+
+        // Two-section panel layout.
+        private const float SectionHeaderHeight = 30f;
+        private const float SectionSpacing = 12f;
 
         private static GameObject _root;
         private static Font _titleFont;
@@ -108,6 +125,314 @@ namespace Morgott.Oracle
                 OracleLog.Debug("[Oracle] PerkWikiPanel.Open failed: " + ex.Message);
                 Close();
             }
+        }
+
+        /// <summary>
+        /// Build and show the READ-ONLY class wiki for <paramref name="spec"/>: a LEFT strip of every
+        /// playable class plus a centered two-section popup — (1) the class ability track and (2) the
+        /// random personal-perk pool (TFTV-aware). Reuses the single-instance machinery of
+        /// <see cref="Open"/> (shared tooltip clone, backdrop, <see cref="Close"/>); the strip and the
+        /// popup are both children of the one root, so the backdrop click (or any Close) tears down BOTH.
+        /// Clicking a strip icon re-enters here for that class (close+reopen). No swap in this mode
+        /// (view-only, swapContext null). No-op / self-heals on any error.
+        /// </summary>
+        public static void OpenClassWiki(Canvas canvas, SpecializationDef spec)
+        {
+            try
+            {
+                Close();
+                if (!OracleMain.EnablePerkWiki)
+                {
+                    return; // feature disabled -> no panel
+                }
+                if ((UnityEngine.Object)(object)canvas == (UnityEngine.Object)null
+                    || (UnityEngine.Object)(object)spec == (UnityEngine.Object)null)
+                {
+                    return;
+                }
+
+                Canvas rootCanvas = canvas.rootCanvas;
+                Transform rootParent = ((UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null)
+                    ? rootCanvas.transform
+                    : canvas.transform;
+                _rootCanvas = rootCanvas;
+
+                // Shared native ability tooltip (same overrideSorting wrapper as the swap wiki).
+                CreateTooltipClone(rootParent, WikiIconFactory.TooltipSortingOrder);
+
+                _root = new GameObject("ClassWiki", typeof(RectTransform));
+                _root.transform.SetParent(rootParent, false);
+                StretchFull(_root.GetComponent<RectTransform>());
+                _root.transform.SetAsLastSibling();
+
+                // Backdrop: full-screen transparent button; clicking outside the strip/popup closes both.
+                var backdropGo = new GameObject("Backdrop", typeof(RectTransform), typeof(Image), typeof(Button));
+                backdropGo.transform.SetParent(_root.transform, false);
+                StretchFull(backdropGo.GetComponent<RectTransform>());
+                var backdropImg = backdropGo.GetComponent<Image>();
+                ((Graphic)backdropImg).color = new Color(0f, 0f, 0f, 0.35f);
+                backdropImg.raycastTarget = true;
+                backdropGo.GetComponent<Button>().onClick.AddListener(Close);
+
+                BuildClassStrip(_root.transform, canvas, spec);
+                BuildClassWikiPanel(_root.transform, spec, rootCanvas);
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.OpenClassWiki failed: " + ex.Message);
+                Close();
+            }
+        }
+
+        /// <summary>
+        /// Left, vertically-centered strip of every playable class icon (the currently-viewed class shown
+        /// at full brightness, the rest dimmed). Each icon is a button that re-opens the class wiki for
+        /// that class. The current class is always included even if the universe omitted it. Guarded.
+        /// </summary>
+        private static void BuildClassStrip(Transform parent, Canvas canvas, SpecializationDef current)
+        {
+            try
+            {
+                List<SpecializationDef> classes = ClassPerkProvider.GetPlayableClasses();
+                if ((UnityEngine.Object)(object)current != (UnityEngine.Object)null && !classes.Contains(current))
+                {
+                    classes.Insert(0, current); // always show the class we're viewing
+                }
+                if (classes.Count == 0)
+                {
+                    return;
+                }
+
+                var stripGo = new GameObject("ClassStrip",
+                    typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+                stripGo.transform.SetParent(parent, false);
+                var rt = stripGo.GetComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0f, 0.5f);
+                rt.anchorMax = new Vector2(0f, 0.5f);
+                rt.pivot = new Vector2(0f, 0.5f);
+                rt.anchoredPosition = new Vector2(StripLeftMargin, 0f);
+                var bg = stripGo.GetComponent<Image>();
+                ((Graphic)bg).color = new Color(0f, 0.05f, 0.086f, 0.92f);
+                bg.raycastTarget = true; // eat clicks so the strip background never falls through to close
+
+                var vlg = stripGo.GetComponent<VerticalLayoutGroup>();
+                vlg.spacing = StripSpacing;
+                vlg.padding = new RectOffset((int)StripPadding, (int)StripPadding, (int)StripPadding, (int)StripPadding);
+                vlg.childAlignment = TextAnchor.MiddleCenter;
+                vlg.childControlWidth = true;
+                vlg.childControlHeight = true;
+                vlg.childForceExpandWidth = false;
+                vlg.childForceExpandHeight = false;
+
+                var fitter = stripGo.GetComponent<ContentSizeFitter>();
+                fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+                fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+                foreach (SpecializationDef spec in classes)
+                {
+                    bool isCurrent = (UnityEngine.Object)(object)spec == (UnityEngine.Object)(object)current;
+                    BuildClassStripIcon(stripGo.transform, spec, canvas, isCurrent);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildClassStrip failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>One class-strip icon: fixed-size sprite button that re-opens the wiki for its class.</summary>
+        private static void BuildClassStripIcon(Transform parent, SpecializationDef spec, Canvas canvas, bool isCurrent)
+        {
+            try
+            {
+                var view = spec.ViewElementDef;
+                Sprite sprite = null;
+                if ((UnityEngine.Object)(object)view != (UnityEngine.Object)null)
+                {
+                    sprite = view.SmallIcon != null ? view.SmallIcon : view.LargeIcon;
+                }
+
+                var go = new GameObject("ClassIcon",
+                    typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
+                go.transform.SetParent(parent, false);
+                var img = go.GetComponent<Image>();
+                img.sprite = sprite;
+                img.preserveAspect = true;
+                img.raycastTarget = true;
+                // Dim the classes you're not viewing so the current one reads as selected.
+                ((Graphic)img).color = isCurrent ? Color.white : new Color(1f, 1f, 1f, 0.5f);
+
+                var le = go.GetComponent<LayoutElement>();
+                le.minWidth = StripIconSize;
+                le.preferredWidth = StripIconSize;
+                le.minHeight = StripIconSize;
+                le.preferredHeight = StripIconSize;
+
+                SpecializationDef captured = spec;
+                Canvas capturedCanvas = canvas;
+                go.GetComponent<Button>().onClick.AddListener(() => OpenClassWiki(capturedCanvas, captured));
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildClassStripIcon failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// The centered two-section popup: a class-name title, then the class ability track and the random
+        /// personal-perk pool, each under its own labeled header. Mirrors <see cref="BuildPanel"/>'s
+        /// scroll/viewport scaffolding but stacks the two sections with a VerticalLayoutGroup instead of one
+        /// flat grid. Read-only: icons carry the native hover tooltip, no swap (swapContext null).
+        /// </summary>
+        private static void BuildClassWikiPanel(Transform parent, SpecializationDef spec, Canvas rootCanvas)
+        {
+            List<TacticalAbilityDef> classPerks = ClassPerkProvider.GetClassPerks(spec);
+            List<TacticalAbilityDef> randomPerks = ClassPerkProvider.GetClassRandomPool(spec);
+
+            int rows1 = classPerks.Count > 0 ? Mathf.CeilToInt(classPerks.Count / (float)Columns) : 0;
+            int rows2 = randomPerks.Count > 0 ? Mathf.CeilToInt(randomPerks.Count / (float)Columns) : 0;
+            int sectionCount = (rows1 > 0 ? 1 : 0) + (rows2 > 0 ? 1 : 0);
+            float gridWidth = Columns * CellSize + (Columns - 1) * CellSpacing;
+            float gridH1 = rows1 > 0 ? rows1 * CellSize + (rows1 - 1) * CellSpacing : 0f;
+            float gridH2 = rows2 > 0 ? rows2 * CellSize + (rows2 - 1) * CellSpacing : 0f;
+            // content children = sectionCount*(header+grid); VLG puts SectionSpacing between every child.
+            int childCount = sectionCount * 2;
+            float contentHeight = gridH1 + gridH2 + sectionCount * SectionHeaderHeight
+                + Mathf.Max(0, childCount - 1) * SectionSpacing;
+
+            float panelWidth = gridWidth + 2f * Padding;
+            float viewportHeight = Mathf.Min(contentHeight, MaxPanelHeight) + 2f * Padding;
+            float panelHeight = viewportHeight + TitleHeight;
+
+            var panelGo = new GameObject("ClassWikiPanel", typeof(RectTransform), typeof(Image));
+            panelGo.transform.SetParent(parent, false);
+            var panelRt = panelGo.GetComponent<RectTransform>();
+            panelRt.anchorMin = new Vector2(0.5f, 0.5f);
+            panelRt.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRt.pivot = new Vector2(0.5f, 0.5f);
+            panelRt.sizeDelta = new Vector2(panelWidth, panelHeight);
+            panelRt.anchoredPosition = Vector2.zero;
+            var panelImg = panelGo.GetComponent<Image>();
+            ((Graphic)panelImg).color = new Color(0f, 0.05f, 0.086f, 0.96f);
+            panelImg.raycastTarget = true; // eat clicks so they don't fall through to the backdrop
+
+            BuildTitleText(panelGo.transform, ResolveClassTitle(spec));
+
+            var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(RectMask2D));
+            viewportGo.transform.SetParent(panelGo.transform, false);
+            var viewportRt = viewportGo.GetComponent<RectTransform>();
+            viewportRt.anchorMin = Vector2.zero;
+            viewportRt.anchorMax = Vector2.one;
+            viewportRt.offsetMin = new Vector2(Padding, Padding);
+            viewportRt.offsetMax = new Vector2(-Padding, -TitleHeight);
+            var viewportImg = viewportGo.GetComponent<Image>();
+            ((Graphic)viewportImg).color = new Color(1f, 1f, 1f, 0f);
+            viewportImg.raycastTarget = true;
+
+            var scroll = panelGo.AddComponent<ScrollRect>();
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.viewport = viewportRt;
+            scroll.scrollSensitivity = 30f;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+
+            var contentGo = new GameObject("Content", typeof(RectTransform));
+            contentGo.transform.SetParent(viewportGo.transform, false);
+            var contentRt = contentGo.GetComponent<RectTransform>();
+            contentRt.anchorMin = new Vector2(0f, 1f);
+            contentRt.anchorMax = new Vector2(1f, 1f);
+            contentRt.pivot = new Vector2(0.5f, 1f);
+            contentRt.anchoredPosition = Vector2.zero;
+            scroll.content = contentRt;
+
+            var vlg = contentGo.AddComponent<VerticalLayoutGroup>();
+            vlg.spacing = SectionSpacing;
+            vlg.childAlignment = TextAnchor.UpperCenter;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+
+            var fitter = contentGo.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            RectTransform canvasRect = ((UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null)
+                ? rootCanvas.transform as RectTransform
+                : null;
+
+            BuildClassSection(contentGo.transform, Loc.Get(SectionClassTerm, SectionClassFallback),
+                classPerks, rootCanvas, canvasRect);
+            BuildClassSection(contentGo.transform, Loc.Get(SectionRandomTerm, SectionRandomFallback),
+                randomPerks, rootCanvas, canvasRect);
+        }
+
+        /// <summary>
+        /// One labeled section inside the class wiki content column: a header label plus a fixed-column grid
+        /// of read-only perk icons (native hover tooltip, no swap). Skipped when <paramref name="defs"/> is
+        /// empty. The grid's own GridLayoutGroup reports its preferred height to the parent layout.
+        /// </summary>
+        private static void BuildClassSection(Transform content, string headerText,
+            List<TacticalAbilityDef> defs, Canvas rootCanvas, RectTransform canvasRect)
+        {
+            if (defs == null || defs.Count == 0)
+            {
+                return;
+            }
+
+            var headerGo = new GameObject("SectionHeader",
+                typeof(RectTransform), typeof(CanvasRenderer), typeof(Text), typeof(LayoutElement));
+            headerGo.transform.SetParent(content, false);
+            var htext = headerGo.GetComponent<Text>();
+            htext.text = headerText;
+            htext.font = GetTitleFont();
+            htext.fontSize = 18;
+            ((Graphic)htext).color = new Color(0.72f, 0.85f, 1f, 1f);
+            htext.alignment = TextAnchor.LowerLeft;
+            htext.horizontalOverflow = HorizontalWrapMode.Overflow;
+            htext.verticalOverflow = VerticalWrapMode.Overflow;
+            htext.raycastTarget = false;
+            var hle = headerGo.GetComponent<LayoutElement>();
+            hle.minHeight = SectionHeaderHeight;
+            hle.preferredHeight = SectionHeaderHeight;
+            hle.flexibleHeight = 0f;
+
+            var gridGo = new GameObject("SectionGrid", typeof(RectTransform));
+            gridGo.transform.SetParent(content, false);
+            var grid = gridGo.AddComponent<GridLayoutGroup>();
+            grid.cellSize = new Vector2(CellSize, CellSize);
+            grid.spacing = new Vector2(CellSpacing, CellSpacing);
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = Columns;
+            grid.childAlignment = TextAnchor.UpperLeft;
+
+            foreach (TacticalAbilityDef def in defs)
+            {
+                WikiIconFactory.Make(gridGo.transform, def, _tooltip, canvasRect, rootCanvas, null);
+            }
+        }
+
+        /// <summary>Localized class display name for the popup title; falls back to the class name.</summary>
+        private static string ResolveClassTitle(SpecializationDef spec)
+        {
+            try
+            {
+                var view = spec.ViewElementDef;
+                if ((UnityEngine.Object)(object)view != (UnityEngine.Object)null && view.DisplayName1 != null)
+                {
+                    string s = view.DisplayName1.Localize();
+                    if (!string.IsNullOrEmpty(s))
+                    {
+                        return s;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.ResolveClassTitle failed: " + ex.Message);
+            }
+            return (UnityEngine.Object)(object)spec.ClassTag != (UnityEngine.Object)null
+                ? spec.ClassTag.className
+                : Loc.Get(TitleTerm, TitleFallback);
         }
 
         /// <summary>Destroy the live instance, if any. Safe to call when nothing is open.</summary>
@@ -362,6 +687,10 @@ namespace Morgott.Oracle
         /// behind a centered game-styled label. Fully guarded; failure leaves the panel intact.
         /// </summary>
         private static void BuildTitle(Transform panel, string titleTerm, string titleFallback)
+            => BuildTitleText(panel, Loc.Get(titleTerm, titleFallback));
+
+        /// <summary>Same fixed title bar as <see cref="BuildTitle"/> but for an already-resolved string.</summary>
+        private static void BuildTitleText(Transform panel, string titleText)
         {
             try
             {
@@ -382,7 +711,7 @@ namespace Morgott.Oracle
                 textGo.transform.SetParent(barGo.transform, false);
                 StretchFull(textGo.GetComponent<RectTransform>());
                 var text = textGo.GetComponent<Text>();
-                text.text = Loc.Get(titleTerm, titleFallback);
+                text.text = titleText;
                 text.font = GetTitleFont();
                 text.fontSize = 22;
                 ((Graphic)text).color = Color.white;
