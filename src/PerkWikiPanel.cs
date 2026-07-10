@@ -289,8 +289,7 @@ namespace Morgott.Oracle
                     BuildBodyTitle(bodyGo.transform, ResolveClassTitle(spec));
                     BuildPerkRow(bodyGo.transform, Loc.Get(SectionClassTerm, SectionClassFallback),
                         ClassPerkProvider.GetClassPerks(spec), template, cellSize, canvasRect, rootCanvas);
-                    BuildPerkRow(bodyGo.transform, Loc.Get(SectionRandomTerm, SectionRandomFallback),
-                        ClassPerkProvider.GetClassRandomPool(spec), template, cellSize, canvasRect, rootCanvas);
+                    BuildSlotRow(bodyGo.transform, spec, template, cellSize, canvasRect, rootCanvas, panelRt);
                     LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
                 }
                 catch (Exception ex)
@@ -414,23 +413,7 @@ namespace Morgott.Oracle
             }
             try
             {
-                var headerGo = new GameObject("RowLabel",
-                    typeof(RectTransform), typeof(CanvasRenderer), typeof(Text), typeof(LayoutElement));
-                headerGo.transform.SetParent(parent, false);
-                var htext = headerGo.GetComponent<Text>();
-                htext.text = label;
-                htext.font = GetTitleFont();
-                htext.fontSize = 18;
-                ((Graphic)htext).color = new Color(0.72f, 0.85f, 1f, 1f);
-                htext.alignment = TextAnchor.MiddleCenter;
-                htext.horizontalOverflow = HorizontalWrapMode.Overflow;
-                htext.verticalOverflow = VerticalWrapMode.Overflow;
-                htext.raycastTarget = false;
-                var hle = headerGo.GetComponent<LayoutElement>();
-                hle.minHeight = RowLabelHeight;
-                hle.preferredHeight = RowLabelHeight;
-                hle.flexibleHeight = 0f;
-
+                BuildRowLabel(parent, label);
                 GameObject grid = BuildRowGrid(parent, defs.Count, cellSize);
                 foreach (TacticalAbilityDef def in defs)
                 {
@@ -450,6 +433,211 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] PerkWikiPanel.BuildPerkRow failed: " + ex.Message);
             }
+        }
+
+        /// <summary>Centered small header label above a cell row. Guarded by callers.</summary>
+        private static void BuildRowLabel(Transform parent, string label)
+        {
+            var headerGo = new GameObject("RowLabel",
+                typeof(RectTransform), typeof(CanvasRenderer), typeof(Text), typeof(LayoutElement));
+            headerGo.transform.SetParent(parent, false);
+            var htext = headerGo.GetComponent<Text>();
+            htext.text = label;
+            htext.font = GetTitleFont();
+            htext.fontSize = 18;
+            ((Graphic)htext).color = new Color(0.72f, 0.85f, 1f, 1f);
+            htext.alignment = TextAnchor.MiddleCenter;
+            htext.horizontalOverflow = HorizontalWrapMode.Overflow;
+            htext.verticalOverflow = VerticalWrapMode.Overflow;
+            htext.raycastTarget = false;
+            var hle = headerGo.GetComponent<LayoutElement>();
+            hle.minHeight = RowLabelHeight;
+            hle.preferredHeight = RowLabelHeight;
+            hle.flexibleHeight = 0f;
+        }
+
+        /// <summary>
+        /// Row 3: the personal-track SLOTS, native slot semantics on both vanilla and TFTV. One native cell
+        /// per slot (<see cref="TftvConfigBridge.PersonalSlotCount"/>): a TFTV FIXED slot shows its
+        /// class-fixed perk with the normal tooltip; a RANDOM slot (all slots on vanilla) shows an
+        /// ANONYMIZED cell — native frame, no icon, a "?" glyph, the rolled-perk highlight tint — whose
+        /// click toggles a flyout listing exactly the perks that can roll in THAT slot
+        /// (<see cref="PerkWikiPool.ResolveForSlot"/>). One flyout at a time; clicking the same slot again
+        /// closes it, another slot switches it, and a tab switch / backdrop Close tears it down with the
+        /// body. Guarded.
+        /// </summary>
+        private static void BuildSlotRow(Transform parent, SpecializationDef spec,
+            AbilityTrackSkillEntryElement template, float cellSize, RectTransform canvasRect,
+            Canvas rootCanvas, RectTransform panelRt)
+        {
+            try
+            {
+                int slots = TftvConfigBridge.PersonalSlotCount;
+                if (slots <= 0)
+                {
+                    return;
+                }
+                string className = (UnityEngine.Object)(object)spec.ClassTag != (UnityEngine.Object)null
+                    ? spec.ClassTag.className
+                    : null;
+
+                BuildRowLabel(parent, Loc.Get(SectionRandomTerm, SectionRandomFallback));
+                GameObject grid = BuildRowGrid(parent, slots, cellSize);
+
+                // Flyout state, shared by this row's anonymized cells. Lives in the closure only: the
+                // flyout GO is a child of the body, so a tab-switch rebuild or Close destroys it with us.
+                GameObject flyout = null;
+                int flyoutSlot = -1;
+
+                void ToggleFlyout(int level0)
+                {
+                    try
+                    {
+                        bool wasOpen = (UnityEngine.Object)(object)flyout != (UnityEngine.Object)null;
+                        if (wasOpen)
+                        {
+                            flyout.transform.SetParent(null, false); // detach so layout updates this frame
+                            UnityEngine.Object.Destroy(flyout);
+                            flyout = null;
+                        }
+                        if (wasOpen && flyoutSlot == level0)
+                        {
+                            flyoutSlot = -1; // second click on the same slot -> just close
+                            LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
+                            return;
+                        }
+                        List<TacticalAbilityDef> pool = PerkWikiPool.ResolveForSlot(level0, className);
+                        if (pool == null || pool.Count == 0)
+                        {
+                            flyoutSlot = -1;
+                            return;
+                        }
+                        flyout = BuildSlotFlyout(parent, pool, template, cellSize, canvasRect, rootCanvas);
+                        flyoutSlot = level0;
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
+                    }
+                    catch (Exception ex)
+                    {
+                        OracleLog.Debug("[Oracle] PerkWikiPanel.ToggleFlyout failed: " + ex.Message);
+                    }
+                }
+
+                for (int level0 = 0; level0 < slots; level0++)
+                {
+                    bool isFixed = TftvConfigBridge.Available && !TftvConfigBridge.IsSlotRandom(level0);
+                    if (isFixed)
+                    {
+                        if (TftvConfigBridge.TryGetTftvFixedPerk(level0, className, out TacticalAbilityDef def)
+                            && (UnityEngine.Object)(object)def.ViewElementDef != (UnityEngine.Object)null)
+                        {
+                            Sprite icon = def.ViewElementDef.SmallIcon != null
+                                ? def.ViewElementDef.SmallIcon
+                                : def.ViewElementDef.LargeIcon;
+                            WikiIconFactory.MakeCell(grid.transform, template, icon, def, true,
+                                _tooltip, canvasRect, rootCanvas);
+                        }
+                        else
+                        {
+                            // Fixed slot with no perk for this class (modded class not in TFTV's map):
+                            // an inert greyed empty native cell keeps the slot count honest.
+                            WikiIconFactory.MakeCell(grid.transform, template, null, null, false,
+                                null, null, null);
+                        }
+                        continue;
+                    }
+
+                    // Random slot -> anonymized clickable cell opening this slot's roll pool.
+                    GameObject cellGo = WikiIconFactory.MakeCell(grid.transform, template, null, null, true,
+                        null, null, null);
+                    if ((UnityEngine.Object)(object)cellGo == (UnityEngine.Object)null)
+                    {
+                        continue;
+                    }
+                    AnonymizeCell(cellGo, cellSize);
+                    var btn = cellGo.GetComponent<Button>();
+                    if ((UnityEngine.Object)(object)btn != (UnityEngine.Object)null)
+                    {
+                        int captured = level0;
+                        btn.onClick.AddListener(() => ToggleFlyout(captured));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildSlotRow failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Turn a native cell clone into the anonymized "random slot" look: the rolled-perk highlight tint
+        /// (always on — it marks slot semantics, not a preference) plus a centered "?" glyph. Guarded.
+        /// </summary>
+        private static void AnonymizeCell(GameObject cellGo, float cellSize)
+        {
+            try
+            {
+                CellBackground.ApplyAlways(cellGo.GetComponent<AbilityTrackSkillEntryElement>());
+
+                var qGo = new GameObject("QMark", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+                qGo.transform.SetParent(cellGo.transform, false);
+                StretchFull(qGo.GetComponent<RectTransform>());
+                var q = qGo.GetComponent<Text>();
+                q.text = "?";
+                q.font = GetTitleFont();
+                q.fontSize = Mathf.Max(20, Mathf.RoundToInt(cellSize * 0.45f));
+                ((Graphic)q).color = new Color(0.85f, 0.92f, 1f, 0.95f);
+                q.alignment = TextAnchor.MiddleCenter;
+                q.horizontalOverflow = HorizontalWrapMode.Overflow;
+                q.verticalOverflow = VerticalWrapMode.Overflow;
+                q.raycastTarget = false;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.AnonymizeCell failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Expanding sub-panel under the slot row: a slightly inset background holding a wrapping grid of
+        /// the perks that can roll in ONE slot (same native cells + vanilla tooltips, read-only).
+        /// </summary>
+        private static GameObject BuildSlotFlyout(Transform parent, List<TacticalAbilityDef> defs,
+            AbilityTrackSkillEntryElement template, float cellSize, RectTransform canvasRect,
+            Canvas rootCanvas)
+        {
+            var holder = new GameObject("SlotFlyout",
+                typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+            holder.transform.SetParent(parent, false);
+            var img = holder.GetComponent<Image>();
+            ((Graphic)img).color = new Color(0.03f, 0.10f, 0.15f, 0.95f); // inset shade against the panel bg
+            img.raycastTarget = true; // eat clicks so they don't fall through to the backdrop
+            var vlg = holder.GetComponent<VerticalLayoutGroup>();
+            vlg.spacing = CellSpacing;
+            vlg.padding = new RectOffset(8, 8, 8, 8);
+            vlg.childAlignment = TextAnchor.UpperCenter;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            var fitter = holder.GetComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            GameObject grid = BuildRowGrid(holder.transform, defs.Count, cellSize);
+            foreach (TacticalAbilityDef def in defs)
+            {
+                if ((UnityEngine.Object)(object)def == (UnityEngine.Object)null
+                    || (UnityEngine.Object)(object)def.ViewElementDef == (UnityEngine.Object)null)
+                {
+                    continue;
+                }
+                Sprite icon = def.ViewElementDef.SmallIcon != null
+                    ? def.ViewElementDef.SmallIcon
+                    : def.ViewElementDef.LargeIcon;
+                WikiIconFactory.MakeCell(grid.transform, template, icon, def, true,
+                    _tooltip, canvasRect, rootCanvas);
+            }
+            return holder;
         }
 
         /// <summary>Detach + destroy every child of <paramref name="t"/> so a rebuild starts clean.</summary>

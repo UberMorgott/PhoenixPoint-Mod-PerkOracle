@@ -40,7 +40,20 @@ namespace Morgott.Oracle
             {
                 show = false;
             }
+            ApplyCore(cell, show);
+        }
 
+        /// <summary>
+        /// Wiki anonymized random-slot cells: always show the rolled tint, ignoring the highlight master
+        /// toggle (here the tint says "this slot rolls randomly" — semantics, not a highlight preference).
+        /// </summary>
+        internal static void ApplyAlways(AbilityTrackSkillEntryElement cell)
+        {
+            ApplyCore(cell, true);
+        }
+
+        private static void ApplyCore(AbilityTrackSkillEntryElement cell, bool show)
+        {
             if (cell == null)
             {
                 return;

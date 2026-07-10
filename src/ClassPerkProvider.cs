@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Base.Core;
 using Base.Defs;
+using PhoenixPoint.Common.Core;
 using PhoenixPoint.Common.Entities;
 using PhoenixPoint.Common.Entities.Characters;
+using PhoenixPoint.Common.Entities.GameTagsTypes;
 using PhoenixPoint.Geoscape.Entities.Research.Reward;
 using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Tactical.Entities.Abilities;
@@ -21,11 +23,6 @@ namespace Morgott.Oracle
     /// </summary>
     public static class ClassPerkProvider
     {
-        // Upper bound for scanning personal-track slots when unioning a class's random pool. The real
-        // slot count is smaller (~7); TftvConfigBridge.IsSlotRandom bounds-checks internally, so extra
-        // iterations are free no-ops and this stays future-proof against more personal levels.
-        private const int MaxPersonalSlotScan = 16;
-
         /// <summary>
         /// Ordered, de-duplicated guaranteed class-track perks for <paramref name="spec"/> (level order:
         /// the spec proficiency first, then each ability slot). Returns an empty list on null/missing
@@ -87,16 +84,29 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Every playable class the wiki can browse: the selectable-subclass universe (faction initial
-        /// specs + all class-research rewards), de-duplicated and filtered to specs that carry an icon
-        /// (<see cref="SpecializationDef.ViewElementDef"/>) plus a valid ability track and proficiency —
-        /// so both the strip icon and the two perk sections resolve. Mutoid/enemy specs are already
-        /// absent from the universe. Returns an empty list on any error.
+        /// Every playable HUMAN SOLDIER class the wiki can browse: the selectable-subclass universe
+        /// (faction initial specs + all class-research rewards), de-duplicated and filtered to specs that
+        /// carry an icon (<see cref="SpecializationDef.ViewElementDef"/>) plus a valid ability track and
+        /// proficiency. Non-soldier specs are excluded with the game's OWN discriminators: vehicle specs by
+        /// <c>ClassTag == SharedGameTags.VehicleClassTag</c> (exactly how
+        /// <c>SpecializedAbilityTrackPopupElement</c> strips the vehicle spec from
+        /// <c>AvailableCharacterSpecializations</c>) and any spec the native dual-class/mutoid pickers
+        /// refuse (<see cref="SpecializationDef.NotSecondClassSpecialization"/>). Empty list on any error.
         /// </summary>
         public static List<SpecializationDef> GetPlayableClasses()
         {
             try
             {
+                ClassTagDef vehicleTag = null;
+                try
+                {
+                    vehicleTag = GameUtl.GameComponent<SharedData>().SharedGameTags.VehicleClassTag;
+                }
+                catch (Exception ex)
+                {
+                    OracleLog.Debug("[Oracle] VehicleClassTag lookup failed: " + ex.Message);
+                }
+
                 var seen = new HashSet<SpecializationDef>();
                 var result = new List<SpecializationDef>();
                 foreach (SpecializationDef spec in GetSelectableSubclassUniverse())
@@ -111,6 +121,14 @@ namespace Morgott.Oracle
                     {
                         continue;
                     }
+                    // Soldier-only: no vehicle specs (e.g. the Kaos Buggy class research reward), and
+                    // nothing the game's own second-class pickers exclude.
+                    if (spec.NotSecondClassSpecialization
+                        || ((UnityEngine.Object)(object)vehicleTag != (UnityEngine.Object)null
+                            && (UnityEngine.Object)(object)spec.ClassTag == (UnityEngine.Object)(object)vehicleTag))
+                    {
+                        continue;
+                    }
                     result.Add(spec);
                 }
                 return result;
@@ -119,87 +137,6 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] ClassPerkProvider.GetPlayableClasses failed: " + ex.Message);
                 return new List<SpecializationDef>();
-            }
-        }
-
-        /// <summary>
-        /// The pool of random-rolled personal perks a soldier of <paramref name="spec"/>'s class can roll,
-        /// TFTV-aware: unions the TFTV per-slot random pool over every random personal slot (each slot has
-        /// its own candidate set), keyed by <c>ClassTagDef.className</c> so TFTV's per-class
-        /// exclusions apply — mirroring the game (TFTV PersonalSpecModification uses
-        /// <c>character.ClassTag.className</c>, NOT the SpecializationDef name). Falls back to the global
-        /// vanilla personal pool when TFTV is absent (or yields nothing). Ordered by slot then de-duplicated
-        /// via the tested pure <see cref="ClassPerkResolver.Resolve"/>. Empty list on any error.
-        /// </summary>
-        public static List<TacticalAbilityDef> GetClassRandomPool(SpecializationDef spec)
-        {
-            try
-            {
-                if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null)
-                {
-                    return new List<TacticalAbilityDef>();
-                }
-
-                string className = (UnityEngine.Object)(object)spec.ClassTag != (UnityEngine.Object)null
-                    ? spec.ClassTag.className
-                    : null;
-
-                var byName = new Dictionary<string, TacticalAbilityDef>(StringComparer.Ordinal);
-                var names = new List<string>();
-
-                void Collect(List<TacticalAbilityDef> defs)
-                {
-                    if (defs == null)
-                    {
-                        return;
-                    }
-                    foreach (TacticalAbilityDef def in defs)
-                    {
-                        if ((UnityEngine.Object)(object)def == (UnityEngine.Object)null)
-                        {
-                            continue;
-                        }
-                        string n = ((UnityEngine.Object)def).name;
-                        if (string.IsNullOrEmpty(n))
-                        {
-                            continue;
-                        }
-                        if (!byName.ContainsKey(n))
-                        {
-                            byName[n] = def;
-                        }
-                        names.Add(n);
-                    }
-                }
-
-                // TFTV: gate on IsSlotRandom + TryGetTftvRandomPool so a fixed slot never pulls the
-                // per-slot vanilla fallback (PerkWikiPool.ResolveForSlot's) into a TFTV union.
-                if (TftvConfigBridge.Available)
-                {
-                    for (int level0 = 0; level0 < MaxPersonalSlotScan; level0++)
-                    {
-                        if (TftvConfigBridge.IsSlotRandom(level0)
-                            && TftvConfigBridge.TryGetTftvRandomPool(level0, className, out List<TacticalAbilityDef> pool))
-                        {
-                            Collect(pool);
-                        }
-                    }
-                }
-
-                // Vanilla pool ONLY when TFTV is absent. When TFTV is present its per-slot pools are
-                // definitive: an empty union stays empty, never polluted by the global vanilla fallback.
-                if (!TftvConfigBridge.Available)
-                {
-                    Collect(TftvConfigBridge.GetVanillaPersonalPool());
-                }
-
-                return ClassPerkResolver.Resolve(names,
-                    n => byName.TryGetValue(n, out TacticalAbilityDef d) ? d : null);
-            }
-            catch (Exception ex)
-            {
-                OracleLog.Debug("[Oracle] ClassPerkProvider.GetClassRandomPool failed: " + ex.Message);
-                return new List<TacticalAbilityDef>();
             }
         }
 

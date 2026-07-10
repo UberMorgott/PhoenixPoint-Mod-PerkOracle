@@ -35,6 +35,8 @@ namespace Morgott.Oracle
         // Wiki pool data (captured alongside the IsRandom data, same reflection pass).
         // PerkKey -> the perk's UnrelatedRandomPerks list (upper-case display names); only random perks have one.
         private static Dictionary<string, List<string>> _randomNamesByKey;
+        // PerkKey -> RelatedFixedPerks (faction key -> className -> display name); only FIXED perks have one.
+        private static Dictionary<string, Dictionary<string, Dictionary<string, string>>> _fixedNamesByKey;
         // BCSettings.RadomSkillExclusionMap: display name -> class names it is excluded for.
         private static Dictionary<string, List<string>> _exclusionMap;
         // PRMBetterClasses.Helper.AbilityNameToDefMap: upper display name -> def name.
@@ -152,10 +154,12 @@ namespace Morgott.Oracle
             MethodInfo perkKeyGetter = null;
             MethodInfo isRandomGetter = null;
             MethodInfo randomPerksGetter = null;
+            MethodInfo fixedPerksGetter = null;
 
             var keys = new System.Collections.Generic.List<string>();
             var randoms = new System.Collections.Generic.List<bool>();
             _randomNamesByKey = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            _fixedNamesByKey = new Dictionary<string, Dictionary<string, Dictionary<string, string>>>(StringComparer.Ordinal);
 
             foreach (object boxedDef in perks)
             {
@@ -171,6 +175,9 @@ namespace Morgott.Oracle
                     isRandomGetter = AccessTools.PropertyGetter(tDef, "IsRandom");
                     // UnrelatedRandomPerks is a computed getter returning List<string> (null for fixed perks).
                     randomPerksGetter = AccessTools.PropertyGetter(tDef, "UnrelatedRandomPerks");
+                    // RelatedFixedPerks is a computed getter returning Dictionary<string, Dictionary<string,
+                    // string>> (faction key -> className -> display name); null for random perks.
+                    fixedPerksGetter = AccessTools.PropertyGetter(tDef, "RelatedFixedPerks");
                     if (perkKeyGetter == null || isRandomGetter == null)
                     {
                         throw new Exception("PerkKey/IsRandom getters not found on PersonalPerksDef");
@@ -196,6 +203,31 @@ namespace Morgott.Oracle
                             }
                         }
                         _randomNamesByKey[key] = copy;
+                    }
+                }
+                else if (!isRandom && fixedPerksGetter != null && key != null)
+                {
+                    // Returned object is a Dictionary<string, Dictionary<string, string>>; deep-copy.
+                    if (fixedPerksGetter.Invoke(boxedDef, null) is IDictionary byFaction)
+                    {
+                        var copy = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
+                        foreach (DictionaryEntry fe in byFaction)
+                        {
+                            if (!(fe.Key is string factionKey) || !(fe.Value is IDictionary byClass))
+                            {
+                                continue;
+                            }
+                            var classCopy = new Dictionary<string, string>(StringComparer.Ordinal);
+                            foreach (DictionaryEntry ce in byClass)
+                            {
+                                if (ce.Key is string cls && ce.Value is string perkName)
+                                {
+                                    classCopy[cls] = perkName;
+                                }
+                            }
+                            copy[factionKey] = classCopy;
+                        }
+                        _fixedNamesByKey[key] = copy;
                     }
                 }
             }
@@ -252,6 +284,68 @@ namespace Morgott.Oracle
                 dst[key] = list;
             }
             return dst;
+        }
+
+        /// <summary>
+        /// Personal-track slot count: TFTV's <c>OrderOfPersonalPerks.Length</c> when the bridge is up,
+        /// else vanilla's 7 (CharacterProgression builds the personal track with
+        /// <c>LevelProgressionDef.MaxLevel</c> slots = the 7-entry XP table).
+        /// </summary>
+        public static int PersonalSlotCount
+        {
+            get
+            {
+                EnsureInitialized();
+                return _available && _order != null ? _order.Length : 7;
+            }
+        }
+
+        /// <summary>
+        /// The FIXED additional perk TFTV grants at slot <paramref name="level0"/> for a soldier of
+        /// <paramref name="className"/>. Mirrors PRMBetterClasses <c>PersonalPerksDef.GetPerk</c>'s
+        /// non-random path (TFTV src ConfigHelpers.cs:129): <c>RelatedFixedPerks[faction][className]</c>
+        /// with the Phoenix row first (Faction_1/Faction_2 keys), then the "All Factions" row (Class_1/
+        /// Class_2 keys) — the wiki always shows the player's own (Phoenix) perspective. Returns false
+        /// when the bridge is down, the slot is random, or the class has no entry.
+        /// </summary>
+        public static bool TryGetTftvFixedPerk(int level0, string className, out TacticalAbilityDef def)
+        {
+            def = null;
+            EnsureInitialized();
+            if (!_available || _order == null || _fixedNamesByKey == null || string.IsNullOrEmpty(className))
+            {
+                return false;
+            }
+            if (level0 < 0 || level0 >= _order.Length)
+            {
+                return false;
+            }
+
+            string key = _order[level0];
+            if (string.IsNullOrEmpty(key)
+                || !_fixedNamesByKey.TryGetValue(key, out Dictionary<string, Dictionary<string, string>> byFaction)
+                || byFaction == null)
+            {
+                return false;
+            }
+
+            // FactionKeys.PX = "Phoenix", FactionKeys.All = "All Factions" (TFTV src ConfigHelpers.cs:233).
+            string name = null;
+            if (byFaction.TryGetValue("Phoenix", out Dictionary<string, string> px) && px != null)
+            {
+                px.TryGetValue(className, out name);
+            }
+            if (name == null && byFaction.TryGetValue("All Factions", out Dictionary<string, string> all) && all != null)
+            {
+                all.TryGetValue(className, out name);
+            }
+            if (string.IsNullOrEmpty(name))
+            {
+                return false;
+            }
+
+            def = ResolveAbilityName(name);
+            return (UnityEngine.Object)(object)def != (UnityEngine.Object)null;
         }
 
         /// <summary>

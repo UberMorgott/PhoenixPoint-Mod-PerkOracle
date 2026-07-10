@@ -224,10 +224,11 @@ namespace Morgott.Oracle
                 StripOwnBehaviour<WikiAbilityTooltipTrigger>(cloneGo);
                 RemoveRolledTint(cloneGo);
 
-                // Show the requested icon on the cell's OWN SkillIcon so the native state visuals stay intact.
+                // Show the requested icon on the cell's OWN SkillIcon so the state visuals stay native.
+                // A null icon means an anonymized cell (random slot): keep the native frame, hide the icon.
                 if ((UnityEngine.Object)(object)cell.SkillIcon != (UnityEngine.Object)null)
                 {
-                    cell.SkillIcon.gameObject.SetActive(value: true);
+                    cell.SkillIcon.gameObject.SetActive(icon != null);
                     cell.SkillIcon.sprite = icon;
                 }
                 cell.AbilityDef = def; // null for class tabs (no ability)
