@@ -301,7 +301,50 @@ namespace Morgott.Oracle
                 }
                 ResourceIconContainer ric = UnityEngine.Object.Instantiate(template, strip.transform);
                 ric.gameObject.SetActive(value: true);
+                CleanClone(ric);
                 ric.SetResource(type, amount); // native colored icon + amount via the container's own ResourcesDef
+            }
+        }
+
+        /// <summary>
+        /// The template can come from any screen, and some instances carry prefab-only decoration the C# class
+        /// never references (e.g. a vertical divider Image that showed up next to the gears icon) —
+        /// <see cref="ResourceIconContainer"/> only serializes Icon + Value, so decoration is invisible in the
+        /// decompile. Whitelist those two: every other Graphic in the clone is turned off (whole GameObject when
+        /// it holds neither Icon nor Value beneath it, so its layout space is freed too; render-only disable when
+        /// it shares a GameObject/branch with a kept element). Also bumps the amount digits ~20% for readability,
+        /// keeping the best-fit cap in sync and letting wide numbers overflow instead of clip.
+        /// </summary>
+        private static void CleanClone(ResourceIconContainer ric)
+        {
+            foreach (Graphic g in ric.GetComponentsInChildren<Graphic>(includeInactive: true))
+            {
+                if (g == null || g == ric.Icon || g == ric.Value)
+                {
+                    continue;
+                }
+                bool holdsKept =
+                    (ric.Icon != null && ric.Icon.transform.IsChildOf(g.transform)) ||
+                    (ric.Value != null && ric.Value.transform.IsChildOf(g.transform));
+                if (holdsKept)
+                {
+                    g.enabled = false;
+                }
+                else
+                {
+                    g.gameObject.SetActive(value: false);
+                }
+            }
+
+            Text v = ric.Value;
+            if (v != null)
+            {
+                v.fontSize = Mathf.RoundToInt(v.fontSize * 1.2f);
+                if (v.resizeTextForBestFit)
+                {
+                    v.resizeTextMaxSize = Mathf.RoundToInt(v.resizeTextMaxSize * 1.2f);
+                }
+                v.horizontalOverflow = HorizontalWrapMode.Overflow;
             }
         }
     }
