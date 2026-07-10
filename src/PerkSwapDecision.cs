@@ -92,6 +92,20 @@ namespace Morgott.Oracle
             return PerkSwapVerdict.Allow;
         }
 
+        /// <summary>
+        /// Effective skill-point cost of a swap: the configured cost when the cost toggle is on, else 0.
+        /// Values &lt;= 0 are clamped to 0 (free). Pure so the clamp is unit-tested engine-free; the actual
+        /// SP charge/affordability lives in <see cref="PerkSwapper"/>.
+        /// </summary>
+        public static int EffectiveCost(bool costEnabled, int configuredCost)
+        {
+            if (!costEnabled || configuredCost <= 0)
+            {
+                return 0;
+            }
+            return configuredCost;
+        }
+
         private static bool Contains<T>(IReadOnlyCollection<T> owned, T value, IEqualityComparer<T> comparer)
         {
             foreach (T item in owned)

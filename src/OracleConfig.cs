@@ -94,11 +94,18 @@ namespace Morgott.Oracle
         public bool RequirePerkSwapResearch = true;
 
         /// <summary>
-        /// STUB / placeholder. Reserved for a future iteration that makes the swap cost in-game resources.
-        /// Currently has NO behavior: the swap is always free regardless of this value. Surfaced in the
-        /// options UI so the intent is visible; the wiring point lives in <see cref="PerkSwapper"/>.
+        /// When true (default), a perk swap costs the soldier <see cref="PerkSwapSkillPointCost"/> skill
+        /// points: the swap is blocked when the soldier can't afford it, otherwise the points are spent.
+        /// Turn OFF to make swaps free. Wired in <see cref="PerkSwapper"/>; the cost is shown natively on
+        /// the perk's hover tooltip (the game's SP-cost row).
         /// </summary>
-        public bool PerkSwapCostsResources = false;
+        public bool PerkSwapCostsResources = true;
+
+        /// <summary>
+        /// Skill-point cost of a single perk swap when <see cref="PerkSwapCostsResources"/> is on. Default 50.
+        /// Values &lt;= 0 are treated as free. Read live, so a change applies on the next swap.
+        /// </summary>
+        public int PerkSwapSkillPointCost = 50;
 
         // --- Diagnostics -------------------------------------------------------------------------
 
@@ -178,10 +185,17 @@ namespace Morgott.Oracle
                 }
                 else if (field.ID == nameof(PerkSwapCostsResources))
                 {
-                    field.GetText = () => Loc.Get("ORACLE_PerkSwapCostsResources", "Swap Costs Resources");
+                    field.GetText = () => Loc.Get("ORACLE_PerkSwapCostsResources", "Swap Costs Skill Points");
                     field.GetDescription = () => Loc.Get(
                         "ORACLE_PerkSwapCostsResources_DESCRIPTION",
-                        "Placeholder for a future update: make perk swapping cost resources. Currently has no effect.");
+                        "When on, a perk swap spends skill points. The swap is blocked if the soldier can't afford it. Turn off to make swaps free.");
+                }
+                else if (field.ID == nameof(PerkSwapSkillPointCost))
+                {
+                    field.GetText = () => Loc.Get("ORACLE_PerkSwapSkillPointCost", "Swap Skill-Point Cost");
+                    field.GetDescription = () => Loc.Get(
+                        "ORACLE_PerkSwapSkillPointCost_DESCRIPTION",
+                        "How many skill points a perk swap costs when \"Swap Costs Skill Points\" is on. Set to 0 for free swaps.");
                 }
                 else if (field.ID == nameof(EnableDebugLogging))
                 {

@@ -65,5 +65,29 @@ namespace Morgott.Oracle.Tests
             var verdict = PerkSwapDecision.Evaluate("B", null, Owned());
             Assert.Equal(PerkSwapVerdict.DenyNotLearned, verdict);
         }
+
+        [Fact]
+        public void EffectiveCost_Disabled_IsFree()
+        {
+            Assert.Equal(0, PerkSwapDecision.EffectiveCost(false, 50));
+        }
+
+        [Fact]
+        public void EffectiveCost_EnabledPositive_ReturnsConfigured()
+        {
+            Assert.Equal(50, PerkSwapDecision.EffectiveCost(true, 50));
+        }
+
+        [Fact]
+        public void EffectiveCost_NegativeConfig_ClampsToFree()
+        {
+            Assert.Equal(0, PerkSwapDecision.EffectiveCost(true, -10));
+        }
+
+        [Fact]
+        public void EffectiveCost_ZeroConfig_IsFree()
+        {
+            Assert.Equal(0, PerkSwapDecision.EffectiveCost(true, 0));
+        }
     }
 }

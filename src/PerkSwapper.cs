@@ -66,11 +66,6 @@ namespace Morgott.Oracle
                 AbilityTrackSlot slot = ctx.Slot;
                 TacticalAbilityDef oldDef = slot.Ability; // step 1
 
-                // STUB hook: future resource-cost insertion point. When PerkSwapCostsResources is enabled a
-                // later iteration will charge resources here (and may abort the swap on insufficient funds).
-                // For now this is intentionally a no-op so the swap stays free regardless of the toggle.
-                ApplyResourceCostStub(ctx);
-
                 // Decision gate (learned? same? already-owned?). Owned set = progression.Abilities.
                 IReadOnlyList<TacticalAbilityDef> owned = progression.Abilities;
                 PerkSwapVerdict verdict = PerkSwapDecision.Evaluate(chosenDef, oldDef, owned);
@@ -82,6 +77,19 @@ namespace Morgott.Oracle
                                   + DefName(chosenDef) + " already owned by soldier.");
                     }
                     // Not-learned / same-as-current / invalid: silent no-op per design.
+                    return false;
+                }
+
+                // Skill-point cost: charge only a swap that will actually happen (verdict == Allow). Abort
+                // BEFORE mutating _abilities if the soldier can't afford it, so nothing is half-done. The
+                // click site pre-checks this too (to show a message); this guard also protects any direct
+                // caller from driving SkillPoints negative. The points are spent on success (below).
+                int swapCost = PerkSwapDecision.EffectiveCost(
+                    OracleMain.PerkSwapCostsResources, OracleMain.PerkSwapSkillPointCost);
+                if (swapCost > 0 && progression.SkillPoints < swapCost)
+                {
+                    OracleLog.Debug("[Oracle] PerkSwap aborted: insufficient skill points ("
+                              + progression.SkillPoints + " < " + swapCost + ").");
                     return false;
                 }
 
@@ -170,6 +178,10 @@ namespace Morgott.Oracle
                     return false;
                 }
 
+                // Swap fully committed: spend the skill points (affordability was verified above) and
+                // repaint the SP counter. Done last so a mid-swap failure/rollback never charges the player.
+                ChargeSwapCost(progression, ctx.Module, swapCost);
+
                 OracleLog.Debug("[Oracle] PerkSwap: " + DefName(oldDef) + " -> " + DefName(chosenDef)
                           + " @ level " + LevelLabel(ctx));
                 return true;
@@ -182,16 +194,30 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// STUB for a future "perk swap costs resources" feature. Currently does nothing (the swap is always
-        /// free). Reads <c>OracleMain.PerkSwapCostsResources</c> only to mark where the future cost would
-        /// be charged; it intentionally has no effect and never blocks the swap. No Wallet/SkillPoints access.
+        /// Spend the swap's skill-point cost and repaint the SP counter. Called only after a fully-committed
+        /// swap, with affordability already verified, so it just decrements the public
+        /// <c>CharacterProgression.SkillPoints</c> field (direct write persists — it is the save entity) and
+        /// calls the public <c>UIModuleCharacterProgression.RefreshStatPanel</c> to update the display. No-op
+        /// for a zero/free cost. Guarded: a repaint hiccup is logged, never thrown (the SP were still spent).
         /// </summary>
-        private static void ApplyResourceCostStub(PerkSwapContext ctx)
+        private static void ChargeSwapCost(CharacterProgression progression, UIModuleCharacterProgression module, int cost)
         {
-            _ = ctx;
-            _ = OracleMain.PerkSwapCostsResources;
-            // TODO(resource-cost): when implemented, charge the configured cost here and return a
-            // success/failure so TrySwap can abort BEFORE mutating _abilities on insufficient funds.
+            if (cost <= 0)
+            {
+                return;
+            }
+            try
+            {
+                progression.SkillPoints -= cost;
+                if ((UnityEngine.Object)(object)module != (UnityEngine.Object)null)
+                {
+                    module.RefreshStatPanel();
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkSwap SP charge/refresh failed: " + ex.Message);
+            }
         }
 
         private static string DefName(TacticalAbilityDef def)

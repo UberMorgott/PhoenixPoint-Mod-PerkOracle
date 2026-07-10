@@ -97,6 +97,25 @@ namespace Morgott.Oracle
                     return; // wiki stays open so the player sees the candidates again
                 }
 
+                // Skill-point cost gate: when the swap costs SP and the soldier can't afford it, deny with a
+                // localized notice (TrySwap would otherwise abort silently) and leave the wiki open.
+                int spCost = PerkSwapDecision.EffectiveCost(
+                    OracleMain.PerkSwapCostsResources, OracleMain.PerkSwapSkillPointCost);
+                if (spCost > 0)
+                {
+                    var prog = SwapContext.Character?.Progression;
+                    if (prog != null && prog.SkillPoints < spCost)
+                    {
+                        string msg = Loc.Get(
+                            "ORACLE_SwapNotEnoughSP",
+                            "Not enough skill points to reassign this perk.");
+                        OracleLog.Debug("[Oracle] PerkSwap denied (insufficient SP): "
+                            + prog.SkillPoints + " < " + spCost);
+                        ShowDenyMessage(msg);
+                        return;
+                    }
+                }
+
                 GeoRosterAbilityDetailTooltip tip = Tooltip;
                 if ((UnityEngine.Object)(object)tip != (UnityEngine.Object)null)
                 {
@@ -149,15 +168,19 @@ namespace Morgott.Oracle
                     return;
                 }
 
-                // TacticalAbilityDef overload; cost <= 0 hides the SP cost row. Pass ViewElementDef
-                // explicitly because Show() dereferences `view` for title/description/icon.
-                tip.Show(Def, Def.ViewElementDef, false, 0);
+                // Native SP-cost row: show the swap's skill-point cost when this icon can actually be swapped
+                // (swap on + a target slot). cost <= 0 hides the row (view-only wiki, or free swaps). Pass
+                // ViewElementDef explicitly because Show() dereferences `view` for title/description/icon.
+                int shownCost = (OracleMain.AllowPerkSwap && SwapContext != null)
+                    ? PerkSwapDecision.EffectiveCost(OracleMain.PerkSwapCostsResources, OracleMain.PerkSwapSkillPointCost)
+                    : 0;
+                tip.Show(Def, Def.ViewElementDef, false, shownCost);
 
                 if (!_primed)
                 {
                     _primed = true;
                     tip.Hide();
-                    tip.Show(Def, Def.ViewElementDef, false, 0);
+                    tip.Show(Def, Def.ViewElementDef, false, shownCost);
                 }
 
                 // Z-ORDER at SHOW time. The tooltip rides an overrideSorting WRAPPER (see

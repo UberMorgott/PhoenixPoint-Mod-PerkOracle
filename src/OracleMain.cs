@@ -46,9 +46,9 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Runtime read of the STUB "swap costs resources" toggle. Has no behavior yet (see
-        /// <c>PerkSwapper.ApplyResourceCostStub</c>); exposed only so the future hook can read it. Defaults
-        /// to false when the config is unavailable.
+        /// Runtime read of the "swap costs skill points" toggle. When on, a swap spends
+        /// <see cref="PerkSwapSkillPointCost"/> SP (see <c>PerkSwapper</c>). Defaults to false when the config
+        /// is unavailable so a missing config keeps swaps free rather than blocking them.
         /// </summary>
         public static bool PerkSwapCostsResources
         {
@@ -57,6 +57,21 @@ namespace Morgott.Oracle
                 OracleMain inst = Instance;
                 OracleConfig cfg = inst != null ? inst.Config : null;
                 return cfg != null && cfg.PerkSwapCostsResources;
+            }
+        }
+
+        /// <summary>
+        /// Runtime read of the per-swap skill-point cost, clamped to &gt;= 0 (negative config = free).
+        /// Defaults to 0 when the config is unavailable. Read live by <see cref="PerkSwapper"/> and the wiki.
+        /// </summary>
+        public static int PerkSwapSkillPointCost
+        {
+            get
+            {
+                OracleMain inst = Instance;
+                OracleConfig cfg = inst != null ? inst.Config : null;
+                int v = cfg != null ? cfg.PerkSwapSkillPointCost : 0;
+                return v > 0 ? v : 0;
             }
         }
 
@@ -173,23 +188,42 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Inject the custom perk-swap research into the live def repository. The ModSDK ModMain does not
-        /// expose an ApplyDefRepoPatches override, so we register from OnModEnabled via the global
-        /// DefRepository game component — the same path the Officer mod uses. EnsureRegistered is idempotent
-        /// (dedups on the def Guid) and fully guarded, so a missing template logs and skips rather than
-        /// throwing out of mod enable.
+        /// Keep the custom perk-swap research in sync with <see cref="AllowPerkSwap"/>. When the swap is
+        /// enabled, inject the research def (idempotent; dedups on Guid) so it exists on fresh games and
+        /// existing saves. Then flip its UI visibility to match the toggle: hidden while the swap is off,
+        /// visible while on. We NEVER remove the def once registered (it may be referenced by a save); hiding
+        /// via HideInUI is the safe, reversible way to make it "not exist" in the research UI. Called from
+        /// OnModEnabled and OnConfigChanged so both start-state and mid-campaign toggles (either direction)
+        /// are covered. Fully guarded: a missing template/repo logs and skips rather than throwing.
         /// </summary>
         private void RegisterPerkSwapResearch()
         {
             try
             {
                 DefRepository repo = GameUtl.GameComponent<DefRepository>();
-                PerkSwapResearch.EnsureRegistered(repo);
+                if (AllowPerkSwap)
+                {
+                    PerkSwapResearch.EnsureRegistered(repo);
+                }
+                // Sync visibility to the toggle (idempotent; no-op when the def is not registered).
+                PerkSwapResearch.SetVisible(repo, AllowPerkSwap);
             }
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] RegisterPerkSwapResearch failed: " + ex);
             }
+        }
+
+        /// <summary>
+        /// Live-apply config changes from the in-game options UI. Re-runs the perk-swap research sync so a
+        /// mid-campaign toggle of <see cref="AllowPerkSwap"/> either registers + reveals the research (off→on)
+        /// or hides it (on→off) without a reload. Everything else in the config is read live at use sites.
+        /// </summary>
+        public override void OnConfigChanged()
+        {
+            base.OnConfigChanged();
+            OracleLog.Debug("[Oracle] OnConfigChanged");
+            RegisterPerkSwapResearch();
         }
 
         /// <summary>

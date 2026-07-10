@@ -171,6 +171,33 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
+        /// Flip the registered research's UI visibility live: the game's research tabs (Available + Completed)
+        /// filter on <c>!ResearchDef.HideInUI</c>, so setting <c>HideInUI</c> hides/shows the project without
+        /// touching the research tree or save state. No-op when the def is not registered (the perk swap was
+        /// never enabled this session). NEVER removes the def — it may be referenced by a save; hiding is the
+        /// safe, reversible "make it not exist in the UI" for a mid-campaign toggle-off. Fully guarded.
+        /// </summary>
+        public static void SetVisible(DefRepository repo, bool visible)
+        {
+            try
+            {
+                if (repo == null)
+                {
+                    return;
+                }
+                if (repo.GetDef(ResearchId) is ResearchDef def
+                    && (UnityEngine.Object)(object)def != (UnityEngine.Object)null)
+                {
+                    def.HideInUI = !visible;
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkSwapResearch.SetVisible failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
         /// Research gate verdict for the swap entry point. Returns <see cref="PerkSwapVerdict.Allow"/> when
         /// the gate does not block (toggle off, or the soldier's faction has completed the research) and
         /// <see cref="PerkSwapVerdict.DenyResearchLocked"/> when the swap must be blocked pending research.
