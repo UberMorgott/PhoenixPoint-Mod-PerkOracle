@@ -241,12 +241,16 @@ namespace Morgott.Oracle
 
         /// <summary>
         /// Spend the swap's skill-point cost, keeping the persisted field and the module's shadow copies
-        /// consistent (see the shadow-desync note above): decrement <c>Progression.SkillPoints</c> (the save
-        /// entity), the module's <c>_currentSkillPoints</c> (displayed; a later native CommitStatChanges then
-        /// writes the already-charged value back — no double charge, commit is an absolute write) and
-        /// <c>_startingSkillPoints</c> (so a native cancel/reset of pending stat edits cannot restore the
-        /// pre-swap SP). Then repaint via the public RefreshStatPanel. Called only after a fully-committed
-        /// swap with affordability verified. Guarded: a hiccup is logged, never thrown.
+        /// consistent (see the shadow-desync note above): decrement the module's <c>_currentSkillPoints</c>
+        /// (displayed; a later native CommitStatChanges then writes the already-charged value back — no
+        /// double charge, commit is an absolute write) and <c>_startingSkillPoints</c> (so a native
+        /// cancel/reset of pending stat edits cannot restore the pre-swap SP), then the persisted
+        /// <c>Progression.SkillPoints</c> (the save entity). Shadow writes go FIRST and are each
+        /// independently guarded so one failing can never skip the other (a half-written pair is exactly
+        /// the desync that lets a later native commit refund the swap); a failed/absent shadow degrades to
+        /// the persisted-only charge (same as the module-closed path), logged. The public RefreshStatPanel
+        /// repaint always runs. Called only after a fully-committed swap with affordability verified.
+        /// Guarded: a hiccup is logged, never thrown.
         /// </summary>
         private static void ChargeSwapCost(CharacterProgression progression, UIModuleCharacterProgression module, int cost)
         {
@@ -254,26 +258,48 @@ namespace Morgott.Oracle
             {
                 return;
             }
+            bool moduleOpen = (UnityEngine.Object)(object)module != (UnityEngine.Object)null;
+            if (moduleOpen)
+            {
+                AddToShadow(module, CurrentSkillPointsField, -cost);
+                AddToShadow(module, StartingSkillPointsField, -cost);
+            }
             try
             {
                 progression.SkillPoints -= cost;
-                if ((UnityEngine.Object)(object)module != (UnityEngine.Object)null)
-                {
-                    if (CurrentSkillPointsField != null && StartingSkillPointsField != null)
-                    {
-                        CurrentSkillPointsField.SetValue(module, (int)CurrentSkillPointsField.GetValue(module) - cost);
-                        StartingSkillPointsField.SetValue(module, (int)StartingSkillPointsField.GetValue(module) - cost);
-                    }
-                    else
-                    {
-                        OracleLog.Debug("[Oracle] PerkSwap SP shadow fields missing; charged persisted only.");
-                    }
-                    module.RefreshStatPanel();
-                }
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] PerkSwap SP charge/refresh failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] PerkSwap SP persisted charge failed: " + ex.Message);
+            }
+            if (moduleOpen)
+            {
+                try
+                {
+                    module.RefreshStatPanel();
+                }
+                catch (Exception ex)
+                {
+                    OracleLog.Debug("[Oracle] PerkSwap SP repaint failed: " + ex.Message);
+                }
+            }
+        }
+
+        /// <summary>Guarded in-place add on a private int shadow field; a miss/failure is logged, never thrown.</summary>
+        private static void AddToShadow(UIModuleCharacterProgression module, FieldInfo field, int delta)
+        {
+            try
+            {
+                if (field == null)
+                {
+                    OracleLog.Debug("[Oracle] PerkSwap SP shadow field missing; charging persisted only.");
+                    return;
+                }
+                field.SetValue(module, (int)field.GetValue(module) + delta);
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkSwap SP shadow write failed: " + ex.Message);
             }
         }
 
