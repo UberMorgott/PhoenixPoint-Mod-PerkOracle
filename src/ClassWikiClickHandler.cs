@@ -11,9 +11,10 @@ namespace Morgott.Oracle
 {
     /// <summary>
     /// Attached (by <c>ClassWikiCellPatch</c>) to the soldier's FIRST main-class skill cell. A LEFT-click
-    /// opens the read-only class wiki: a left strip of every playable class plus a two-section perk popup
-    /// (class ability track + random personal-perk pool) for the soldier's OWN class; clicking a strip
-    /// icon switches classes. A second click closes it. The native cell left-click no-ops on a trained
+    /// opens the read-only class wiki: a centered panel of three native-cell rows — a class-tab row plus the
+    /// selected class's main ability track and random personal-perk pool — defaulting to the soldier's OWN
+    /// class; clicking a tab switches classes. A second click closes it. The native cell left-click no-ops
+    /// on a trained
     /// skill (<c>AbilityTrackSkillEntryElement.OnPointerClick</c> returns early when !IsBuyableSkill), so
     /// intercepting the click is safe. Everything is wrapped so a UI hiccup never throws into the event
     /// system.
@@ -63,8 +64,8 @@ namespace Morgott.Oracle
                     return;
                 }
 
-                // Open the wiki on the soldier's own class; the strip lets the player switch classes.
-                PerkWikiPanel.OpenClassWiki(canvas, spec);
+                // Open the wiki on the soldier's own class; the tab row lets the player switch classes.
+                PerkWikiPanel.OpenClassWiki(canvas, character);
             }
             catch (Exception ex)
             {

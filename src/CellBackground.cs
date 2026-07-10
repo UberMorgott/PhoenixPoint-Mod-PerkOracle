@@ -12,7 +12,7 @@ namespace Morgott.Oracle
     /// </summary>
     public static class CellBackground
     {
-        private const string ChildName = "RolledPerkBg";
+        internal const string ChildName = "RolledPerkBg";
         private const string HighlightName = "highlight";
         private const string BackgroundName = "UIElement_Background";
 

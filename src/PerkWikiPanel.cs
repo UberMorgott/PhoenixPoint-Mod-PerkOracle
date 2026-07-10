@@ -4,6 +4,7 @@ using System.Linq;
 using Base.Core;
 using PhoenixPoint.Common.Entities;
 using PhoenixPoint.Common.Entities.Characters;
+using PhoenixPoint.Geoscape.Entities;
 using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Geoscape.View.ViewControllers;
 using PhoenixPoint.Geoscape.View.ViewControllers.Roster;
@@ -37,15 +38,10 @@ namespace Morgott.Oracle
         private const string SectionRandomTerm = "ORACLE_WIKI_SECTION_RANDOM";
         private const string SectionRandomFallback = "RANDOM PERKS";
 
-        // Left class-strip layout.
-        private const float StripIconSize = 56f;
-        private const float StripSpacing = 6f;
-        private const float StripPadding = 8f;
-        private const float StripLeftMargin = 24f;
-
-        // Two-section panel layout.
-        private const float SectionHeaderHeight = 30f;
-        private const float SectionSpacing = 12f;
+        // Class-wiki (3-row native-cell tab panel) layout.
+        private const int MaxRowColumns = 10;   // wrap a row onto a new line past this many cells
+        private const float RowSpacing = 12f;    // vertical gap between the tabs row / title / sections
+        private const float RowLabelHeight = 26f;
 
         private static GameObject _root;
         private static Font _titleFont;
@@ -128,15 +124,15 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Build and show the READ-ONLY class wiki for <paramref name="spec"/>: a LEFT strip of every
-        /// playable class plus a centered two-section popup — (1) the class ability track and (2) the
-        /// random personal-perk pool (TFTV-aware). Reuses the single-instance machinery of
-        /// <see cref="Open"/> (shared tooltip clone, backdrop, <see cref="Close"/>); the strip and the
-        /// popup are both children of the one root, so the backdrop click (or any Close) tears down BOTH.
-        /// Clicking a strip icon re-enters here for that class (close+reopen). No swap in this mode
-        /// (view-only, swapContext null). No-op / self-heals on any error.
+        /// Build and show the READ-ONLY class wiki for <paramref name="character"/>: a CENTERED panel of
+        /// THREE rows of native ability cells — (row 1) every playable class as a clickable TAB (the
+        /// soldier's own main/secondary classes lit bright, the rest greyed), (row 2) the selected class's
+        /// main ability track, (row 3) its additional/random personal-perk pool (TFTV-aware). Every cell is
+        /// a verbatim clone of the game's own <see cref="AbilityTrackSkillEntryElement"/>. Reuses the
+        /// single-instance machinery of <see cref="Open"/> (shared tooltip clone, backdrop, <see cref="Close"/>).
+        /// Clicking a tab switches rows 2-3 in place (no reopen). View-only (no swap). Self-heals on any error.
         /// </summary>
-        public static void OpenClassWiki(Canvas canvas, SpecializationDef spec)
+        public static void OpenClassWiki(Canvas canvas, GeoCharacter character)
         {
             try
             {
@@ -146,7 +142,12 @@ namespace Morgott.Oracle
                     return; // feature disabled -> no panel
                 }
                 if ((UnityEngine.Object)(object)canvas == (UnityEngine.Object)null
-                    || (UnityEngine.Object)(object)spec == (UnityEngine.Object)null)
+                    || character == null || character.Progression == null)
+                {
+                    return;
+                }
+                SpecializationDef mainSpec = character.Progression.MainSpecDef;
+                if ((UnityEngine.Object)(object)mainSpec == (UnityEngine.Object)null)
                 {
                     return;
                 }
@@ -165,7 +166,7 @@ namespace Morgott.Oracle
                 StretchFull(_root.GetComponent<RectTransform>());
                 _root.transform.SetAsLastSibling();
 
-                // Backdrop: full-screen transparent button; clicking outside the strip/popup closes both.
+                // Backdrop: full-screen transparent button; clicking outside the panel closes the wiki.
                 var backdropGo = new GameObject("Backdrop", typeof(RectTransform), typeof(Image), typeof(Button));
                 backdropGo.transform.SetParent(_root.transform, false);
                 StretchFull(backdropGo.GetComponent<RectTransform>());
@@ -174,8 +175,7 @@ namespace Morgott.Oracle
                 backdropImg.raycastTarget = true;
                 backdropGo.GetComponent<Button>().onClick.AddListener(Close);
 
-                BuildClassStrip(_root.transform, canvas, spec);
-                BuildClassWikiPanel(_root.transform, spec, rootCanvas);
+                BuildClassTabWiki(_root.transform, character, mainSpec, rootCanvas);
             }
             catch (Exception ex)
             {
@@ -185,230 +185,309 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Left, vertically-centered strip of every playable class icon (the currently-viewed class shown
-        /// at full brightness, the rest dimmed). Each icon is a button that re-opens the class wiki for
-        /// that class. The current class is always included even if the universe omitted it. Guarded.
+        /// The centered three-row native-cell panel. Row 1 = class tabs (owned classes bright, others grey,
+        /// all clickable); rows 2-3 = the selected class's main track + random pool, rebuilt in place on a tab
+        /// switch. The panel auto-sizes to its content (VerticalLayoutGroup + ContentSizeFitter) so each
+        /// class's differing row lengths center cleanly. Needs a live native cell to clone; no-op if none is
+        /// reachable (the progression screen isn't open). Fully guarded.
         /// </summary>
-        private static void BuildClassStrip(Transform parent, Canvas canvas, SpecializationDef current)
+        private static void BuildClassTabWiki(Transform parent, GeoCharacter character, SpecializationDef mainSpec,
+            Canvas rootCanvas)
         {
-            try
+            AbilityTrackSkillEntryElement template = FindTemplateCell();
+            if ((UnityEngine.Object)(object)template == (UnityEngine.Object)null)
             {
-                List<SpecializationDef> classes = ClassPerkProvider.GetPlayableClasses();
-                if ((UnityEngine.Object)(object)current != (UnityEngine.Object)null && !classes.Contains(current))
+                return; // no native cell to clone -> nothing to show
+            }
+            float cellSize = MeasureCellSize(template);
+
+            // Owned classes (main + secondary) render bright; the rest greyed. Reference identity.
+            var owned = new HashSet<SpecializationDef>();
+            foreach (SpecializationDef s in character.Progression.GetSpecializations())
+            {
+                if ((UnityEngine.Object)(object)s != (UnityEngine.Object)null)
                 {
-                    classes.Insert(0, current); // always show the class we're viewing
-                }
-                if (classes.Count == 0)
-                {
-                    return;
-                }
-
-                var stripGo = new GameObject("ClassStrip",
-                    typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
-                stripGo.transform.SetParent(parent, false);
-                var rt = stripGo.GetComponent<RectTransform>();
-                rt.anchorMin = new Vector2(0f, 0.5f);
-                rt.anchorMax = new Vector2(0f, 0.5f);
-                rt.pivot = new Vector2(0f, 0.5f);
-                rt.anchoredPosition = new Vector2(StripLeftMargin, 0f);
-                var bg = stripGo.GetComponent<Image>();
-                ((Graphic)bg).color = new Color(0f, 0.05f, 0.086f, 0.92f);
-                bg.raycastTarget = true; // eat clicks so the strip background never falls through to close
-
-                var vlg = stripGo.GetComponent<VerticalLayoutGroup>();
-                vlg.spacing = StripSpacing;
-                vlg.padding = new RectOffset((int)StripPadding, (int)StripPadding, (int)StripPadding, (int)StripPadding);
-                vlg.childAlignment = TextAnchor.MiddleCenter;
-                vlg.childControlWidth = true;
-                vlg.childControlHeight = true;
-                vlg.childForceExpandWidth = false;
-                vlg.childForceExpandHeight = false;
-
-                var fitter = stripGo.GetComponent<ContentSizeFitter>();
-                fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-                fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-                foreach (SpecializationDef spec in classes)
-                {
-                    bool isCurrent = (UnityEngine.Object)(object)spec == (UnityEngine.Object)(object)current;
-                    BuildClassStripIcon(stripGo.transform, spec, canvas, isCurrent);
+                    owned.Add(s);
                 }
             }
-            catch (Exception ex)
-            {
-                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildClassStrip failed: " + ex.Message);
-            }
-        }
 
-        /// <summary>One class-strip icon: fixed-size sprite button that re-opens the wiki for its class.</summary>
-        private static void BuildClassStripIcon(Transform parent, SpecializationDef spec, Canvas canvas, bool isCurrent)
-        {
-            try
+            // All playable classes as tabs; make sure the soldier's own classes are present even if the
+            // universe omitted them.
+            List<SpecializationDef> classes = ClassPerkProvider.GetPlayableClasses();
+            foreach (SpecializationDef s in owned)
             {
-                var view = spec.ViewElementDef;
-                Sprite sprite = null;
-                if ((UnityEngine.Object)(object)view != (UnityEngine.Object)null)
+                if ((UnityEngine.Object)(object)s != (UnityEngine.Object)null && !classes.Contains(s))
                 {
-                    sprite = view.SmallIcon != null ? view.SmallIcon : view.LargeIcon;
+                    classes.Insert(0, s);
                 }
-
-                var go = new GameObject("ClassIcon",
-                    typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
-                go.transform.SetParent(parent, false);
-                var img = go.GetComponent<Image>();
-                img.sprite = sprite;
-                img.preserveAspect = true;
-                img.raycastTarget = true;
-                // Dim the classes you're not viewing so the current one reads as selected.
-                ((Graphic)img).color = isCurrent ? Color.white : new Color(1f, 1f, 1f, 0.5f);
-
-                var le = go.GetComponent<LayoutElement>();
-                le.minWidth = StripIconSize;
-                le.preferredWidth = StripIconSize;
-                le.minHeight = StripIconSize;
-                le.preferredHeight = StripIconSize;
-
-                SpecializationDef captured = spec;
-                Canvas capturedCanvas = canvas;
-                go.GetComponent<Button>().onClick.AddListener(() => OpenClassWiki(capturedCanvas, captured));
             }
-            catch (Exception ex)
+            if (classes.Count == 0)
             {
-                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildClassStripIcon failed: " + ex.Message);
+                return;
             }
-        }
-
-        /// <summary>
-        /// The centered two-section popup: a class-name title, then the class ability track and the random
-        /// personal-perk pool, each under its own labeled header. Mirrors <see cref="BuildPanel"/>'s
-        /// scroll/viewport scaffolding but stacks the two sections with a VerticalLayoutGroup instead of one
-        /// flat grid. Read-only: icons carry the native hover tooltip, no swap (swapContext null).
-        /// </summary>
-        private static void BuildClassWikiPanel(Transform parent, SpecializationDef spec, Canvas rootCanvas)
-        {
-            List<TacticalAbilityDef> classPerks = ClassPerkProvider.GetClassPerks(spec);
-            List<TacticalAbilityDef> randomPerks = ClassPerkProvider.GetClassRandomPool(spec);
-
-            int rows1 = classPerks.Count > 0 ? Mathf.CeilToInt(classPerks.Count / (float)Columns) : 0;
-            int rows2 = randomPerks.Count > 0 ? Mathf.CeilToInt(randomPerks.Count / (float)Columns) : 0;
-            int sectionCount = (rows1 > 0 ? 1 : 0) + (rows2 > 0 ? 1 : 0);
-            float gridWidth = Columns * CellSize + (Columns - 1) * CellSpacing;
-            float gridH1 = rows1 > 0 ? rows1 * CellSize + (rows1 - 1) * CellSpacing : 0f;
-            float gridH2 = rows2 > 0 ? rows2 * CellSize + (rows2 - 1) * CellSpacing : 0f;
-            // content children = sectionCount*(header+grid); VLG puts SectionSpacing between every child.
-            int childCount = sectionCount * 2;
-            float contentHeight = gridH1 + gridH2 + sectionCount * SectionHeaderHeight
-                + Mathf.Max(0, childCount - 1) * SectionSpacing;
-
-            float panelWidth = gridWidth + 2f * Padding;
-            float viewportHeight = Mathf.Min(contentHeight, MaxPanelHeight) + 2f * Padding;
-            float panelHeight = viewportHeight + TitleHeight;
-
-            var panelGo = new GameObject("ClassWikiPanel", typeof(RectTransform), typeof(Image));
-            panelGo.transform.SetParent(parent, false);
-            var panelRt = panelGo.GetComponent<RectTransform>();
-            panelRt.anchorMin = new Vector2(0.5f, 0.5f);
-            panelRt.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRt.pivot = new Vector2(0.5f, 0.5f);
-            panelRt.sizeDelta = new Vector2(panelWidth, panelHeight);
-            panelRt.anchoredPosition = Vector2.zero;
-            var panelImg = panelGo.GetComponent<Image>();
-            ((Graphic)panelImg).color = new Color(0f, 0.05f, 0.086f, 0.96f);
-            panelImg.raycastTarget = true; // eat clicks so they don't fall through to the backdrop
-
-            BuildTitleText(panelGo.transform, ResolveClassTitle(spec));
-
-            var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(RectMask2D));
-            viewportGo.transform.SetParent(panelGo.transform, false);
-            var viewportRt = viewportGo.GetComponent<RectTransform>();
-            viewportRt.anchorMin = Vector2.zero;
-            viewportRt.anchorMax = Vector2.one;
-            viewportRt.offsetMin = new Vector2(Padding, Padding);
-            viewportRt.offsetMax = new Vector2(-Padding, -TitleHeight);
-            var viewportImg = viewportGo.GetComponent<Image>();
-            ((Graphic)viewportImg).color = new Color(1f, 1f, 1f, 0f);
-            viewportImg.raycastTarget = true;
-
-            var scroll = panelGo.AddComponent<ScrollRect>();
-            scroll.horizontal = false;
-            scroll.vertical = true;
-            scroll.viewport = viewportRt;
-            scroll.scrollSensitivity = 30f;
-            scroll.movementType = ScrollRect.MovementType.Clamped;
-
-            var contentGo = new GameObject("Content", typeof(RectTransform));
-            contentGo.transform.SetParent(viewportGo.transform, false);
-            var contentRt = contentGo.GetComponent<RectTransform>();
-            contentRt.anchorMin = new Vector2(0f, 1f);
-            contentRt.anchorMax = new Vector2(1f, 1f);
-            contentRt.pivot = new Vector2(0.5f, 1f);
-            contentRt.anchoredPosition = Vector2.zero;
-            scroll.content = contentRt;
-
-            var vlg = contentGo.AddComponent<VerticalLayoutGroup>();
-            vlg.spacing = SectionSpacing;
-            vlg.childAlignment = TextAnchor.UpperCenter;
-            vlg.childControlWidth = true;
-            vlg.childControlHeight = true;
-            vlg.childForceExpandWidth = true;
-            vlg.childForceExpandHeight = false;
-
-            var fitter = contentGo.AddComponent<ContentSizeFitter>();
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             RectTransform canvasRect = ((UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null)
                 ? rootCanvas.transform as RectTransform
                 : null;
 
-            BuildClassSection(contentGo.transform, Loc.Get(SectionClassTerm, SectionClassFallback),
-                classPerks, rootCanvas, canvasRect);
-            BuildClassSection(contentGo.transform, Loc.Get(SectionRandomTerm, SectionRandomFallback),
-                randomPerks, rootCanvas, canvasRect);
+            // Centered, auto-sizing panel: a VerticalLayoutGroup stacks the tabs row + the (rebuilt) body.
+            var panelGo = new GameObject("ClassWikiPanel", typeof(RectTransform), typeof(Image),
+                typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+            panelGo.transform.SetParent(parent, false);
+            var panelRt = panelGo.GetComponent<RectTransform>();
+            panelRt.anchorMin = new Vector2(0.5f, 0.5f);
+            panelRt.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRt.pivot = new Vector2(0.5f, 0.5f);
+            panelRt.anchoredPosition = Vector2.zero;
+            var panelImg = panelGo.GetComponent<Image>();
+            ((Graphic)panelImg).color = new Color(0f, 0.05f, 0.086f, 0.96f);
+            panelImg.raycastTarget = true; // eat clicks so they don't fall through to the backdrop
+            var panelVlg = panelGo.GetComponent<VerticalLayoutGroup>();
+            panelVlg.spacing = RowSpacing;
+            panelVlg.padding = new RectOffset((int)Padding, (int)Padding, (int)Padding, (int)Padding);
+            panelVlg.childAlignment = TextAnchor.UpperCenter;
+            panelVlg.childControlWidth = true;
+            panelVlg.childControlHeight = true;
+            panelVlg.childForceExpandWidth = true;  // stretch rows to panel width so each row centers its cells
+            panelVlg.childForceExpandHeight = false;
+            var panelFitter = panelGo.GetComponent<ContentSizeFitter>();
+            panelFitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            panelFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            // Row 1 (persistent): the class tabs grid + a per-tab selection marker map.
+            var markerMap = new Dictionary<SpecializationDef, GameObject>();
+            GameObject tabsRow = BuildRowGrid(panelGo.transform, classes.Count, cellSize);
+
+            // Body (rebuilt on tab switch): holds the class title + rows 2-3.
+            var bodyGo = new GameObject("Body",
+                typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+            bodyGo.transform.SetParent(panelGo.transform, false);
+            var bodyVlg = bodyGo.GetComponent<VerticalLayoutGroup>();
+            bodyVlg.spacing = RowSpacing;
+            bodyVlg.childAlignment = TextAnchor.UpperCenter;
+            bodyVlg.childControlWidth = true;
+            bodyVlg.childControlHeight = true;
+            bodyVlg.childForceExpandWidth = true;
+            bodyVlg.childForceExpandHeight = false;
+            var bodyFitter = bodyGo.GetComponent<ContentSizeFitter>();
+            bodyFitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            bodyFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            // Switch rows 2-3 to `spec` in place and mark its tab selected.
+            void SelectTab(SpecializationDef spec)
+            {
+                try
+                {
+                    foreach (var kv in markerMap)
+                    {
+                        if ((UnityEngine.Object)(object)kv.Value != (UnityEngine.Object)null)
+                        {
+                            kv.Value.SetActive((UnityEngine.Object)(object)kv.Key == (UnityEngine.Object)(object)spec);
+                        }
+                    }
+                    ClearChildren(bodyGo.transform);
+                    BuildBodyTitle(bodyGo.transform, ResolveClassTitle(spec));
+                    BuildPerkRow(bodyGo.transform, Loc.Get(SectionClassTerm, SectionClassFallback),
+                        ClassPerkProvider.GetClassPerks(spec), template, cellSize, canvasRect, rootCanvas);
+                    BuildPerkRow(bodyGo.transform, Loc.Get(SectionRandomTerm, SectionRandomFallback),
+                        ClassPerkProvider.GetClassRandomPool(spec), template, cellSize, canvasRect, rootCanvas);
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
+                }
+                catch (Exception ex)
+                {
+                    OracleLog.Debug("[Oracle] PerkWikiPanel.SelectTab failed: " + ex.Message);
+                }
+            }
+
+            foreach (SpecializationDef spec in classes)
+            {
+                BuildClassTab(tabsRow.transform, spec, owned.Contains(spec), template, markerMap, SelectTab);
+            }
+
+            SelectTab(mainSpec); // default selected tab = the soldier's own main class
+        }
+
+        /// <summary>Create a row container with a wrapping fixed-column <see cref="GridLayoutGroup"/>.</summary>
+        private static GameObject BuildRowGrid(Transform parent, int count, float cellSize)
+        {
+            var gridGo = new GameObject("Row", typeof(RectTransform), typeof(GridLayoutGroup));
+            gridGo.transform.SetParent(parent, false);
+            var grid = gridGo.GetComponent<GridLayoutGroup>();
+            grid.cellSize = new Vector2(cellSize, cellSize);
+            grid.spacing = new Vector2(CellSpacing, CellSpacing);
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = Mathf.Max(1, Mathf.Min(count, MaxRowColumns));
+            grid.childAlignment = TextAnchor.MiddleCenter; // center cells inside the panel-wide row
+            return gridGo;
         }
 
         /// <summary>
-        /// One labeled section inside the class wiki content column: a header label plus a fixed-column grid
-        /// of read-only perk icons (native hover tooltip, no swap). Skipped when <paramref name="defs"/> is
-        /// empty. The grid's own GridLayoutGroup reports its preferred height to the parent layout.
+        /// One class tab: a native cell clone showing the class icon (bright if owned, else grey), a hidden
+        /// selection-marker underline, and a click that switches the wiki to that class. Guarded.
         /// </summary>
-        private static void BuildClassSection(Transform content, string headerText,
-            List<TacticalAbilityDef> defs, Canvas rootCanvas, RectTransform canvasRect)
+        private static void BuildClassTab(Transform parent, SpecializationDef spec, bool bright,
+            AbilityTrackSkillEntryElement template, Dictionary<SpecializationDef, GameObject> markerMap,
+            Action<SpecializationDef> onSelect)
+        {
+            try
+            {
+                Sprite icon = null;
+                var view = spec.ViewElementDef;
+                if ((UnityEngine.Object)(object)view != (UnityEngine.Object)null)
+                {
+                    icon = view.SmallIcon != null ? view.SmallIcon : view.LargeIcon;
+                }
+
+                GameObject tab = WikiIconFactory.MakeCell(parent, template, icon, null, bright, null, null, null);
+                if ((UnityEngine.Object)(object)tab == (UnityEngine.Object)null)
+                {
+                    return;
+                }
+
+                // Selection marker: a thin accent underline, hidden until this tab is the selected one.
+                var markGo = new GameObject("SelMark", typeof(RectTransform), typeof(Image));
+                markGo.transform.SetParent(tab.transform, false);
+                var mrt = markGo.GetComponent<RectTransform>();
+                mrt.anchorMin = new Vector2(0f, 0f);
+                mrt.anchorMax = new Vector2(1f, 0f);
+                mrt.pivot = new Vector2(0.5f, 0f);
+                mrt.offsetMin = new Vector2(2f, -2f);
+                mrt.offsetMax = new Vector2(-2f, 4f);
+                var mimg = markGo.GetComponent<Image>();
+                ((Graphic)mimg).color = new Color(0.36f, 0.72f, 1f, 1f);
+                mimg.raycastTarget = false;
+                markGo.SetActive(false);
+                markerMap[spec] = markGo;
+
+                var btn = tab.GetComponent<Button>();
+                if ((UnityEngine.Object)(object)btn != (UnityEngine.Object)null)
+                {
+                    SpecializationDef captured = spec;
+                    btn.onClick.AddListener(() => onSelect(captured));
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildClassTab failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>Centered class-name title above rows 2-3 (rebuilt on tab switch). Guarded.</summary>
+        private static void BuildBodyTitle(Transform parent, string titleText)
+        {
+            try
+            {
+                var go = new GameObject("ClassTitle",
+                    typeof(RectTransform), typeof(CanvasRenderer), typeof(Text), typeof(LayoutElement));
+                go.transform.SetParent(parent, false);
+                var text = go.GetComponent<Text>();
+                text.text = titleText;
+                text.font = GetTitleFont();
+                text.fontSize = 22;
+                ((Graphic)text).color = Color.white;
+                text.alignment = TextAnchor.MiddleCenter;
+                text.horizontalOverflow = HorizontalWrapMode.Overflow;
+                text.verticalOverflow = VerticalWrapMode.Overflow;
+                text.raycastTarget = false;
+                var le = go.GetComponent<LayoutElement>();
+                le.minHeight = TitleHeight;
+                le.preferredHeight = TitleHeight;
+                le.flexibleHeight = 0f;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildBodyTitle failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// One labeled perk row: a centered header label plus a wrapping grid of native ability cells (bright
+        /// "known" look, native hover tooltip, read-only — swapContext null). Skipped when <paramref name="defs"/>
+        /// is empty. Guarded.
+        /// </summary>
+        private static void BuildPerkRow(Transform parent, string label, List<TacticalAbilityDef> defs,
+            AbilityTrackSkillEntryElement template, float cellSize, RectTransform canvasRect, Canvas rootCanvas)
         {
             if (defs == null || defs.Count == 0)
             {
                 return;
             }
-
-            var headerGo = new GameObject("SectionHeader",
-                typeof(RectTransform), typeof(CanvasRenderer), typeof(Text), typeof(LayoutElement));
-            headerGo.transform.SetParent(content, false);
-            var htext = headerGo.GetComponent<Text>();
-            htext.text = headerText;
-            htext.font = GetTitleFont();
-            htext.fontSize = 18;
-            ((Graphic)htext).color = new Color(0.72f, 0.85f, 1f, 1f);
-            htext.alignment = TextAnchor.LowerLeft;
-            htext.horizontalOverflow = HorizontalWrapMode.Overflow;
-            htext.verticalOverflow = VerticalWrapMode.Overflow;
-            htext.raycastTarget = false;
-            var hle = headerGo.GetComponent<LayoutElement>();
-            hle.minHeight = SectionHeaderHeight;
-            hle.preferredHeight = SectionHeaderHeight;
-            hle.flexibleHeight = 0f;
-
-            var gridGo = new GameObject("SectionGrid", typeof(RectTransform));
-            gridGo.transform.SetParent(content, false);
-            var grid = gridGo.AddComponent<GridLayoutGroup>();
-            grid.cellSize = new Vector2(CellSize, CellSize);
-            grid.spacing = new Vector2(CellSpacing, CellSpacing);
-            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            grid.constraintCount = Columns;
-            grid.childAlignment = TextAnchor.UpperLeft;
-
-            foreach (TacticalAbilityDef def in defs)
+            try
             {
-                WikiIconFactory.Make(gridGo.transform, def, _tooltip, canvasRect, rootCanvas, null);
+                var headerGo = new GameObject("RowLabel",
+                    typeof(RectTransform), typeof(CanvasRenderer), typeof(Text), typeof(LayoutElement));
+                headerGo.transform.SetParent(parent, false);
+                var htext = headerGo.GetComponent<Text>();
+                htext.text = label;
+                htext.font = GetTitleFont();
+                htext.fontSize = 18;
+                ((Graphic)htext).color = new Color(0.72f, 0.85f, 1f, 1f);
+                htext.alignment = TextAnchor.MiddleCenter;
+                htext.horizontalOverflow = HorizontalWrapMode.Overflow;
+                htext.verticalOverflow = VerticalWrapMode.Overflow;
+                htext.raycastTarget = false;
+                var hle = headerGo.GetComponent<LayoutElement>();
+                hle.minHeight = RowLabelHeight;
+                hle.preferredHeight = RowLabelHeight;
+                hle.flexibleHeight = 0f;
+
+                GameObject grid = BuildRowGrid(parent, defs.Count, cellSize);
+                foreach (TacticalAbilityDef def in defs)
+                {
+                    if ((UnityEngine.Object)(object)def == (UnityEngine.Object)null
+                        || (UnityEngine.Object)(object)def.ViewElementDef == (UnityEngine.Object)null)
+                    {
+                        continue;
+                    }
+                    Sprite icon = def.ViewElementDef.SmallIcon != null
+                        ? def.ViewElementDef.SmallIcon
+                        : def.ViewElementDef.LargeIcon;
+                    WikiIconFactory.MakeCell(grid.transform, template, icon, def, true,
+                        _tooltip, canvasRect, rootCanvas);
+                }
             }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildPerkRow failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>Detach + destroy every child of <paramref name="t"/> so a rebuild starts clean.</summary>
+        private static void ClearChildren(Transform t)
+        {
+            for (int i = t.childCount - 1; i >= 0; i--)
+            {
+                Transform c = t.GetChild(i);
+                c.SetParent(null, false); // detach now so sibling order is clean before the deferred Destroy
+                UnityEngine.Object.Destroy(c.gameObject);
+            }
+        }
+
+        /// <summary>
+        /// Find a live native <see cref="AbilityTrackSkillEntryElement"/> in the open progression screen to
+        /// clone (any active cell with a SkillIcon, excluding our own clones). Returns null if none is active.
+        /// </summary>
+        private static AbilityTrackSkillEntryElement FindTemplateCell()
+        {
+            try
+            {
+                foreach (AbilityTrackSkillEntryElement c in
+                         UnityEngine.Object.FindObjectsOfType<AbilityTrackSkillEntryElement>())
+                {
+                    if ((UnityEngine.Object)(object)c != (UnityEngine.Object)null
+                        && (UnityEngine.Object)(object)c.SkillIcon != (UnityEngine.Object)null
+                        && !((Component)c).gameObject.name.StartsWith(
+                            WikiIconFactory.CloneNamePrefix, StringComparison.Ordinal))
+                    {
+                        return c;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.FindTemplateCell failed: " + ex.Message);
+            }
+            return null;
         }
 
         /// <summary>Localized class display name for the popup title; falls back to the class name.</summary>

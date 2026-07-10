@@ -1,4 +1,6 @@
 using System;
+using System.Reflection;
+using HarmonyLib;
 using PhoenixPoint.Common.Entities.Characters;
 using PhoenixPoint.Geoscape.View.ViewControllers;
 using PhoenixPoint.Geoscape.View.ViewControllers.Roster;
@@ -33,6 +35,14 @@ namespace Morgott.Oracle
         /// stat tooltip. Applied on EVERY show, so a later-activated modal can never win.
         /// </summary>
         public const int TooltipSortingOrder = 32000;
+
+        // Cached handle to the cell's private state renderer. Driving it directly lets a wiki cell show any
+        // ability/class icon in the bright "known" or dim "unavailable" look WITHOUT needing a real
+        // AbilityTrackSlot (the public SetSkill overloads dereference the slot). Our own SetSkillState
+        // postfixes recognize the clone by name (CloneNamePrefix) and skip it, so this never tints the clone.
+        private static readonly MethodInfo SetSkillStateMethod = AccessTools.Method(
+            typeof(AbilityTrackSkillEntryElement), "SetSkillState",
+            new[] { typeof(bool), typeof(bool), typeof(bool), typeof(bool) });
 
         /// <summary>
         /// Find a PRISTINE native <see cref="GeoRosterAbilityDetailTooltip"/> to clone, skipping any of the
@@ -160,6 +170,142 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] WikiIconFactory.MakeNative failed: " + ex.Message);
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Clone a live native <paramref name="template"/> ability cell into a read-only class-wiki cell that
+        /// shows <paramref name="icon"/> (an ability icon for a perk cell, or a class icon for a tab). The
+        /// cell's own frame/background/animator render natively; state is driven through its private
+        /// SetSkillState so <paramref name="bright"/> gives the "known/owned" bright look and !bright the dim
+        /// "unavailable" grey. Native pointer delegates + Button listeners are cleared and any inherited
+        /// rolled-perk tint child is stripped. When <paramref name="def"/> is non-null the rich framed ability
+        /// tooltip trigger is attached (perk cells); a null def leaves the cell tooltip-less (class tabs, which
+        /// the caller wires with its own click). Returns the clone GO, or null on failure/missing inputs.
+        /// </summary>
+        public static GameObject MakeCell(Transform parent, AbilityTrackSkillEntryElement template, Sprite icon,
+            TacticalAbilityDef def, bool bright, GeoRosterAbilityDetailTooltip tooltip, RectTransform canvasRect,
+            Canvas rootCanvas)
+        {
+            if ((UnityEngine.Object)(object)parent == (UnityEngine.Object)null
+                || (UnityEngine.Object)(object)template == (UnityEngine.Object)null)
+            {
+                return null;
+            }
+
+            try
+            {
+                GameObject cloneGo = UnityEngine.Object.Instantiate(
+                    ((Component)template).gameObject, parent, false);
+                // Stamp the name BEFORE any SetSkillState so our highlight/wiki postfixes skip this clone.
+                cloneGo.name = CloneNamePrefix;
+
+                var cell = cloneGo.GetComponent<AbilityTrackSkillEntryElement>();
+                if ((UnityEngine.Object)(object)cell == (UnityEngine.Object)null)
+                {
+                    UnityEngine.Object.Destroy(cloneGo);
+                    return null;
+                }
+
+                // Neutralize native interaction so a clone can never fire the game's buy/learn action.
+                cell.TrackSlotPointerClick = null;
+                cell.TrackSlotPointerEnter = null;
+                cell.TrackSlotPointerExit = null;
+                var nativeButton = cloneGo.GetComponent<Button>();
+                if ((UnityEngine.Object)(object)nativeButton != (UnityEngine.Object)null)
+                {
+                    nativeButton.onClick.RemoveAllListeners();
+                }
+
+                // The template may be the soldier's first main-class cell (it carries our own
+                // ClassWikiClickHandler) or a rolled Personal cell (dark tint child). Instantiate copies BOTH
+                // onto the clone -> strip them so a wiki cell can't reopen/close the wiki or show a stray tint.
+                StripOwnBehaviour<ClassWikiClickHandler>(cloneGo);
+                StripOwnBehaviour<WikiAbilityTooltipTrigger>(cloneGo);
+                RemoveRolledTint(cloneGo);
+
+                // Show the requested icon on the cell's OWN SkillIcon so the native state visuals stay intact.
+                if ((UnityEngine.Object)(object)cell.SkillIcon != (UnityEngine.Object)null)
+                {
+                    cell.SkillIcon.gameObject.SetActive(value: true);
+                    cell.SkillIcon.sprite = icon;
+                }
+                cell.AbilityDef = def; // null for class tabs (no ability)
+                cell.SetTooltip(null); // native text tooltip off; the rich tooltip is driven by our trigger
+
+                // Drive the native look via the cell's own state machine (no slot needed):
+                //   bright: known/owned -> (locked:F, avail:F, buyable:F, learn:T) => KnownSkill => PrimaryUIColor
+                //   grey:   unavailable -> (locked:F, avail:T, buyable:F, learn:T) => AvailableSkill, and since
+                //           buyable is F the "Available" pulse image stays off AND the native click is inert
+                //           => SecondaryUIColor (the game's own dim "unknown skill" tint).
+                if ((object)SetSkillStateMethod != null)
+                {
+                    SetSkillStateMethod.Invoke(cell, bright
+                        ? new object[] { false, false, false, true }
+                        : new object[] { false, true, false, true });
+                }
+
+                // Let the GridLayoutGroup own placement/size regardless of the prefab's anchoring.
+                var rt = cloneGo.GetComponent<RectTransform>();
+                if ((UnityEngine.Object)(object)rt != (UnityEngine.Object)null)
+                {
+                    rt.anchorMin = new Vector2(0.5f, 0.5f);
+                    rt.anchorMax = new Vector2(0.5f, 0.5f);
+                    rt.pivot = new Vector2(0.5f, 0.5f);
+                    rt.localScale = Vector3.one;
+                }
+
+                if (def != null)
+                {
+                    AttachTooltip(cloneGo, def, tooltip, canvasRect, rootCanvas, null);
+                }
+                return cloneGo;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] WikiIconFactory.MakeCell failed: " + ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Remove a mod-added MonoBehaviour the template carried (disable first so the EventSystem drops it
+        /// this frame, then Destroy). Guarded.
+        /// </summary>
+        private static void StripOwnBehaviour<T>(GameObject cloneGo) where T : MonoBehaviour
+        {
+            try
+            {
+                var comp = cloneGo.GetComponent<T>();
+                if ((UnityEngine.Object)(object)comp != (UnityEngine.Object)null)
+                {
+                    comp.enabled = false;
+                    UnityEngine.Object.Destroy(comp);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] WikiIconFactory.StripOwnBehaviour failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>Strip any cloned rolled-perk tint child (see <see cref="CellBackground"/>) from a clone.</summary>
+        private static void RemoveRolledTint(GameObject cloneGo)
+        {
+            try
+            {
+                foreach (Transform t in cloneGo.GetComponentsInChildren<Transform>(includeInactive: true))
+                {
+                    if ((UnityEngine.Object)(object)t != (UnityEngine.Object)null
+                        && ((Component)t).gameObject.name == CellBackground.ChildName)
+                    {
+                        UnityEngine.Object.Destroy(((Component)t).gameObject);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] WikiIconFactory.RemoveRolledTint failed: " + ex.Message);
             }
         }
 
