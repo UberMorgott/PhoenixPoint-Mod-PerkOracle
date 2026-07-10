@@ -19,9 +19,11 @@ namespace Morgott.Oracle
 {
     /// <summary>
     /// Shows an item's dismantle yield (<see cref="ItemDef.ScrapPrice"/> = floor(ManufactureX / 2) per resource;
-    /// an all-zero manufacture cost yields nothing and gets no row) as ONE compact line of the game's own COLORED
-    /// resource icons + amounts at the bottom of the item hover tooltip — e.g. <c>[materials]12 [tech]3</c>,
-    /// identical to the manufacturing screen's scrap strip. No header words, no resource names.
+    /// an all-zero manufacture cost yields nothing and gets no row) as ONE native-styled stat row at the bottom
+    /// of the item hover tooltip: localized "Dismantle" label on the left (pixel-identical to the other stat-row
+    /// labels — it IS a cloned StatPrefab row) and a right-aligned strip of the game's own COLORED resource
+    /// icons + amounts in the value area — e.g. <c>Разбор    [materials]12 [tech]3</c>, icons as on the
+    /// manufacturing screen's scrap strip. No resource names.
     ///
     /// Two cooperating patches, because the two pieces live at different levels:
     ///   * DATA gate (this class, postfix on <see cref="UIItemTooltip.GetItemData"/>): GetItemData is the one
@@ -34,13 +36,14 @@ namespace Morgott.Oracle
     ///     original single TEXT row "Dismantle: 12 Materials, 3 Tech" to the returned stat list (rendered by the
     ///     panel's own stat machinery) and stashes nothing.
     ///   * VIEW build (<see cref="ItemScrapTooltipRowPatch"/>, postfix on
-    ///     <see cref="UIInventoryTooltipItemPanel.LinkToData"/> for the PRIMARY panel only): a GameObject is
-    ///     needed for a horizontal strip of colored icons, so it is built there where the panel instance (hence
-    ///     <c>StatEntries</c>) is in hand. On every primary populate it first destroys any prior "OracleScrapRow"
-    ///     (dedup on repeat hovers + drops the previous item's strip, since the panel is pooled/reused and
-    ///     LinkToData does not manage our custom GameObject), then rebuilds from the stashed pack — one cloned
-    ///     <see cref="ResourceIconContainer"/> per non-zero resource, each rendering the native colored icon +
-    ///     amount through its own <c>ResourcesDef</c>.
+    ///     <see cref="UIInventoryTooltipItemPanel.LinkToData"/> for the PRIMARY panel only): GameObjects are
+    ///     needed for the row + icon strip, so they are built there where the panel instance (hence
+    ///     <c>StatEntries</c> and <c>StatPrefab</c>) is in hand. On every primary populate it first destroys any
+    ///     prior "OracleScrapRow" (dedup on repeat hovers + drops the previous item's strip, since the panel is
+    ///     pooled/reused and LinkToData does not manage our custom row), then rebuilds from the stashed pack: a
+    ///     cloned StatPrefab row (native label styling for "Dismantle", blank value) + one cloned
+    ///     <see cref="ResourceIconContainer"/> per non-zero resource overlaid right-aligned on the value area,
+    ///     each rendering the native colored icon + amount through its own <c>ResourcesDef</c>.
     ///
     /// GetItemData is shared by six tooltips; we BLACKLIST only <see cref="UIManufacturingTooltip"/> (already
     /// lists scrap natively, a row here would duplicate it) and <see cref="UIPhoenixpediaItemTooltip"/> (codex
@@ -243,31 +246,51 @@ namespace Morgott.Oracle
         private static void BuildRow(UIInventoryTooltipItemPanel panel, Transform parent, ResourcePack scrap,
             ResourceIconContainer template)
         {
-            var go = new GameObject(RowName, typeof(RectTransform));
-            go.transform.SetParent(parent, worldPositionStays: false);
+            if (panel.StatPrefab == null)
+            {
+                return;
+            }
 
-            HorizontalLayoutGroup hlg = go.AddComponent<HorizontalLayoutGroup>();
+            // Clone the panel's own StatPrefab row so the label font/size/color, row height and paddings are
+            // pixel-identical to the sibling stat rows (Damage, Weight, ...): its native SetData renders the
+            // localized "Dismantle" label through the row's own Localize component; value/icon left blank.
+            UIInventoryTooltipItemStat row = UnityEngine.Object.Instantiate(panel.StatPrefab, parent);
+            row.gameObject.name = RowName; // dedup key; also strips "(Clone)"
+            row.SetData(new StatData(null, null, null), new LocalizedTextBind("ORACLE_ITEM_SCRAP"));
+            row.transform.SetAsLastSibling();
+
+            // Icon strip overlaid on the row's value area — the exact rect where sibling rows draw their numeric
+            // value — children packed to the RIGHT edge so [icon]12 [icon]3 sits where a value would. Separate
+            // overlay GameObject (not a LayoutGroup added to the value Text itself) to avoid fighting whatever
+            // components the native prefab carries.
+            var strip = new GameObject("OracleScrapStrip", typeof(RectTransform));
+            var stripRt = (RectTransform)strip.transform;
+            RectTransform valueRt = (row.StatValueTextComp != null) ? row.StatValueTextComp.rectTransform : null;
+            stripRt.SetParent((valueRt != null) ? valueRt.parent : row.transform, worldPositionStays: false);
+            if (valueRt != null)
+            {
+                stripRt.anchorMin = valueRt.anchorMin;
+                stripRt.anchorMax = valueRt.anchorMax;
+                stripRt.pivot = valueRt.pivot;
+                stripRt.anchoredPosition = valueRt.anchoredPosition;
+                stripRt.sizeDelta = valueRt.sizeDelta;
+            }
+            else
+            {
+                // Defensive: prefab without a value Text -> stretch over the whole row, still right-packed.
+                stripRt.anchorMin = Vector2.zero;
+                stripRt.anchorMax = Vector2.one;
+                stripRt.offsetMin = Vector2.zero;
+                stripRt.offsetMax = Vector2.zero;
+            }
+
+            HorizontalLayoutGroup hlg = strip.AddComponent<HorizontalLayoutGroup>();
             hlg.spacing = 12f;
-            hlg.childAlignment = TextAnchor.MiddleLeft;
+            hlg.childAlignment = TextAnchor.MiddleRight;
             hlg.childControlWidth = true;
             hlg.childControlHeight = true;
             hlg.childForceExpandWidth = false;
             hlg.childForceExpandHeight = false;
-
-            // Match a native stat-row height so the tooltip's VerticalLayoutGroup sizes our row like the rest.
-            // ponytail: fixed match to StatPrefab height; if icons clip in-game, bump this or drop the LayoutElement.
-            LayoutElement le = go.AddComponent<LayoutElement>();
-            float h = 24f;
-            if (panel.StatPrefab != null)
-            {
-                float sh = ((RectTransform)panel.StatPrefab.transform).rect.height;
-                if (sh > 1f)
-                {
-                    h = sh;
-                }
-            }
-            le.minHeight = h;
-            le.preferredHeight = h;
 
             foreach (ResourceType type in ItemScrapTooltipPatch.ScrapOrder)
             {
@@ -276,12 +299,10 @@ namespace Morgott.Oracle
                 {
                     continue;
                 }
-                ResourceIconContainer ric = UnityEngine.Object.Instantiate(template, go.transform);
+                ResourceIconContainer ric = UnityEngine.Object.Instantiate(template, strip.transform);
                 ric.gameObject.SetActive(value: true);
                 ric.SetResource(type, amount); // native colored icon + amount via the container's own ResourcesDef
             }
-
-            go.transform.SetAsLastSibling();
         }
     }
 }
