@@ -186,8 +186,9 @@ namespace Morgott.Oracle
                     }
                 }
 
-                // Vanilla (no TFTV) or TFTV yielded nothing: the global personal-progression pool, once.
-                if (names.Count == 0)
+                // Vanilla pool ONLY when TFTV is absent. When TFTV is present its per-slot pools are
+                // definitive: an empty union stays empty, never polluted by the global vanilla fallback.
+                if (!TftvConfigBridge.Available)
                 {
                     Collect(TftvConfigBridge.GetVanillaPersonalPool());
                 }
