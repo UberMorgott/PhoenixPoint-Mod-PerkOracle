@@ -98,19 +98,22 @@ namespace Morgott.Oracle
                 }
 
                 // Skill-point cost gate: when the swap costs SP and the soldier can't afford it, deny with a
-                // localized notice (TrySwap would otherwise abort silently) and leave the wiki open.
+                // localized notice (TrySwap would otherwise abort silently) and leave the wiki open. Reads
+                // the same shadow-aware figure the module displays (PerkSwapper.GetAvailableSkillPoints), so
+                // the message can never disagree with the on-screen SP counter.
                 int spCost = PerkSwapDecision.EffectiveCost(
                     OracleMain.PerkSwapCostsResources, OracleMain.PerkSwapSkillPointCost);
                 if (spCost > 0)
                 {
                     var prog = SwapContext.Character?.Progression;
-                    if (prog != null && prog.SkillPoints < spCost)
+                    int available = PerkSwapper.GetAvailableSkillPoints(prog, SwapContext.Module);
+                    if (prog != null && available < spCost)
                     {
                         string msg = Loc.Get(
                             "ORACLE_SwapNotEnoughSP",
                             "Not enough skill points to reassign this perk.");
                         OracleLog.Debug("[Oracle] PerkSwap denied (insufficient SP): "
-                            + prog.SkillPoints + " < " + spCost);
+                            + available + " < " + spCost);
                         ShowDenyMessage(msg);
                         return;
                     }

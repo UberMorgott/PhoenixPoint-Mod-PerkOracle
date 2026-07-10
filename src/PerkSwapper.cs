@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using HarmonyLib;
 using PhoenixPoint.Common.Entities.Characters;
 using PhoenixPoint.Geoscape.Entities;
@@ -82,15 +83,21 @@ namespace Morgott.Oracle
 
                 // Skill-point cost: charge only a swap that will actually happen (verdict == Allow). Abort
                 // BEFORE mutating _abilities if the soldier can't afford it, so nothing is half-done. The
-                // click site pre-checks this too (to show a message); this guard also protects any direct
-                // caller from driving SkillPoints negative. The points are spent on success (below).
+                // affordability read is shadow-aware (see GetAvailableSkillPoints): the open progression
+                // module displays its private _currentSkillPoints copy, which already reflects pending
+                // un-committed stat purchases — that is the number the user sees. The click site pre-checks
+                // this too (to show a message); this guard also protects any direct caller.
                 int swapCost = PerkSwapDecision.EffectiveCost(
                     OracleMain.PerkSwapCostsResources, OracleMain.PerkSwapSkillPointCost);
-                if (swapCost > 0 && progression.SkillPoints < swapCost)
+                if (swapCost > 0)
                 {
-                    OracleLog.Debug("[Oracle] PerkSwap aborted: insufficient skill points ("
-                              + progression.SkillPoints + " < " + swapCost + ").");
-                    return false;
+                    int available = GetAvailableSkillPoints(progression, ctx.Module);
+                    if (available < swapCost)
+                    {
+                        OracleLog.Debug("[Oracle] PerkSwap aborted: insufficient skill points ("
+                                  + available + " < " + swapCost + ").");
+                        return false;
+                    }
                 }
 
                 // step 2: un-learn old via reflection (no public remover on CharacterProgression).
@@ -193,12 +200,53 @@ namespace Morgott.Oracle
             }
         }
 
+        // The open progression module does NOT read Progression.SkillPoints live: it snapshots it into
+        // private shadows (UIModuleCharacterProgression.cs — _currentSkillPoints:229 drives the displayed
+        // counter:622, _startingSkillPoints:217 is the cancel/reset baseline:520) and a later native
+        // CommitStatChanges() writes the shadow back ABSOLUTELY (SkillPoints = _currentSkillPoints, :375),
+        // which would erase a bare Progression.SkillPoints decrement. The native spend pair
+        // (ConsumeAbilityCost:428 + CommitStatChanges:367, as used by BuyAbility:403-405) cannot be reused
+        // verbatim: ConsumeAbilityCost spills overflow into the FACTION SP pool (:436-441; our cost is
+        // soldier-only) and CommitStatChanges also commits any pending un-confirmed stat edits (:369-374)
+        // the player may have open. So we mirror the spend across all three stores instead (see
+        // ChargeSwapCost). AccessTools.Field is cached once; null (game update renamed the field) degrades
+        // to persisted-only behavior, logged.
+        private static readonly FieldInfo CurrentSkillPointsField =
+            AccessTools.Field(typeof(UIModuleCharacterProgression), "_currentSkillPoints");
+        private static readonly FieldInfo StartingSkillPointsField =
+            AccessTools.Field(typeof(UIModuleCharacterProgression), "_startingSkillPoints");
+
         /// <summary>
-        /// Spend the swap's skill-point cost and repaint the SP counter. Called only after a fully-committed
-        /// swap, with affordability already verified, so it just decrements the public
-        /// <c>CharacterProgression.SkillPoints</c> field (direct write persists — it is the save entity) and
-        /// calls the public <c>UIModuleCharacterProgression.RefreshStatPanel</c> to update the display. No-op
-        /// for a zero/free cost. Guarded: a repaint hiccup is logged, never thrown (the SP were still spent).
+        /// The SP figure the USER currently sees: the open module's private _currentSkillPoints shadow
+        /// (which already reflects pending, un-committed stat purchases), falling back to the persisted
+        /// <c>Progression.SkillPoints</c> when the module/shadow is unavailable. Used by both the click-site
+        /// pre-check (deny message) and the TrySwap guard so they can never disagree with the display.
+        /// </summary>
+        public static int GetAvailableSkillPoints(CharacterProgression progression, UIModuleCharacterProgression module)
+        {
+            try
+            {
+                if (CurrentSkillPointsField != null
+                    && (UnityEngine.Object)(object)module != (UnityEngine.Object)null)
+                {
+                    return (int)CurrentSkillPointsField.GetValue(module);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] GetAvailableSkillPoints shadow read failed: " + ex.Message);
+            }
+            return progression != null ? progression.SkillPoints : 0;
+        }
+
+        /// <summary>
+        /// Spend the swap's skill-point cost, keeping the persisted field and the module's shadow copies
+        /// consistent (see the shadow-desync note above): decrement <c>Progression.SkillPoints</c> (the save
+        /// entity), the module's <c>_currentSkillPoints</c> (displayed; a later native CommitStatChanges then
+        /// writes the already-charged value back — no double charge, commit is an absolute write) and
+        /// <c>_startingSkillPoints</c> (so a native cancel/reset of pending stat edits cannot restore the
+        /// pre-swap SP). Then repaint via the public RefreshStatPanel. Called only after a fully-committed
+        /// swap with affordability verified. Guarded: a hiccup is logged, never thrown.
         /// </summary>
         private static void ChargeSwapCost(CharacterProgression progression, UIModuleCharacterProgression module, int cost)
         {
@@ -211,6 +259,15 @@ namespace Morgott.Oracle
                 progression.SkillPoints -= cost;
                 if ((UnityEngine.Object)(object)module != (UnityEngine.Object)null)
                 {
+                    if (CurrentSkillPointsField != null && StartingSkillPointsField != null)
+                    {
+                        CurrentSkillPointsField.SetValue(module, (int)CurrentSkillPointsField.GetValue(module) - cost);
+                        StartingSkillPointsField.SetValue(module, (int)StartingSkillPointsField.GetValue(module) - cost);
+                    }
+                    else
+                    {
+                        OracleLog.Debug("[Oracle] PerkSwap SP shadow fields missing; charged persisted only.");
+                    }
                     module.RefreshStatPanel();
                 }
             }
