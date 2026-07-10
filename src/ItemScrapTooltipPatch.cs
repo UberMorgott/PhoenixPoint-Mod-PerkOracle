@@ -200,6 +200,7 @@ namespace Morgott.Oracle
     internal static class ItemScrapTooltipRowPatch
     {
         private const string RowName = "OracleScrapRow";
+        private const string GapName = "OracleScrapGap";
 
         [HarmonyPostfix]
         private static void Postfix(UIInventoryTooltipItemPanel __instance, bool secondItem)
@@ -216,12 +217,17 @@ namespace Morgott.Oracle
                     return;
                 }
 
-                // Always clear a prior strip first: dedup on repeat hovers AND drop the previous item's strip
-                // (the panel is pooled/reused and its LinkToData does not manage our custom GameObject).
+                // Always clear the prior row + its spacer first: dedup on repeat hovers AND drop the previous
+                // item's strip (the panel is pooled/reused and its LinkToData does not manage our GameObjects).
                 Transform old = parent.Find(RowName);
                 if (old != null)
                 {
                     UnityEngine.Object.DestroyImmediate(old.gameObject);
+                }
+                Transform oldGap = parent.Find(GapName);
+                if (oldGap != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(oldGap.gameObject);
                 }
 
                 ResourcePack scrap = ItemScrapTooltipPatch.ConsumePendingScrap();
@@ -256,16 +262,40 @@ namespace Morgott.Oracle
             // localized "Dismantle" label through the row's own Localize component; value/icon left blank.
             UIInventoryTooltipItemStat row = UnityEngine.Object.Instantiate(panel.StatPrefab, parent);
             row.gameObject.name = RowName; // dedup key; also strips "(Clone)"
+
+            // Native labels render UPPERCASE (Damage, Ammo, ...) via I2 — mirror that with the row's own
+            // Localize modifier (applied on every (re)localize), set BEFORE SetData resolves the term.
+            if (row.StatNameTextComp != null)
+            {
+                I2.Loc.Localize lc = row.StatNameTextComp.GetComponent<I2.Loc.Localize>();
+                if (lc != null)
+                {
+                    lc.PrimaryTermModifier = I2.Loc.Localize.TermModification.ToUpper;
+                }
+            }
             row.SetData(new StatData(null, null, null), new LocalizedTextBind("ORACLE_ITEM_SCRAP"));
-            row.transform.SetAsLastSibling();
+
+            // Native value metrics: the digits of every other row (golden color, font, size).
+            Text sv = row.StatValueTextComp;
+            int digitSize = (sv != null && sv.fontSize > 0) ? sv.fontSize : 20;
+            Color gold = (sv != null) ? sv.color : Color.white;
+
+            // Footer gap: thin spacer row above ours, so the dismantle line sits visually separated from the
+            // stat block. ponytail: gap = 60% of the value font size; the "looks native" knob.
+            var gap = new GameObject(GapName, typeof(RectTransform));
+            gap.transform.SetParent(parent, worldPositionStays: false);
+            LayoutElement gapLe = gap.AddComponent<LayoutElement>();
+            gapLe.minHeight = gapLe.preferredHeight = Mathf.Round(digitSize * 0.6f);
+
+            gap.transform.SetAsLastSibling();
+            row.transform.SetAsLastSibling(); // always LAST: rebuilt after every LinkToData repopulation
 
             // Icon strip overlaid on the row's value area — the exact rect where sibling rows draw their numeric
-            // value — children packed to the RIGHT edge so [icon]12 [icon]3 sits where a value would. Separate
-            // overlay GameObject (not a LayoutGroup added to the value Text itself) to avoid fighting whatever
-            // components the native prefab carries.
+            // value — children packed to the RIGHT edge with zero padding, so the last digit ends flush where
+            // sibling values end (Text preferredWidth is exact glyph width -> no trailing space).
             var strip = new GameObject("OracleScrapStrip", typeof(RectTransform));
             var stripRt = (RectTransform)strip.transform;
-            RectTransform valueRt = (row.StatValueTextComp != null) ? row.StatValueTextComp.rectTransform : null;
+            RectTransform valueRt = (sv != null) ? sv.rectTransform : null;
             stripRt.SetParent((valueRt != null) ? valueRt.parent : row.transform, worldPositionStays: false);
             if (valueRt != null)
             {
@@ -292,6 +322,9 @@ namespace Morgott.Oracle
             hlg.childForceExpandWidth = false;
             hlg.childForceExpandHeight = false;
 
+            // ponytail: icon ~= line height ~= 1.4x font size; THE icon-vs-digit visual-match knob.
+            float iconSize = digitSize * 1.4f;
+
             foreach (ResourceType type in ItemScrapTooltipPatch.ScrapOrder)
             {
                 int amount = Mathf.RoundToInt(scrap.ByResourceType(type).Value);
@@ -299,52 +332,77 @@ namespace Morgott.Oracle
                 {
                     continue;
                 }
-                ResourceIconContainer ric = UnityEngine.Object.Instantiate(template, strip.transform);
-                ric.gameObject.SetActive(value: true);
-                CleanClone(ric);
-                ric.SetResource(type, amount); // native colored icon + amount via the container's own ResourcesDef
-            }
-        }
 
-        /// <summary>
-        /// The template can come from any screen, and some instances carry prefab-only decoration the C# class
-        /// never references (e.g. a vertical divider Image that showed up next to the gears icon) —
-        /// <see cref="ResourceIconContainer"/> only serializes Icon + Value, so decoration is invisible in the
-        /// decompile. Whitelist those two: every other Graphic in the clone is turned off (whole GameObject when
-        /// it holds neither Icon nor Value beneath it, so its layout space is freed too; render-only disable when
-        /// it shares a GameObject/branch with a kept element). Also bumps the amount digits ~20% for readability,
-        /// keeping the best-fit cap in sync and letting wide numbers overflow instead of clip.
-        /// </summary>
-        private static void CleanClone(ResourceIconContainer ric)
-        {
-            foreach (Graphic g in ric.GetComponentsInChildren<Graphic>(includeInactive: true))
-            {
-                if (g == null || g == ric.Icon || g == ric.Value)
+                // Clone the native container DETACHED + inactive, let its SetResource fill icon sprite, digits
+                // and the native RESOURCE colors, then extract ONLY the Icon and Value into our own layout pair
+                // and discard the rest — per-screen prefab decoration (stray dividers) and the container's own
+                // internal rect (source of the earlier right-edge indent) never enter the strip.
+                ResourceIconContainer ric = UnityEngine.Object.Instantiate(template);
+                ric.gameObject.SetActive(value: false);
+                ric.SetResource(type, amount);
+                Image icon = ric.Icon;
+                Text val = ric.Value;
+                if (icon == null || val == null)
                 {
+                    UnityEngine.Object.DestroyImmediate(ric.gameObject);
                     continue;
                 }
-                bool holdsKept =
-                    (ric.Icon != null && ric.Icon.transform.IsChildOf(g.transform)) ||
-                    (ric.Value != null && ric.Value.transform.IsChildOf(g.transform));
-                if (holdsKept)
-                {
-                    g.enabled = false;
-                }
-                else
-                {
-                    g.gameObject.SetActive(value: false);
-                }
-            }
 
-            Text v = ric.Value;
-            if (v != null)
-            {
-                v.fontSize = Mathf.RoundToInt(v.fontSize * 1.2f);
-                if (v.resizeTextForBestFit)
+                var pair = new GameObject("OracleScrapPair", typeof(RectTransform));
+                pair.transform.SetParent(strip.transform, worldPositionStays: false);
+                HorizontalLayoutGroup phlg = pair.AddComponent<HorizontalLayoutGroup>();
+                phlg.spacing = 4f;
+                phlg.childAlignment = TextAnchor.MiddleCenter;
+                phlg.childControlWidth = true;
+                phlg.childControlHeight = true;
+                phlg.childForceExpandWidth = false;
+                phlg.childForceExpandHeight = false;
+
+                // [icon] sized to match the digits' visual height; keeps its NATIVE resource color (user asked
+                // for colored icons) — only the digits go golden below.
+                icon.transform.SetParent(pair.transform, worldPositionStays: false);
+                icon.gameObject.SetActive(value: true);
+                icon.preserveAspect = true;
+                LayoutElement ile = icon.GetComponent<LayoutElement>();
+                if (ile == null)
                 {
-                    v.resizeTextMaxSize = Mathf.RoundToInt(v.resizeTextMaxSize * 1.2f);
+                    ile = icon.gameObject.AddComponent<LayoutElement>();
                 }
-                v.horizontalOverflow = HorizontalWrapMode.Overflow;
+                ile.ignoreLayout = false;
+                ile.minWidth = -1f;
+                ile.flexibleWidth = -1f;
+                ile.preferredWidth = iconSize;
+                ile.minHeight = -1f;
+                ile.flexibleHeight = -1f;
+                ile.preferredHeight = iconSize;
+
+                // [digits] exactly like a native value: same font/size/golden color; exact-size (no best-fit),
+                // overflow instead of clip; any prefab LayoutElement neutralized so preferredWidth = glyph width.
+                val.transform.SetParent(pair.transform, worldPositionStays: false);
+                val.gameObject.SetActive(value: true);
+                if (sv != null)
+                {
+                    val.font = sv.font;
+                    val.fontStyle = sv.fontStyle;
+                }
+                val.fontSize = digitSize;
+                val.color = gold;
+                val.resizeTextForBestFit = false;
+                val.horizontalOverflow = HorizontalWrapMode.Overflow;
+                val.verticalOverflow = VerticalWrapMode.Overflow;
+                LayoutElement vle = val.GetComponent<LayoutElement>();
+                if (vle != null)
+                {
+                    vle.ignoreLayout = false;
+                    vle.minWidth = -1f;
+                    vle.preferredWidth = -1f;
+                    vle.flexibleWidth = -1f;
+                    vle.minHeight = -1f;
+                    vle.preferredHeight = -1f;
+                    vle.flexibleHeight = -1f;
+                }
+
+                UnityEngine.Object.DestroyImmediate(ric.gameObject); // rest of the clone (decor, container rect)
             }
         }
     }
