@@ -89,6 +89,76 @@ namespace Morgott.Oracle
             }
         }
 
+        /// <summary>
+        /// Runtime read of the rolled-perk-highlight toggle. Defaults to TRUE when the config is
+        /// unavailable so the mod's headline feature still shows. Read by <see cref="CellBackground"/>.
+        /// </summary>
+        public static bool EnableRolledPerkHighlight
+        {
+            get
+            {
+                OracleMain inst = Instance;
+                OracleConfig cfg = inst != null ? inst.Config : null;
+                return cfg == null || cfg.EnableRolledPerkHighlight;
+            }
+        }
+
+        /// <summary>
+        /// Runtime read of the highlight-color preset. Defaults to Blue (the original tint) when the
+        /// config is unavailable. Read live by <see cref="CellBackground"/> on every apply.
+        /// </summary>
+        public static HighlightColor RolledPerkHighlightColor
+        {
+            get
+            {
+                OracleMain inst = Instance;
+                OracleConfig cfg = inst != null ? inst.Config : null;
+                return cfg != null ? cfg.RolledPerkHighlightColor : HighlightColor.Blue;
+            }
+        }
+
+        /// <summary>
+        /// Runtime read of the perk-wiki toggle. Defaults to TRUE when the config is unavailable.
+        /// Read by <see cref="PerkWikiPanel.Open"/>.
+        /// </summary>
+        public static bool EnablePerkWiki
+        {
+            get
+            {
+                OracleMain inst = Instance;
+                OracleConfig cfg = inst != null ? inst.Config : null;
+                return cfg == null || cfg.EnablePerkWiki;
+            }
+        }
+
+        /// <summary>
+        /// Runtime read of the subclass-confirm-decoration toggle. Defaults to TRUE when the config is
+        /// unavailable. Read by the SelectSpecialization patches and <see cref="SubclassConfirmPopupDecorator"/>.
+        /// </summary>
+        public static bool EnableSubclassConfirmDecoration
+        {
+            get
+            {
+                OracleMain inst = Instance;
+                OracleConfig cfg = inst != null ? inst.Config : null;
+                return cfg == null || cfg.EnableSubclassConfirmDecoration;
+            }
+        }
+
+        /// <summary>
+        /// Runtime read of the dismantle-yield toggle. Defaults to TRUE when the config is unavailable.
+        /// Read by <see cref="ItemScrapTooltipPatch"/>.
+        /// </summary>
+        public static bool ShowDismantleCompensation
+        {
+            get
+            {
+                OracleMain inst = Instance;
+                OracleConfig cfg = inst != null ? inst.Config : null;
+                return cfg == null || cfg.ShowDismantleCompensation;
+            }
+        }
+
         public override bool CanSafelyDisable => true;
 
         public override void OnModEnabled()

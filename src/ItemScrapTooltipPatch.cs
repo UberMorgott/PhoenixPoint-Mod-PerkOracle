@@ -61,6 +61,11 @@ namespace Morgott.Oracle
         {
             try
             {
+                if (!OracleMain.ShowDismantleCompensation)
+                {
+                    return; // feature disabled -> no Dismantle row
+                }
+
                 // Only the two item hover tooltips — never manufacturing (native scrap already shown) or the
                 // phoenixpedia / mutation / equip-inventory tooltips.
                 if (!(__instance is UITacItemTooltip) && !(__instance is UIGeoItemTooltip))

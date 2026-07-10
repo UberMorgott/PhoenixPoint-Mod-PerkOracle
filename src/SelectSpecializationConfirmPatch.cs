@@ -42,6 +42,13 @@ namespace Morgott.Oracle
         {
             try
             {
+                // Feature disabled -> let native subclass selection run with no confirm popup.
+                if (!OracleMain.EnableSubclassConfirmDecoration)
+                {
+                    _confirmedElement = null;
+                    return true;
+                }
+
                 // YES path: this is our re-invocation for the just-confirmed element -> run the original.
                 if ((UnityEngine.Object)(object)element != (UnityEngine.Object)null
                     && (object)element == (object)_confirmedElement)

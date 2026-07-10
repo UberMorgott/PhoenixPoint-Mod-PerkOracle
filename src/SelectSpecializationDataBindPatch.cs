@@ -28,6 +28,11 @@ namespace Morgott.Oracle
         {
             try
             {
+                // Feature disabled -> don't inject the greyed omitted-subclass previews.
+                if (!OracleMain.EnableSubclassConfirmDecoration)
+                {
+                    return;
+                }
                 if ((UnityEngine.Object)(object)___DualClassButtonContainer == (UnityEngine.Object)null)
                 {
                     return;

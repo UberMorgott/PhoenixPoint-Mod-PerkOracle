@@ -55,6 +55,10 @@ namespace Morgott.Oracle
             try
             {
                 Close();
+                if (!OracleMain.EnablePerkWiki)
+                {
+                    return; // feature disabled -> no panel; every open path routes through here
+                }
                 if ((UnityEngine.Object)(object)canvas == (UnityEngine.Object)null || defs == null || defs.Count == 0)
                 {
                     return;

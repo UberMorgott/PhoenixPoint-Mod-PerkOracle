@@ -52,6 +52,11 @@ namespace Morgott.Oracle
         {
             try
             {
+                if (!OracleMain.EnableSubclassConfirmDecoration)
+                {
+                    return; // feature disabled -> leave the native box untouched
+                }
+
                 SubclassConfirmPromptData marker = ReadMarker(__instance);
                 if (marker == null || marker.Perks == null || marker.Perks.Count == 0)
                 {

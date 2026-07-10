@@ -16,12 +16,31 @@ namespace Morgott.Oracle
         private const string HighlightName = "highlight";
         private const string BackgroundName = "UIElement_Background";
 
-        // KNOB: recolor the rolled-cell tint here. Semi-transparent blue, visible over the
-        // cell's opaque-black base.
-        private static readonly Color RolledColor = new Color(0.20f, 0.45f, 1.00f, 0.55f);
+        // Tint presets, all sharing the original 0.55 alpha so every color reads as a translucent wash
+        // over the cell's opaque-black base. Blue is the original value. Resolved live per-apply via
+        // OracleMain.RolledPerkHighlightColor, so a settings change takes effect on the next repaint.
+        private static Color ResolveColor()
+        {
+            switch (OracleMain.RolledPerkHighlightColor)
+            {
+                case HighlightColor.Green: return new Color(0.20f, 0.80f, 0.35f, 0.55f);
+                case HighlightColor.Gold: return new Color(1.00f, 0.78f, 0.20f, 0.55f);
+                case HighlightColor.Red: return new Color(0.90f, 0.25f, 0.25f, 0.55f);
+                case HighlightColor.Purple: return new Color(0.60f, 0.35f, 0.90f, 0.55f);
+                case HighlightColor.White: return new Color(0.95f, 0.95f, 0.95f, 0.55f);
+                default: return new Color(0.20f, 0.45f, 1.00f, 0.55f); // Blue (original)
+            }
+        }
 
         public static void Apply(AbilityTrackSkillEntryElement cell, bool show)
         {
+            // Live master toggle: when the highlight is off, force-hide instead of showing so a cell
+            // repaint (or a mid-session settings change) clears any existing tint.
+            if (show && !OracleMain.EnableRolledPerkHighlight)
+            {
+                show = false;
+            }
+
             if (cell == null)
             {
                 return;
@@ -69,7 +88,7 @@ namespace Morgott.Oracle
             go.transform.SetParent(parent, false);
 
             var image = go.GetComponent<Image>();
-            ((Graphic)image).color = RolledColor;
+            ((Graphic)image).color = ResolveColor();
             image.raycastTarget = false;
             return image;
         }
@@ -89,13 +108,15 @@ namespace Morgott.Oracle
             {
                 overlay.sprite = bg.sprite;
                 overlay.type = bg.type;
-                ((Graphic)overlay).color = RolledColor;
+                ((Graphic)overlay).color = ResolveColor();
             }
             else
             {
                 // A sprite-less Image still renders a flat quad; bump alpha to compensate.
                 overlay.sprite = null;
-                ((Graphic)overlay).color = new Color(0.20f, 0.45f, 1.00f, 0.6f);
+                Color flat = ResolveColor();
+                flat.a = 0.6f;
+                ((Graphic)overlay).color = flat;
             }
 
             StretchToCell(((Component)overlay).GetComponent<RectTransform>(), bg);
