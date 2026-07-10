@@ -7,6 +7,7 @@ using PhoenixPoint.Common.Entities.Characters;
 using PhoenixPoint.Geoscape.Entities;
 using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Geoscape.View.ViewControllers;
+using PhoenixPoint.Geoscape.View.ViewControllers.Progression;
 using PhoenixPoint.Geoscape.View.ViewControllers.Roster;
 using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
@@ -230,6 +231,35 @@ namespace Morgott.Oracle
                 ? rootCanvas.transform as RectTransform
                 : null;
 
+            // Native dual-class cell inputs: the primary row's cell at SecondSpecializationLevel-1 is
+            // ALWAYS overridden with the dual-class "+" visuals (HumanAbilityTrackContainer.SetDualSpec:40/67)
+            // for every human soldier, hiding whatever def sits in that track slot. Read level + icon LIVE
+            // from the same sources the native screen uses; vanilla default level 4 (LevelProgressionDef.cs:30).
+            int dualLevel0 = 3;
+            try
+            {
+                dualLevel0 = character.LevelProgression.Def.SecondSpecializationLevel - 1;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] SecondSpecializationLevel read failed, using 4: " + ex.Message);
+            }
+            Sprite dualIcon = null;
+            try
+            {
+                HumanAbilityTrackContainer container =
+                    UnityEngine.Object.FindObjectsOfType<HumanAbilityTrackContainer>().FirstOrDefault();
+                if ((UnityEngine.Object)(object)container != (UnityEngine.Object)null
+                    && (UnityEngine.Object)(object)container.DualClassAbilityVisuals != (UnityEngine.Object)null)
+                {
+                    dualIcon = container.DualClassAbilityVisuals.SmallIcon;
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] DualClassAbilityVisuals lookup failed: " + ex.Message);
+            }
+
             // Centered, auto-sizing panel: a VerticalLayoutGroup stacks the tabs row + the (rebuilt) body.
             var panelGo = new GameObject("ClassWikiPanel", typeof(RectTransform), typeof(Image),
                 typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
@@ -287,8 +317,8 @@ namespace Morgott.Oracle
                     }
                     ClearChildren(bodyGo.transform);
                     BuildBodyTitle(bodyGo.transform, ResolveClassTitle(spec));
-                    BuildPerkRow(bodyGo.transform, Loc.Get(SectionClassTerm, SectionClassFallback),
-                        ClassPerkProvider.GetClassPerks(spec), template, cellSize, canvasRect, rootCanvas);
+                    BuildClassTrackRow(bodyGo.transform, spec, template, cellSize, canvasRect, rootCanvas,
+                        dualLevel0, dualIcon);
                     BuildSlotRow(bodyGo.transform, spec, template, cellSize, canvasRect, rootCanvas, panelRt);
                     LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
                 }
@@ -400,26 +430,44 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// One labeled perk row: a centered header label plus a wrapping grid of native ability cells (bright
-        /// "known" look, native hover tooltip, read-only — swapContext null). Skipped when <paramref name="defs"/>
-        /// is empty. Guarded.
+        /// Row 2: the class ability track EXACTLY as the native progression row renders it — cell i =
+        /// <c>AbilitiesByLevel[i]</c> in level order (AbilityTrackContainerElement.cs:251-261), empty
+        /// slots as inert empty native cells (SetEmpty equivalent, :232-236), and the
+        /// SecondSpecializationLevel-1 cell overlaid with the native dual-class "+" visuals exactly like
+        /// HumanAbilityTrackContainer.SetDualSpec — the def in that slot is NEVER rendered natively
+        /// (TFTV leaves it unconfigured: MainSpecModification.cs:47 "3 = secondary class selector").
+        /// No prepend/compaction/dedup, so runtime-mutated tracks (TFTV, Officer) match 1:1. Guarded.
         /// </summary>
-        private static void BuildPerkRow(Transform parent, string label, List<TacticalAbilityDef> defs,
-            AbilityTrackSkillEntryElement template, float cellSize, RectTransform canvasRect, Canvas rootCanvas)
+        private static void BuildClassTrackRow(Transform parent, SpecializationDef spec,
+            AbilityTrackSkillEntryElement template, float cellSize, RectTransform canvasRect,
+            Canvas rootCanvas, int dualLevel0, Sprite dualIcon)
         {
-            if (defs == null || defs.Count == 0)
-            {
-                return;
-            }
             try
             {
-                BuildRowLabel(parent, label);
-                GameObject grid = BuildRowGrid(parent, defs.Count, cellSize);
-                foreach (TacticalAbilityDef def in defs)
+                List<TacticalAbilityDef> cells = ClassPerkProvider.GetClassTrackCells(spec);
+                if (cells.Count == 0)
                 {
+                    return;
+                }
+                BuildRowLabel(parent, Loc.Get(SectionClassTerm, SectionClassFallback));
+                GameObject grid = BuildRowGrid(parent, cells.Count, cellSize);
+                for (int i = 0; i < cells.Count; i++)
+                {
+                    if (i == dualLevel0)
+                    {
+                        // Native dual-class cell: the "+" visuals, inert, no tooltip. A missing icon
+                        // degrades to an empty bright cell — still never the hidden slot def.
+                        WikiIconFactory.MakeCell(grid.transform, template, dualIcon, null, true,
+                            null, null, null);
+                        continue;
+                    }
+                    TacticalAbilityDef def = cells[i];
                     if ((UnityEngine.Object)(object)def == (UnityEngine.Object)null
                         || (UnityEngine.Object)(object)def.ViewElementDef == (UnityEngine.Object)null)
                     {
+                        // Empty slot -> inert greyed empty native cell, position preserved.
+                        WikiIconFactory.MakeCell(grid.transform, template, null, null, false,
+                            null, null, null);
                         continue;
                     }
                     Sprite icon = def.ViewElementDef.SmallIcon != null
@@ -431,7 +479,7 @@ namespace Morgott.Oracle
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildPerkRow failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildClassTrackRow failed: " + ex.Message);
             }
         }
 

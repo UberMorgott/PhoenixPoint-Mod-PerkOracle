@@ -84,6 +84,41 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
+        /// The class ability track EXACTLY as the native progression row renders it: one entry per level
+        /// slot (index = level-1), NULLS PRESERVED for empty slots, read LIVE from
+        /// <c>spec.AbilityTrack.AbilitiesByLevel</c> at call time (TFTV MainSpecModification and the
+        /// Officer mod mutate these track defs in place at load — never cache). Mirrors
+        /// <c>AbilityTrackContainerElement.GetAbilitySlots</c>/<c>SetAbilitySlot</c>
+        /// (AbilityTrackContainerElement.cs:251-261/230-249: cell b &lt;- AbilitiesByLevel[b], null -&gt;
+        /// SetEmpty). No proficiency prepend, no compaction, no dedup — the proficiency already sits in
+        /// its own slot. The caller overlays the dual-class cell (HumanAbilityTrackContainer.SetDualSpec).
+        /// Empty list on any error.
+        /// </summary>
+        public static List<TacticalAbilityDef> GetClassTrackCells(SpecializationDef spec)
+        {
+            var cells = new List<TacticalAbilityDef>();
+            try
+            {
+                if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null
+                    || (UnityEngine.Object)(object)spec.AbilityTrack == (UnityEngine.Object)null
+                    || spec.AbilityTrack.AbilitiesByLevel == null)
+                {
+                    return cells;
+                }
+                foreach (AbilityTrackSlot slot in spec.AbilityTrack.AbilitiesByLevel)
+                {
+                    cells.Add(slot?.Ability); // null kept: the native row shows an EMPTY cell there
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] ClassPerkProvider.GetClassTrackCells failed: " + ex.Message);
+                cells.Clear();
+            }
+            return cells;
+        }
+
+        /// <summary>
         /// Every playable HUMAN SOLDIER class the wiki can browse: the selectable-subclass universe
         /// (faction initial specs + all class-research rewards), de-duplicated and filtered to specs that
         /// carry an icon (<see cref="SpecializationDef.ViewElementDef"/>) plus a valid ability track and
