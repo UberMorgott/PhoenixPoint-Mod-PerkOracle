@@ -13,49 +13,47 @@ using PhoenixPoint.Geoscape.View.ViewControllers.Inventory;
 using PhoenixPoint.Geoscape.View.ViewControllers.PhoenixBase;
 using PhoenixPoint.Tactical.View.ViewControllers.Inventory;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Morgott.Oracle
 {
     /// <summary>
-    /// Adds the item's dismantle yield (<see cref="ItemDef.ScrapPrice"/> = floor(ManufactureX / 2) per resource
-    /// type; an item with an all-zero manufacture cost yields nothing and gets no row) to the item hover
-    /// tooltip.
+    /// Shows an item's dismantle yield (<see cref="ItemDef.ScrapPrice"/> = floor(ManufactureX / 2) per resource;
+    /// an all-zero manufacture cost yields nothing and gets no row) as ONE compact line of the game's own COLORED
+    /// resource icons + amounts at the bottom of the item hover tooltip — e.g. <c>[materials]12 [tech]3</c>,
+    /// identical to the manufacturing screen's scrap strip. No header words, no resource names.
     ///
-    /// Preferred rendering is NATIVE icon rows: a localized "Dismantle" header row followed by one native stat
-    /// row per non-zero resource in the form <c>[SmallIcon] [resource name] [amount]</c> — identical to the
-    /// game's own damage-keyword rows, which already pass a sprite through <see cref="StatData"/>'s icon slot.
-    /// The resource sprite + name come from the same <see cref="NamedListDef"/> the manufacturing screen's
-    /// <c>ResourceIconContainer</c> uses (resolved once off any loaded container — see
-    /// <see cref="ResolveResourcesDef"/>). This reuses the tooltip's own row prefab, pooling and layout rebuild,
-    /// so there are no custom GameObjects, no hand-built layout, and no duplicate-row cleanup (native
-    /// <c>LinkToData</c> hides surplus rows on every show).
+    /// Two cooperating patches, because the two pieces live at different levels:
+    ///   * DATA gate (this class, postfix on <see cref="UIItemTooltip.GetItemData"/>): GetItemData is the one
+    ///     point that sees BOTH the owning tooltip instance (for the blacklist) AND the <see cref="ItemDef"/>
+    ///     (for <see cref="ItemDef.ScrapPrice"/>) — the panel's <c>LinkToData</c> receives neither reliably
+    ///     (tactical/mutation call it with a null item). It runs immediately before the panel is populated, so it
+    ///     stashes the dismantle <see cref="ResourcePack"/> in <see cref="_pendingScrap"/> for the panel patch to
+    ///     consume that same show. When the native colored-icon template cannot be found in the current scene
+    ///     (e.g. a pure tactical session with no geoscape UI prefabs loaded), it instead appends the mod's
+    ///     original single TEXT row "Dismantle: 12 Materials, 3 Tech" to the returned stat list (rendered by the
+    ///     panel's own stat machinery) and stashes nothing.
+    ///   * VIEW build (<see cref="ItemScrapTooltipRowPatch"/>, postfix on
+    ///     <see cref="UIInventoryTooltipItemPanel.LinkToData"/> for the PRIMARY panel only): a GameObject is
+    ///     needed for a horizontal strip of colored icons, so it is built there where the panel instance (hence
+    ///     <c>StatEntries</c>) is in hand. On every primary populate it first destroys any prior "OracleScrapRow"
+    ///     (dedup on repeat hovers + drops the previous item's strip, since the panel is pooled/reused and
+    ///     LinkToData does not manage our custom GameObject), then rebuilds from the stashed pack — one cloned
+    ///     <see cref="ResourceIconContainer"/> per non-zero resource, each rendering the native colored icon +
+    ///     amount through its own <c>ResourcesDef</c>.
     ///
-    /// FALLBACK: if that def cannot be resolved in the current scene (e.g. a pure tactical session where the
-    /// geoscape UI prefabs are not loaded), we degrade to a single TEXT row "Dismantle: 12 Materials, 3 Tech"
-    /// — the mod's original behaviour. Exactly one of the two forms is emitted per show, never both.
-    ///
-    /// Injection point is <see cref="UIItemTooltip.GetItemData"/>, NOT the two ShowStats methods: the list it
-    /// returns is exactly what ShowStats hands to <c>InfoPanel.LinkToData</c>, so appending our
-    /// <see cref="ComparableData"/> rows here makes the panel render them through its own native stat machinery
-    /// (StatPrefab clone, icon+name+value columns) with no re-link and no reflection. Appended rows land at the
-    /// END of the list → bottom of the tooltip; the tooltip's own <c>FadeInCrt</c> runs
-    /// <c>ForceRebuildLayoutImmediate</c> AFTER this, so added rows never break the box height.
-    ///
-    /// GetItemData is shared by six tooltips (tactical, geoscape, the equip/loadout armory's
-    /// <see cref="UIInventoryTooltip"/>, mutation, manufacturing, phoenixpedia), so we gate on the instance
-    /// type with a BLACKLIST — show the dismantle yield everywhere EXCEPT the two where it does not belong:
-    /// <see cref="UIManufacturingTooltip"/> (already lists scrap natively, so a row here would duplicate it)
-    /// and <see cref="UIPhoenixpediaItemTooltip"/> (codex/reference view, not gear management). This is why the
-    /// equip-screen tooltip now shows the rows: it was previously off a whitelist of only the two hover
-    /// tooltips. Fully guarded so a failure can never break the tooltip. Live-gated by
-    /// <see cref="OracleMain.ShowDismantleCompensation"/>.
+    /// GetItemData is shared by six tooltips; we BLACKLIST only <see cref="UIManufacturingTooltip"/> (already
+    /// lists scrap natively, a row here would duplicate it) and <see cref="UIPhoenixpediaItemTooltip"/> (codex
+    /// view, not gear management) — the strip therefore shows on the equip/loadout, geoscape, tactical and
+    /// mutation tooltips. Live-gated by <see cref="OracleMain.ShowDismantleCompensation"/>. Both patches are fully
+    /// guarded so a failure can never break the tooltip.
     /// </summary>
     [HarmonyPatch(typeof(UIItemTooltip), nameof(UIItemTooltip.GetItemData))]
     internal static class ItemScrapTooltipPatch
     {
-        // Fixed display order for the yielded resources: Materials, then Tech, then the rarer types. Matches
-        // the native manufacturing tooltip (Materials before Tech) and the feature's "Materials, Tech" example.
-        private static readonly ResourceType[] ScrapOrder =
+        // Fixed display order: Materials, then Tech, then the rarer types. Matches the native manufacturing
+        // tooltip (Materials before Tech) and the feature's "[materials]12 [tech]3" example.
+        internal static readonly ResourceType[] ScrapOrder =
         {
             ResourceType.Materials,
             ResourceType.Tech,
@@ -65,31 +63,30 @@ namespace Morgott.Oracle
             ResourceType.ProteanMutane
         };
 
-        // NamedListDef mapping ResourceType.ToString() -> ViewElementDef (icon + display name), the same def
-        // ResourceIconContainer reads. Defs are never destroyed, so once found it stays valid; null means "not
-        // resolvable in this scene yet" and we retry (and use the text fallback) on the next show.
-        private static NamedListDef _resourcesDef;
+        // Handoff from the GetItemData gate to the LinkToData row-builder: the dismantle pack to render as an
+        // icon strip on the NEXT primary panel populate, or null for "no strip" (feature off / blacklisted /
+        // nothing to recover / text-fallback path). Reset at the start of every GetItemData, so a strip can
+        // never leak from one hovered item to the next.
+        private static ResourcePack _pendingScrap;
 
-        // __result is the returned tuple; its Item1 is the very List<ComparableData> the caller links to the
-        // panel (a reference), so Add-ing to it here is visible to ShowStats without a `ref`. `item` and
-        // `__instance` are injected by name/role from the original signature.
+        // A live/prefab ResourceIconContainer to clone for each strip icon. Defs are never destroyed and the
+        // template is a serialized object, but a scene unload can Unity-null it, so we re-resolve while null.
+        private static ResourceIconContainer _iconTemplate;
+
         [HarmonyPostfix]
         private static void Postfix(UIItemTooltip __instance, ItemDef item,
             (List<ComparableData>, List<List<ComparableData>>) __result)
         {
             try
             {
+                _pendingScrap = null; // default: no strip; also tells the row patch to clear any stale strip
+
                 if (!OracleMain.ShowDismantleCompensation)
                 {
-                    return; // feature disabled -> no Dismantle row
+                    return; // feature disabled
                 }
-
-                // Blacklist, not whitelist: show the dismantle yield on EVERY item tooltip that routes through
-                // GetItemData (tactical, geoscape, the equip/loadout armory's UIInventoryTooltip, mutation) —
-                // the user wants it in the item-properties window generally — EXCEPT two:
-                //   * UIManufacturingTooltip  — already lists scrap natively (ScrapMaterials/ScrapTech rows), a
-                //                                row here would duplicate it.
-                //   * UIPhoenixpediaItemTooltip — the codex/reference view, not gear management; out of scope.
+                // Blacklist: show on every item tooltip routing through GetItemData EXCEPT the manufacturing
+                // tooltip (already lists scrap) and the phoenixpedia codex view.
                 if (__instance is UIManufacturingTooltip || __instance is UIPhoenixpediaItemTooltip)
                 {
                     return;
@@ -102,102 +99,60 @@ namespace Morgott.Oracle
                 ResourcePack scrap = item.ScrapPrice;
                 if (scrap == null || scrap.IsEmpty)
                 {
-                    // Nothing recovered (all-zero manufacture cost) → no row at all.
-                    return;
+                    return; // nothing recovered (all-zero manufacture cost)
                 }
 
-                // Preferred: native icon rows. Falls through to the text row only if the resource defs are not
-                // resolvable in this scene, or (defensively) if no resource had a non-zero amount.
-                NamedListDef resDefs = ResolveResourcesDef();
-                if (resDefs != null && AppendIconRows(__result.Item1, scrap, resDefs))
+                // Preferred: native colored-icon strip — stash the pack for the LinkToData patch to build.
+                if (ResolveIconTemplate() != null)
                 {
+                    _pendingScrap = scrap;
                     return;
                 }
 
-                // Fallback: single text row "Dismantle: 12 Materials, 3 Tech".
+                // Fallback (no icon template loaded in this scene): single text row "Dismantle: 12 Materials, 3 Tech".
                 string resources = BuildResourceList(scrap);
-                if (string.IsNullOrEmpty(resources))
+                if (!string.IsNullOrEmpty(resources))
                 {
-                    return;
+                    __result.Item1.Add(new ComparableData
+                    {
+                        localization = new LocalizedTextBind("ORACLE_ITEM_SCRAP"),
+                        primaryData = new StatData(resources, null, null)
+                    });
                 }
-
-                __result.Item1.Add(new ComparableData
-                {
-                    localization = new LocalizedTextBind("ORACLE_ITEM_SCRAP"),
-                    primaryData = new StatData(resources, null, null)
-                });
             }
             catch (Exception ex)
             {
+                _pendingScrap = null;
                 OracleLog.Debug("[Oracle] ItemScrapTooltipPatch.Postfix failed: " + ex.Message);
             }
         }
 
-        /// <summary>
-        /// Append a localized "Dismantle" header row plus one native <c>[icon] [name] [amount]</c> stat row per
-        /// non-zero resource (in <see cref="ScrapOrder"/>). Icon + name come from the game's own resource
-        /// <see cref="ViewElementDef"/>, with the mod's ORACLE_RES_* key as a name fallback. Returns false (so
-        /// the caller can fall back to the text row) if no resource had a rounded amount &gt;= 1.
-        /// </summary>
-        private static bool AppendIconRows(List<ComparableData> list, ResourcePack scrap, NamedListDef resDefs)
+        /// <summary>Consume the stashed dismantle pack (single-use): returns it and clears the stash so a later
+        /// unrelated populate can never rebuild a strip from a previous item.</summary>
+        internal static ResourcePack ConsumePendingScrap()
         {
-            var rows = new List<ComparableData>();
-            foreach (ResourceType type in ScrapOrder)
-            {
-                int amount = Mathf.RoundToInt(scrap.ByResourceType(type).Value);
-                if (amount <= 0)
-                {
-                    continue;
-                }
-                ViewElementDef ve = resDefs.GetDef<ViewElementDef>(type.ToString());
-                LocalizedTextBind name =
-                    (ve != null && ve.DisplayName1 != null && !string.IsNullOrEmpty(ve.DisplayName1.LocalizationKey))
-                        ? ve.DisplayName1
-                        : new LocalizedTextBind(ResourceKey(type));
-                rows.Add(new ComparableData
-                {
-                    localization = name,
-                    // Native icon slot (like damage-keyword rows): [SmallIcon] [name] [amount].
-                    primaryData = new StatData(amount, null, ve != null ? ve.SmallIcon : null)
-                });
-            }
-            if (rows.Count == 0)
-            {
-                return false;
-            }
-
-            // Header first (name-only row = section label), then the resource rows, all at the tooltip bottom.
-            list.Add(new ComparableData
-            {
-                localization = new LocalizedTextBind("ORACLE_ITEM_SCRAP"),
-                primaryData = new StatData(null, null, null)
-            });
-            list.AddRange(rows);
-            return true;
+            ResourcePack s = _pendingScrap;
+            _pendingScrap = null;
+            return s;
         }
 
-        /// <summary>
-        /// Locate the <see cref="NamedListDef"/> that maps resource-type names to their
-        /// <see cref="ViewElementDef"/> (icon + display name) — the same def the manufacturing screen's
-        /// ResourceIconContainer uses. Read off any loaded container (<see cref="Resources.FindObjectsOfTypeAll"/>
-        /// finds inactive/prefab instances too). Cached across shows; re-resolved while still null.
-        /// </summary>
-        private static NamedListDef ResolveResourcesDef()
+        /// <summary>Locate a <see cref="ResourceIconContainer"/> (icon + value + ResourcesDef wired) to clone per
+        /// strip icon — the same widget the manufacturing screen uses. <see cref="Resources.FindObjectsOfTypeAll"/>
+        /// finds inactive/prefab instances too. Cached; re-resolved while Unity-null.</summary>
+        internal static ResourceIconContainer ResolveIconTemplate()
         {
-            if (_resourcesDef != null)
+            if (_iconTemplate != null)
             {
-                return _resourcesDef;
+                return _iconTemplate;
             }
-            ResourceIconContainer src = Resources.FindObjectsOfTypeAll<ResourceIconContainer>()
-                .FirstOrDefault(c => c != null && c.ResourcesDef != null);
-            _resourcesDef = (src != null) ? src.ResourcesDef : null;
-            return _resourcesDef;
+            _iconTemplate = Resources.FindObjectsOfTypeAll<ResourceIconContainer>()
+                .FirstOrDefault(c => c != null && c.ResourcesDef != null && c.Icon != null && c.Value != null);
+            return _iconTemplate;
         }
 
         /// <summary>
         /// Compose the yield string in <see cref="ScrapOrder"/>, e.g. "12 Materials, 3 Tech". Each resource is
-        /// included only when its rounded amount is &gt;= 1 (ScrapPrice carries all six types, most at 0).
-        /// Used only by the text fallback.
+        /// included only when its rounded amount is &gt;= 1. Used only by the text fallback.
         /// </summary>
         private static string BuildResourceList(ResourcePack scrap)
         {
@@ -232,21 +187,101 @@ namespace Morgott.Oracle
                 default: return type.ToString();
             }
         }
+    }
 
-        /// <summary>The mod's own I2 loc key per resource type — name fallback for the icon rows when the
-        /// game's own <see cref="ViewElementDef.DisplayName1"/> is unavailable.</summary>
-        private static string ResourceKey(ResourceType type)
+    /// <summary>
+    /// View-level half of the dismantle feature: builds the single colored-icon strip on the primary tooltip
+    /// panel. See <see cref="ItemScrapTooltipPatch"/> for the full design.
+    /// </summary>
+    [HarmonyPatch(typeof(UIInventoryTooltipItemPanel), nameof(UIInventoryTooltipItemPanel.LinkToData))]
+    internal static class ItemScrapTooltipRowPatch
+    {
+        private const string RowName = "OracleScrapRow";
+
+        [HarmonyPostfix]
+        private static void Postfix(UIInventoryTooltipItemPanel __instance, bool secondItem)
         {
-            switch (type)
+            try
             {
-                case ResourceType.Materials: return "ORACLE_RES_MATERIALS";
-                case ResourceType.Tech: return "ORACLE_RES_TECH";
-                case ResourceType.Mutagen: return "ORACLE_RES_MUTAGEN";
-                case ResourceType.LivingCrystals: return "ORACLE_RES_LIVINGCRYSTALS";
-                case ResourceType.Orichalcum: return "ORACLE_RES_ORICHALCUM";
-                case ResourceType.ProteanMutane: return "ORACLE_RES_PROTEANMUTANE";
-                default: return "ORACLE_ITEM_SCRAP";
+                if (secondItem)
+                {
+                    return; // primary panel only; the comparison panel never gets a strip
+                }
+                Transform parent = (__instance != null) ? __instance.StatEntries : null;
+                if (parent == null)
+                {
+                    return;
+                }
+
+                // Always clear a prior strip first: dedup on repeat hovers AND drop the previous item's strip
+                // (the panel is pooled/reused and its LinkToData does not manage our custom GameObject).
+                Transform old = parent.Find(RowName);
+                if (old != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(old.gameObject);
+                }
+
+                ResourcePack scrap = ItemScrapTooltipPatch.ConsumePendingScrap();
+                if (scrap == null)
+                {
+                    return; // this item has no strip (feature off / blacklisted / nothing / text fallback)
+                }
+                ResourceIconContainer template = ItemScrapTooltipPatch.ResolveIconTemplate();
+                if (template == null)
+                {
+                    return; // defensive; the gate only stashes when a template resolved
+                }
+
+                BuildRow(__instance, parent, scrap, template);
             }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] ItemScrapTooltipRowPatch.Postfix failed: " + ex.Message);
+            }
+        }
+
+        private static void BuildRow(UIInventoryTooltipItemPanel panel, Transform parent, ResourcePack scrap,
+            ResourceIconContainer template)
+        {
+            var go = new GameObject(RowName, typeof(RectTransform));
+            go.transform.SetParent(parent, worldPositionStays: false);
+
+            HorizontalLayoutGroup hlg = go.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = 12f;
+            hlg.childAlignment = TextAnchor.MiddleLeft;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = false;
+
+            // Match a native stat-row height so the tooltip's VerticalLayoutGroup sizes our row like the rest.
+            // ponytail: fixed match to StatPrefab height; if icons clip in-game, bump this or drop the LayoutElement.
+            LayoutElement le = go.AddComponent<LayoutElement>();
+            float h = 24f;
+            if (panel.StatPrefab != null)
+            {
+                float sh = ((RectTransform)panel.StatPrefab.transform).rect.height;
+                if (sh > 1f)
+                {
+                    h = sh;
+                }
+            }
+            le.minHeight = h;
+            le.preferredHeight = h;
+
+            foreach (ResourceType type in ItemScrapTooltipPatch.ScrapOrder)
+            {
+                int amount = Mathf.RoundToInt(scrap.ByResourceType(type).Value);
+                if (amount <= 0)
+                {
+                    continue;
+                }
+                ResourceIconContainer ric = UnityEngine.Object.Instantiate(template, go.transform);
+                ric.gameObject.SetActive(value: true);
+                ric.SetResource(type, amount); // native colored icon + amount via the container's own ResourcesDef
+            }
+
+            go.transform.SetAsLastSibling();
         }
     }
 }
