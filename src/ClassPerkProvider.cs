@@ -6,6 +6,7 @@ using Base.Defs;
 using PhoenixPoint.Common.Core;
 using PhoenixPoint.Common.Entities;
 using PhoenixPoint.Common.Entities.Characters;
+using PhoenixPoint.Common.Entities.GameTags;
 using PhoenixPoint.Common.Entities.GameTagsTypes;
 using PhoenixPoint.Geoscape.Entities;
 using PhoenixPoint.Geoscape.Entities.Research.Reward;
@@ -150,16 +151,82 @@ namespace Morgott.Oracle
         /// false skip is safe: the caller then falls back to the class def/config. The VIEWER is exempt
         /// (the caller resolves the viewer first, so their own screen truth wins even if special).
         /// </summary>
-        private static bool IsSpecialUnit(GeoCharacter c)
+        private static bool IsSpecialUnit(GeoCharacter c, out string reason)
         {
+            reason = null;
             var tpl = c?.TemplateDef;
-            return (UnityEngine.Object)(object)tpl != (UnityEngine.Object)null
-                && !tpl.AvailableForGenericDeployment;
+            if ((UnityEngine.Object)(object)tpl == (UnityEngine.Object)null)
+            {
+                return false;
+            }
+            if (!tpl.AvailableForGenericDeployment)
+            {
+                reason = "AvailableForGenericDeployment=false";
+                return true;
+            }
+            // TFTV mercenaries / Project Osiris revenants carry an authored per-unit track flagged by a
+            // template game tag; empty set when TFTV is absent, so this branch is a no-op under vanilla.
+            HashSet<GameTagDef> special = GetTftvSpecialTags();
+            if (special.Count > 0)
+            {
+                foreach (GameTagDef tag in tpl.GetGameTags())
+                {
+                    if (tag != null && special.Contains(tag))
+                    {
+                        reason = "TFTV special tag " + ((UnityEngine.Object)tag).name;
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // TFTV special-unit template tags, resolved once, lazily, by def name from the vanilla
+        // DefRepository (same name-key pattern as TftvConfigBridge). TFTV creates each via
+        // Helper.CreateDefFromClone(..., name + "_GameTagDef"): "Mercenary" GUID {49BDADBC-A411-48B2-
+        // 8773-533EE9247F4C} (TFTVMercenaries.cs:635) and "OCPProduct" GUID {2727C5A3-EB61-4DEB-BD2C-
+        // 275E67D8B10F} (TFTVProjectOsiris.cs:88). TFTV absent -> tags not found -> empty set (fail open).
+        private static bool _tftvSpecialTagsResolved;
+        private static HashSet<GameTagDef> _tftvSpecialTags;
+
+        private static HashSet<GameTagDef> GetTftvSpecialTags()
+        {
+            if (_tftvSpecialTagsResolved)
+            {
+                return _tftvSpecialTags;
+            }
+            _tftvSpecialTagsResolved = true;
+            var set = new HashSet<GameTagDef>();
+            try
+            {
+                DefRepository repo = GameUtl.GameComponent<DefRepository>();
+                if (repo != null)
+                {
+                    foreach (GameTagDef tag in repo.GetAllDefs<GameTagDef>())
+                    {
+                        if (tag == null)
+                        {
+                            continue;
+                        }
+                        string n = ((UnityEngine.Object)tag).name;
+                        if (n == "Mercenary_GameTagDef" || n == "OCPProduct_GameTagDef")
+                        {
+                            set.Add(tag);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] TFTV special-tag resolve failed: " + ex.Message);
+            }
+            _tftvSpecialTags = set;
+            return set;
         }
 
         /// <summary>Debug-only: note a roster representative skipped because it is a special/unique unit.
         /// Gated by <see cref="OracleMain.DebugLoggingEnabled"/> so it rides the same Row2/Row3 dumps.</summary>
-        private static void LogSpecialSkip(GeoCharacter c, string row)
+        private static void LogSpecialSkip(GeoCharacter c, string row, string reason)
         {
             if (!OracleMain.DebugLoggingEnabled)
             {
@@ -168,7 +235,7 @@ namespace Morgott.Oracle
             string nm;
             try { nm = c?.GetName() ?? "[null]"; } catch { nm = "[?]"; }
             OracleLog.Debug("[Oracle] " + row + " skip representative '" + nm
-                + "': special/unique unit (AvailableForGenericDeployment=false)");
+                + "': special/unique unit (" + (reason ?? "special") + ")");
         }
 
         /// <summary>
@@ -223,9 +290,9 @@ namespace Morgott.Oracle
                     if (c?.Progression != null
                         && (UnityEngine.Object)(object)c.Progression.MainSpecDef == (UnityEngine.Object)(object)spec)
                     {
-                        if (IsSpecialUnit(c))
+                        if (IsSpecialUnit(c, out string why))
                         {
-                            LogSpecialSkip(c, "Row2");
+                            LogSpecialSkip(c, "Row2", why);
                             continue;
                         }
                         AbilityTrackSlot[] slots = c.Progression
@@ -239,9 +306,9 @@ namespace Morgott.Oracle
                 }
                 foreach (GeoCharacter c in faction.HumanSoldiers)
                 {
-                    if (IsSpecialUnit(c))
+                    if (IsSpecialUnit(c, out string why))
                     {
-                        LogSpecialSkip(c, "Row2");
+                        LogSpecialSkip(c, "Row2", why);
                         continue;
                     }
                     AbilityTrackSlot[] slots = FromSoldier(c);
@@ -313,9 +380,9 @@ namespace Morgott.Oracle
                 }
                 foreach (GeoCharacter c in faction.HumanSoldiers)
                 {
-                    if (IsSpecialUnit(c))
+                    if (IsSpecialUnit(c, out string why))
                     {
-                        LogSpecialSkip(c, "Row3");
+                        LogSpecialSkip(c, "Row3", why);
                         continue;
                     }
                     AbilityTrackSlot[] slots = FromSoldier(c);
