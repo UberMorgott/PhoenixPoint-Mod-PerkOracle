@@ -140,10 +140,43 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
+        /// True when <paramref name="c"/> is a hand-placed story/DLC unit (e.g. DLC3 "Eileen",
+        /// <c>S_SY_Eileen_CharacterTemplateDef</c>) rather than a generic recruit. Such a unit carries an
+        /// individually authored personal/class track, so it must NOT stand in as the GENERIC class
+        /// preview when picked as a roster representative. Signal is the game's own template flag: every
+        /// recruitable soldier template has <c>AvailableForGenericDeployment == true</c> (verified: all
+        /// 345 recruit templates), while unique story units (plus mutoids and the base template) have it
+        /// false (extracted defs — Eileen = false). Cheap, exact, and no name/tag pattern guessing. A
+        /// false skip is safe: the caller then falls back to the class def/config. The VIEWER is exempt
+        /// (the caller resolves the viewer first, so their own screen truth wins even if special).
+        /// </summary>
+        private static bool IsSpecialUnit(GeoCharacter c)
+        {
+            var tpl = c?.TemplateDef;
+            return (UnityEngine.Object)(object)tpl != (UnityEngine.Object)null
+                && !tpl.AvailableForGenericDeployment;
+        }
+
+        /// <summary>Debug-only: note a roster representative skipped because it is a special/unique unit.
+        /// Gated by <see cref="OracleMain.DebugLoggingEnabled"/> so it rides the same Row2/Row3 dumps.</summary>
+        private static void LogSpecialSkip(GeoCharacter c, string row)
+        {
+            if (!OracleMain.DebugLoggingEnabled)
+            {
+                return;
+            }
+            string nm;
+            try { nm = c?.GetName() ?? "[null]"; } catch { nm = "[?]"; }
+            OracleLog.Debug("[Oracle] " + row + " skip representative '" + nm
+                + "': special/unique unit (AvailableForGenericDeployment=false)");
+        }
+
+        /// <summary>
         /// Find the runtime (per-soldier snapshot) track slots for <paramref name="spec"/>: the viewer's
         /// own tracks first, then any faction soldier with that main spec (exact native primary row),
         /// then any with it as secondary. Null when no live soldier carries the spec. Sets
-        /// <paramref name="source"/> on a hit.
+        /// <paramref name="source"/> on a hit. Special/unique story units are skipped as representatives
+        /// (see <see cref="IsSpecialUnit"/>) — the viewer above is the one exception.
         /// </summary>
         private static AbilityTrackSlot[] ResolveRuntimeSlots(SpecializationDef spec, GeoCharacter viewer,
             ref string source)
@@ -190,6 +223,11 @@ namespace Morgott.Oracle
                     if (c?.Progression != null
                         && (UnityEngine.Object)(object)c.Progression.MainSpecDef == (UnityEngine.Object)(object)spec)
                     {
+                        if (IsSpecialUnit(c))
+                        {
+                            LogSpecialSkip(c, "Row2");
+                            continue;
+                        }
                         AbilityTrackSlot[] slots = c.Progression
                             .GetAbilityTrack(AbilityTrackSource.PrimaryClass)?.AbilitiesByLevel;
                         if (slots != null)
@@ -201,6 +239,11 @@ namespace Morgott.Oracle
                 }
                 foreach (GeoCharacter c in faction.HumanSoldiers)
                 {
+                    if (IsSpecialUnit(c))
+                    {
+                        LogSpecialSkip(c, "Row2");
+                        continue;
+                    }
                     AbilityTrackSlot[] slots = FromSoldier(c);
                     if (slots != null)
                     {
@@ -270,6 +313,11 @@ namespace Morgott.Oracle
                 }
                 foreach (GeoCharacter c in faction.HumanSoldiers)
                 {
+                    if (IsSpecialUnit(c))
+                    {
+                        LogSpecialSkip(c, "Row3");
+                        continue;
+                    }
                     AbilityTrackSlot[] slots = FromSoldier(c);
                     if (slots != null)
                     {
