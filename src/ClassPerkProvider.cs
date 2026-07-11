@@ -219,8 +219,18 @@ namespace Morgott.Oracle
         /// preview when picked as a roster representative. Signal is the game's own template flag: every
         /// recruitable soldier template has <c>AvailableForGenericDeployment == true</c> (verified: all
         /// 345 recruit templates), while unique story units (plus mutoids and the base template) have it
-        /// false (extracted defs — Eileen = false). Cheap, exact, and no name/tag pattern guessing. A
-        /// false skip is safe: the caller then falls back to the class def/config. The VIEWER is exempt
+        /// false (extracted defs — Eileen = false). Cheap, exact, and no name/tag pattern guessing.
+        ///
+        /// NB — TFTV mercenaries (<c>Mercenary_*</c> templates) and Project Osiris revenants are NOT
+        /// special: they are ordinary RECRUITED roster soldiers that level on the standard class track and
+        /// keep <c>AvailableForGenericDeployment == true</c> (wiki-rca7 log: ТЯЖ/МИЛИШНИК/РАЗВЕДЧИК were
+        /// caught only by the tag, never by the flag). An earlier build also flagged them via their
+        /// <c>Mercenary_GameTagDef</c>/<c>OCPProduct_GameTagDef</c> template tag, which wrongly listed them
+        /// as row-4 "unique units" and, worse, skipped every one of them as a class representative — so
+        /// classes whose only roster soldiers were mercenaries (Heavy/Berserker in that log) collapsed to
+        /// the def/config fallback. The tag branch is removed; the flag is the sole, precise signal.
+        ///
+        /// A false skip is safe: the caller then falls back to the class def/config. The VIEWER is exempt
         /// (the caller resolves the viewer first, so their own screen truth wins even if special).
         /// </summary>
         private static bool IsSpecialUnit(GeoCharacter c, out string reason)
@@ -236,64 +246,7 @@ namespace Morgott.Oracle
                 reason = "AvailableForGenericDeployment=false";
                 return true;
             }
-            // TFTV mercenaries / Project Osiris revenants carry an authored per-unit track flagged by a
-            // template game tag; empty set when TFTV is absent, so this branch is a no-op under vanilla.
-            HashSet<GameTagDef> special = GetTftvSpecialTags();
-            if (special.Count > 0)
-            {
-                foreach (GameTagDef tag in tpl.GetGameTags())
-                {
-                    if (tag != null && special.Contains(tag))
-                    {
-                        reason = "TFTV special tag " + ((UnityEngine.Object)tag).name;
-                        return true;
-                    }
-                }
-            }
             return false;
-        }
-
-        // TFTV special-unit template tags, resolved once, lazily, by def name from the vanilla
-        // DefRepository (same name-key pattern as TftvConfigBridge). TFTV creates each via
-        // Helper.CreateDefFromClone(..., name + "_GameTagDef"): "Mercenary" GUID {49BDADBC-A411-48B2-
-        // 8773-533EE9247F4C} (TFTVMercenaries.cs:635) and "OCPProduct" GUID {2727C5A3-EB61-4DEB-BD2C-
-        // 275E67D8B10F} (TFTVProjectOsiris.cs:88). TFTV absent -> tags not found -> empty set (fail open).
-        private static bool _tftvSpecialTagsResolved;
-        private static HashSet<GameTagDef> _tftvSpecialTags;
-
-        private static HashSet<GameTagDef> GetTftvSpecialTags()
-        {
-            if (_tftvSpecialTagsResolved)
-            {
-                return _tftvSpecialTags;
-            }
-            _tftvSpecialTagsResolved = true;
-            var set = new HashSet<GameTagDef>();
-            try
-            {
-                DefRepository repo = GameUtl.GameComponent<DefRepository>();
-                if (repo != null)
-                {
-                    foreach (GameTagDef tag in repo.GetAllDefs<GameTagDef>())
-                    {
-                        if (tag == null)
-                        {
-                            continue;
-                        }
-                        string n = ((UnityEngine.Object)tag).name;
-                        if (n == "Mercenary_GameTagDef" || n == "OCPProduct_GameTagDef")
-                        {
-                            set.Add(tag);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                OracleLog.Debug("[Oracle] TFTV special-tag resolve failed: " + ex.Message);
-            }
-            _tftvSpecialTags = set;
-            return set;
         }
 
         /// <summary>Debug-only: note a roster representative skipped because it is a special/unique unit.
