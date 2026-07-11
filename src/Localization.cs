@@ -22,5 +22,11 @@ namespace Morgott.Oracle
             }
             catch { return fallback; }
         }
+
+        // Normalize a raw .Localize() result: I2 returns the sentinel "<!-MISSING KEY [Term]-!>"
+        // (neither null nor empty) for a missing term. Collapse that and empty to null so callers'
+        // existing string.IsNullOrEmpty checks treat a missing/sentinel localization as absent
+        // instead of leaking the sentinel into the UI.
+        public static string Clean(string s) => string.IsNullOrEmpty(s) || s.StartsWith("<!") ? null : s;
     }
 }

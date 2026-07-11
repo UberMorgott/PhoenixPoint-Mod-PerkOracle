@@ -306,7 +306,7 @@ namespace Morgott.Oracle
                 {
                     return;
                 }
-                string pattern = key.Localize();
+                string pattern = Loc.Clean(key.Localize());
                 if (string.IsNullOrEmpty(pattern))
                 {
                     return;
@@ -355,7 +355,7 @@ namespace Morgott.Oracle
                 {
                     return;
                 }
-                string pattern = key.Localize();
+                string pattern = Loc.Clean(key.Localize());
                 if (string.IsNullOrEmpty(pattern))
                 {
                     return;
@@ -426,7 +426,7 @@ namespace Morgott.Oracle
                     {
                         return;
                     }
-                    string leaderPattern = leaderKey.Localize();
+                    string leaderPattern = Loc.Clean(leaderKey.Localize());
                     if (string.IsNullOrEmpty(leaderPattern))
                     {
                         return;
@@ -445,7 +445,7 @@ namespace Morgott.Oracle
                     {
                         return;
                     }
-                    string pattern = key.Localize();
+                    string pattern = Loc.Clean(key.Localize());
                     if (string.IsNullOrEmpty(pattern))
                     {
                         return;
@@ -585,7 +585,7 @@ namespace Morgott.Oracle
                         && (UnityEngine.Object)(object)rd.ViewElementDef != (UnityEngine.Object)null
                         && rd.ViewElementDef.DisplayName1 != null)
                     {
-                        string s = rd.ViewElementDef.DisplayName1.Localize();
+                        string s = Loc.Clean(rd.ViewElementDef.DisplayName1.Localize());
                         if (!string.IsNullOrEmpty(s))
                         {
                             return s;
@@ -616,7 +616,7 @@ namespace Morgott.Oracle
                     {
                         continue;
                     }
-                    string s = e.Entry.Title.Localize();
+                    string s = Loc.Clean(e.Entry.Title.Localize());
                     if (!string.IsNullOrEmpty(s))
                     {
                         names.Add(s);
@@ -662,7 +662,7 @@ namespace Morgott.Oracle
                     return;
                 }
                 string name = (def.TypeName != null && !string.IsNullOrEmpty(def.TypeName.LocalizationKey))
-                    ? def.TypeName.Localize()
+                    ? Loc.Clean(def.TypeName.Localize())
                     : string.Empty;
                 if (string.IsNullOrEmpty(name))
                 {
@@ -775,7 +775,7 @@ namespace Morgott.Oracle
                     {
                         continue;
                     }
-                    string s = ed.GeoscapeEventData.Title.Localize();
+                    string s = Loc.Clean(ed.GeoscapeEventData.Title.Localize());
                     return string.IsNullOrEmpty(s) ? string.Empty : s;
                 }
             }
@@ -805,7 +805,7 @@ namespace Morgott.Oracle
                 {
                     return;
                 }
-                string pattern = key.Localize();
+                string pattern = Loc.Clean(key.Localize());
                 string line = EventOutcomeFormat.Format1(pattern, System.Math.Abs(sdi));
                 if (!string.IsNullOrEmpty(line))
                 {
@@ -916,7 +916,7 @@ namespace Morgott.Oracle
                     {
                         continue;
                     }
-                    string s = zd.ViewElementDef.DisplayName1.Localize();
+                    string s = Loc.Clean(zd.ViewElementDef.DisplayName1.Localize());
                     if (!string.IsNullOrEmpty(s))
                     {
                         return s;
@@ -949,7 +949,7 @@ namespace Morgott.Oracle
                 {
                     return;
                 }
-                string pattern = key.Localize();
+                string pattern = Loc.Clean(key.Localize());
                 if (string.IsNullOrEmpty(pattern))
                 {
                     return;
@@ -986,7 +986,7 @@ namespace Morgott.Oracle
                 ViewElementDef ved = def.GetViewElementDef();
                 if ((UnityEngine.Object)(object)ved != (UnityEngine.Object)null && ved.DisplayName1 != null)
                 {
-                    string s = ved.DisplayName1.Localize();
+                    string s = Loc.Clean(ved.DisplayName1.Localize());
                     if (!string.IsNullOrEmpty(s))
                     {
                         return s;
@@ -1019,7 +1019,7 @@ namespace Morgott.Oracle
                 {
                     return;
                 }
-                string pattern = key.Localize();
+                string pattern = Loc.Clean(key.Localize());
                 string line = EventOutcomeFormat.Format1(pattern, name);
                 if (!string.IsNullOrEmpty(line))
                 {
@@ -1046,7 +1046,7 @@ namespace Morgott.Oracle
                 {
                     return;
                 }
-                string pattern = key.Localize();
+                string pattern = Loc.Clean(key.Localize());
                 string token = Loc.Get("ORACLE_EVT_TOK_BASE", "a Phoenix base");
                 string line = EventOutcomeFormat.Format1(pattern, token);
                 if (!string.IsNullOrEmpty(line))
@@ -1078,7 +1078,7 @@ namespace Morgott.Oracle
                 {
                     return;
                 }
-                string pattern = key.Localize();
+                string pattern = Loc.Clean(key.Localize());
                 if (string.IsNullOrEmpty(pattern))
                 {
                     return;
@@ -1111,7 +1111,7 @@ namespace Morgott.Oracle
                 {
                     return;
                 }
-                string line = key.Localize();
+                string line = Loc.Clean(key.Localize());
                 if (!string.IsNullOrEmpty(line))
                 {
                     data.NativeLines.Add(line);
@@ -1166,7 +1166,7 @@ namespace Morgott.Oracle
                     ViewElementDef ved = module.ResourcesList.GetDef<ViewElementDef>(type.ToString());
                     if ((UnityEngine.Object)(object)ved != (UnityEngine.Object)null && ved.DisplayName1 != null)
                     {
-                        string s = ved.DisplayName1.Localize();
+                        string s = Loc.Clean(ved.DisplayName1.Localize());
                         if (!string.IsNullOrEmpty(s))
                         {
                             return s;
@@ -1187,7 +1187,7 @@ namespace Morgott.Oracle
                     .View.GetProperResourceViewElementDef(type);
                 if ((UnityEngine.Object)(object)view != (UnityEngine.Object)null && view.DisplayName != null)
                 {
-                    string s = view.DisplayName.Localize();
+                    string s = Loc.Clean(view.DisplayName.Localize());
                     if (!string.IsNullOrEmpty(s))
                     {
                         return s;
@@ -1216,7 +1216,7 @@ namespace Morgott.Oracle
                     && (UnityEngine.Object)(object)faction.GeoFactionViewDef != (UnityEngine.Object)null
                     && faction.GeoFactionViewDef.Name != null)
                 {
-                    string s = faction.GeoFactionViewDef.Name.Localize();
+                    string s = Loc.Clean(faction.GeoFactionViewDef.Name.Localize());
                     if (!string.IsNullOrEmpty(s))
                     {
                         return s;
@@ -1250,7 +1250,7 @@ namespace Morgott.Oracle
                         : iu.ItemDef.ViewElementDef.DisplayName1;
                     if (name != null)
                     {
-                        string s = name.Localize();
+                        string s = Loc.Clean(name.Localize());
                         if (!string.IsNullOrEmpty(s))
                         {
                             return s;
