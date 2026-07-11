@@ -9,7 +9,6 @@ using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Geoscape.View.ViewControllers;
 using PhoenixPoint.Geoscape.View.ViewControllers.Progression;
 using PhoenixPoint.Geoscape.View.ViewControllers.Roster;
-using PhoenixPoint.Tactical.Entities;
 using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
 using UnityEngine.UI;
@@ -39,9 +38,6 @@ namespace Morgott.Oracle
         private const string SectionClassFallback = "CLASS ABILITIES";
         private const string SectionRandomTerm = "ORACLE_WIKI_SECTION_RANDOM";
         private const string SectionRandomFallback = "RANDOM PERKS";
-        // Row-4 (unique-unit sub-tabs) divider header.
-        private const string SectionUnitsTerm = "ORACLE_WIKI_SECTION_UNITS";
-        private const string SectionUnitsFallback = "UNIQUE UNITS";
 
         // Class-wiki (3-row native-cell tab panel) layout.
         private const int MaxRowColumns = 10;   // wrap a row onto a new line past this many cells
@@ -328,74 +324,7 @@ namespace Morgott.Oracle
             bodyFitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
             bodyFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            // Sub-tab state (captured by the closures below). currentSpec = the selected class tab;
-            // selectedUnit = the row-4 special unit whose runtime tracks override rows 2-3 (null = the
-            // generic class view); unitCandidates = the row-4 units for currentSpec, recomputed per tab.
-            SpecializationDef currentSpec = null;
-            Row4Item selected = null;
-            List<Row4Item> unitCandidates = null;
-
-            // Rebuild rows 2-4 for the current spec + selection. With a unit selected, row 2 resolves that
-            // unit's runtime class track (soldier override) and row 3 shows its full personal track VERBATIM
-            // (rolled perks included, no '?'); otherwise the generic class view renders. Row 4 (the
-            // unique-unit sub-tabs) is appended last and hidden when the class has no special units.
-            void RenderBody()
-            {
-                try
-                {
-                    ClearChildren(bodyGo.transform);
-                    BuildBodyTitle(bodyGo.transform, ResolveClassTitle(currentSpec));
-                    bool mercPreview = selected != null && selected.IsTemplate;
-                    // Roster unit -> its runtime track (overrideUnit); merc template -> the class DEF track
-                    // (preferDef, what a new hire snapshots); nothing selected -> identical generic render.
-                    GeoCharacter overrideUnit = selected != null && !selected.IsTemplate ? selected.Unit : null;
-                    BuildClassTrackRow(bodyGo.transform, currentSpec, character, template, cellSize,
-                        canvasRect, rootCanvas, dualLevel0, dualIcon, overrideUnit, mercPreview);
-                    if (selected == null)
-                    {
-                        BuildSlotRow(bodyGo.transform, currentSpec, character, template, cellSize,
-                            canvasRect, rootCanvas, panelRt, false);
-                    }
-                    else if (mercPreview)
-                    {
-                        // Future-hire preview: fixed slots from the TFTV config (Phoenix perspective, the
-                        // buyer faction — see 1(c)), random slots stay anonymized '?'.
-                        BuildSlotRow(bodyGo.transform, currentSpec, character, template, cellSize,
-                            canvasRect, rootCanvas, panelRt, true);
-                    }
-                    else
-                    {
-                        BuildSelectedUnitSlotRow(bodyGo.transform, currentSpec, selected.Unit, template,
-                            cellSize, canvasRect, rootCanvas);
-                    }
-                    BuildUniqueUnitRow(bodyGo.transform, unitCandidates, selected, template, cellSize,
-                        SelectUnit);
-                    LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
-                }
-                catch (Exception ex)
-                {
-                    OracleLog.Debug("[Oracle] PerkWikiPanel.RenderBody failed: " + ex.Message);
-                }
-            }
-
-            // Row-4 click: toggle the candidate driving rows 2-3 (roster unit = its runtime tracks; merc
-            // template = a hire preview). Clicking the already-selected candidate returns to the generic view.
-            void SelectUnit(Row4Item item)
-            {
-                bool deselect = selected == item;
-                selected = deselect ? null : item;
-                if (OracleMain.DebugLoggingEnabled)
-                {
-                    string src = item.IsTemplate ? "template:merc" : "runtime:selected";
-                    OracleLog.Debug("[Oracle] Wiki row-4 "
-                        + (deselect ? "deselected: " : "selected: ") + (item.Name ?? "[?]")
-                        + " source=" + src);
-                }
-                RenderBody();
-            }
-
-            // Switch the whole panel to `spec`: mark its tab, drop any unit selection, recompute the row-4
-            // candidates for the new class, then rebuild the body.
+            // Switch rows 2-3 to `spec` in place and mark its tab selected.
             void SelectTab(SpecializationDef spec)
             {
                 try
@@ -409,10 +338,12 @@ namespace Morgott.Oracle
                     }
                     OracleLog.Debug("[Oracle] Wiki tab selected: " + ((UnityEngine.Object)(object)spec).name
                         + " guid=" + spec.Guid);
-                    currentSpec = spec;
-                    selected = null; // clear row-4 selection on a tab switch
-                    unitCandidates = BuildRow4Candidates(spec);
-                    RenderBody();
+                    ClearChildren(bodyGo.transform);
+                    BuildBodyTitle(bodyGo.transform, ResolveClassTitle(spec));
+                    BuildClassTrackRow(bodyGo.transform, spec, character, template, cellSize, canvasRect,
+                        rootCanvas, dualLevel0, dualIcon);
+                    BuildSlotRow(bodyGo.transform, spec, character, template, cellSize, canvasRect, rootCanvas, panelRt);
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
                 }
                 catch (Exception ex)
                 {
@@ -466,7 +397,19 @@ namespace Morgott.Oracle
                 }
 
                 // Selection marker: a thin accent underline, hidden until this tab is the selected one.
-                markerMap[spec] = CreateSelectionMarker(tab.transform);
+                var markGo = new GameObject("SelMark", typeof(RectTransform), typeof(Image));
+                markGo.transform.SetParent(tab.transform, false);
+                var mrt = markGo.GetComponent<RectTransform>();
+                mrt.anchorMin = new Vector2(0f, 0f);
+                mrt.anchorMax = new Vector2(1f, 0f);
+                mrt.pivot = new Vector2(0.5f, 0f);
+                mrt.offsetMin = new Vector2(2f, -2f);
+                mrt.offsetMax = new Vector2(-2f, 4f);
+                var mimg = markGo.GetComponent<Image>();
+                ((Graphic)mimg).color = new Color(0.36f, 0.72f, 1f, 1f);
+                mimg.raycastTarget = false;
+                markGo.SetActive(false);
+                markerMap[spec] = markGo;
 
                 var btn = tab.GetComponent<Button>();
                 if ((UnityEngine.Object)(object)btn != (UnityEngine.Object)null)
@@ -478,268 +421,6 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] PerkWikiPanel.BuildClassTab failed: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// A thin accent underline marker (same look/mechanism the class tabs use), parented to a cell and
-        /// hidden until made active. Returned so the caller decides when it lights up.
-        /// </summary>
-        private static GameObject CreateSelectionMarker(Transform cellTransform)
-        {
-            var markGo = new GameObject("SelMark", typeof(RectTransform), typeof(Image));
-            markGo.transform.SetParent(cellTransform, false);
-            var mrt = markGo.GetComponent<RectTransform>();
-            mrt.anchorMin = new Vector2(0f, 0f);
-            mrt.anchorMax = new Vector2(1f, 0f);
-            mrt.pivot = new Vector2(0.5f, 0f);
-            mrt.offsetMin = new Vector2(2f, -2f);
-            mrt.offsetMax = new Vector2(-2f, 4f);
-            var mimg = markGo.GetComponent<Image>();
-            ((Graphic)mimg).color = new Color(0.36f, 0.72f, 1f, 1f);
-            mimg.raycastTarget = false;
-            markGo.SetActive(false);
-            return markGo;
-        }
-
-        /// <summary>
-        /// One row-4 sub-tab candidate: either a ROSTER special unit (a live <see cref="GeoCharacter"/> whose
-        /// authored runtime tracks are shown verbatim) or a TFTV merc ARCHETYPE template (a hireable
-        /// <see cref="TacCharacterDef"/> shown as a future-hire preview). <see cref="Spec"/> supplies the class
-        /// icon; <see cref="Name"/> the cell label.
-        /// </summary>
-        private sealed class Row4Item
-        {
-            public GeoCharacter Unit;         // roster special unit (null for a merc template)
-            public TacCharacterDef Template;  // merc archetype template (null for a roster unit)
-            public SpecializationDef Spec;    // class spec (icon source)
-            public string Name;               // cell label / display name
-            public bool IsTemplate => (object)Unit == null;
-        }
-
-        /// <summary>
-        /// Row-4 candidates for a class tab: roster special units first (their authored runtime tracks —
-        /// <see cref="ClassPerkProvider.GetSpecialUnitsForClass"/>), then TFTV merc archetype templates
-        /// (hire-preview — <see cref="ClassPerkProvider.GetMercArchetypesForClass"/>, naturally absent when TFTV
-        /// isn't loaded). Guarded so a bad candidate never breaks the row.
-        /// </summary>
-        private static List<Row4Item> BuildRow4Candidates(SpecializationDef spec)
-        {
-            var items = new List<Row4Item>();
-            try
-            {
-                foreach (GeoCharacter u in ClassPerkProvider.GetSpecialUnitsForClass(spec))
-                {
-                    string nm;
-                    try { nm = u?.GetName() ?? ""; } catch { nm = ""; }
-                    SpecializationDef s = u?.Progression?.MainSpecDef;
-                    items.Add(new Row4Item
-                    {
-                        Unit = u,
-                        Spec = (UnityEngine.Object)(object)s != (UnityEngine.Object)null ? s : spec,
-                        Name = nm
-                    });
-                }
-                foreach (TacCharacterDef tpl in ClassPerkProvider.GetMercArchetypesForClass(spec))
-                {
-                    items.Add(new Row4Item { Template = tpl, Spec = spec, Name = ResolveArchetypeName(tpl) });
-                }
-            }
-            catch (Exception ex)
-            {
-                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildRow4Candidates failed: " + ex.Message);
-            }
-            return items;
-        }
-
-        /// <summary>
-        /// Localized archetype name from the template's view element — TFTV sets <c>Data.ViewElementDef</c> to
-        /// the merc's <c>KEY_EXPENDABLE_ARCHETYPE_*_NAME</c> ("Veteran ..." for the level-5 "_Vet" variants), so
-        /// the name marks the Vet variant exactly as the template does. Falls back to the def name.
-        /// </summary>
-        private static string ResolveArchetypeName(TacCharacterDef tpl)
-        {
-            try
-            {
-                string n = tpl?.Data?.ViewElementDef?.DisplayName1?.Localize();
-                if (!string.IsNullOrEmpty(n))
-                {
-                    return n;
-                }
-                n = tpl?.GetViewElementDef()?.DisplayName1?.Localize();
-                if (!string.IsNullOrEmpty(n))
-                {
-                    return n;
-                }
-            }
-            catch (Exception ex)
-            {
-                OracleLog.Debug("[Oracle] archetype name resolve failed: " + ex.Message);
-            }
-            return (UnityEngine.Object)(object)tpl != (UnityEngine.Object)null
-                ? ((UnityEngine.Object)(object)tpl).name : "";
-        }
-
-        /// <summary>
-        /// Row 4: a localized divider header + one native cell per candidate (roster special units + TFTV merc
-        /// archetypes — <see cref="BuildRow4Candidates"/>). Clicking a cell drives rows 2-3 from THAT candidate
-        /// (roster = its runtime tracks; merc = a hire preview); the selected cell shows the tab underline
-        /// marker. Fully hidden (no divider, no cells) when the class has no candidates. Guarded.
-        /// </summary>
-        private static void BuildUniqueUnitRow(Transform parent, List<Row4Item> units, Row4Item selected,
-            AbilityTrackSkillEntryElement template, float cellSize, Action<Row4Item> onSelect)
-        {
-            if (units == null || units.Count == 0)
-            {
-                return; // no candidates for this class -> row hidden
-            }
-            try
-            {
-                BuildRowLabel(parent, Loc.Get(SectionUnitsTerm, SectionUnitsFallback));
-                GameObject grid = BuildRowGrid(parent, units.Count, cellSize);
-                foreach (Row4Item item in units)
-                {
-                    BuildUnitCell(grid.transform, item, item == selected, template, cellSize, onSelect);
-                }
-            }
-            catch (Exception ex)
-            {
-                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildUniqueUnitRow failed: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// One row-4 sub-tab cell: a native cell clone showing the candidate's class icon, its display name
-        /// banded across the bottom (candidates of the same class share an icon), the shared underline selection
-        /// marker (lit when this is the selected candidate), and a click that toggles the sub-tab. Guarded.
-        /// </summary>
-        private static void BuildUnitCell(Transform parent, Row4Item item, bool selected,
-            AbilityTrackSkillEntryElement template, float cellSize, Action<Row4Item> onSelect)
-        {
-            try
-            {
-                Sprite icon = null;
-                SpecializationDef mainSpec = item?.Spec;
-                if ((UnityEngine.Object)(object)mainSpec != (UnityEngine.Object)null
-                    && (UnityEngine.Object)(object)mainSpec.ViewElementDef != (UnityEngine.Object)null)
-                {
-                    icon = mainSpec.ViewElementDef.SmallIcon != null
-                        ? mainSpec.ViewElementDef.SmallIcon
-                        : mainSpec.ViewElementDef.LargeIcon;
-                }
-
-                GameObject cell = WikiIconFactory.MakeCell(parent, template, icon, null, true, null, null, null);
-                if ((UnityEngine.Object)(object)cell == (UnityEngine.Object)null)
-                {
-                    return;
-                }
-
-                AddUnitNameLabel(cell, item?.Name ?? "", cellSize);
-
-                // Marker added AFTER the name band so it draws on top of it.
-                GameObject markGo = CreateSelectionMarker(cell.transform);
-                markGo.SetActive(selected);
-
-                var btn = cell.GetComponent<Button>();
-                if ((UnityEngine.Object)(object)btn != (UnityEngine.Object)null)
-                {
-                    Row4Item captured = item;
-                    btn.onClick.AddListener(() => onSelect(captured));
-                }
-            }
-            catch (Exception ex)
-            {
-                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildUnitCell failed: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Overlay the unit's display name across the bottom of a row-4 cell (a dark legibility band + the
-        /// centered name text) so same-class units are distinguishable at a glance. Guarded.
-        /// </summary>
-        private static void AddUnitNameLabel(GameObject cellGo, string name, float cellSize)
-        {
-            try
-            {
-                var bandGo = new GameObject("UnitNameBand", typeof(RectTransform), typeof(Image));
-                bandGo.transform.SetParent(cellGo.transform, false);
-                var brt = bandGo.GetComponent<RectTransform>();
-                brt.anchorMin = new Vector2(0f, 0f);
-                brt.anchorMax = new Vector2(1f, 0.44f);
-                brt.offsetMin = Vector2.zero;
-                brt.offsetMax = Vector2.zero;
-                var bimg = bandGo.GetComponent<Image>();
-                ((Graphic)bimg).color = new Color(0f, 0.02f, 0.04f, 0.72f);
-                bimg.raycastTarget = false;
-
-                var textGo = new GameObject("UnitName",
-                    typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
-                textGo.transform.SetParent(bandGo.transform, false);
-                StretchFull(textGo.GetComponent<RectTransform>());
-                var t = textGo.GetComponent<Text>();
-                t.text = name ?? "";
-                t.font = GetTitleFont();
-                t.fontSize = Mathf.Max(11, Mathf.RoundToInt(cellSize * 0.13f));
-                ((Graphic)t).color = Color.white;
-                t.alignment = TextAnchor.MiddleCenter;
-                t.horizontalOverflow = HorizontalWrapMode.Wrap;
-                t.verticalOverflow = VerticalWrapMode.Overflow;
-                t.raycastTarget = false;
-            }
-            catch (Exception ex)
-            {
-                OracleLog.Debug("[Oracle] PerkWikiPanel.AddUnitNameLabel failed: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Row 3 for a SELECTED row-4 unit: that soldier's FULL runtime personal track rendered VERBATIM —
-        /// one native cell per slot with the actual perk (fixed AND rolled; no '?' anonymization, since the
-        /// native per-soldier screen shows them anyway). Runtime only (soldier override), no config fallback:
-        /// a missing track just renders nothing. Guarded.
-        /// </summary>
-        private static void BuildSelectedUnitSlotRow(Transform parent, SpecializationDef spec, GeoCharacter unit,
-            AbilityTrackSkillEntryElement template, float cellSize, RectTransform canvasRect, Canvas rootCanvas)
-        {
-            try
-            {
-                AbilityTrackSlot[] slots =
-                    ClassPerkProvider.GetPersonalTrackSlots(spec, unit, out string source, unit);
-                if (slots == null || slots.Length == 0)
-                {
-                    return; // runtime only -> empty if the unit has no personal track
-                }
-                var dbg = OracleMain.DebugLoggingEnabled
-                    ? new System.Text.StringBuilder("[Oracle] Row3 selected-unit (slots=" + slots.Length
-                        + ", source=" + source + "):")
-                    : null;
-                BuildRowLabel(parent, Loc.Get(SectionRandomTerm, SectionRandomFallback));
-                GameObject grid = BuildRowGrid(parent, slots.Length, cellSize);
-                for (int i = 0; i < slots.Length; i++)
-                {
-                    TacticalAbilityDef def = slots[i]?.Ability;
-                    if ((UnityEngine.Object)(object)def == (UnityEngine.Object)null
-                        || (UnityEngine.Object)(object)def.ViewElementDef == (UnityEngine.Object)null)
-                    {
-                        WikiIconFactory.MakeCell(grid.transform, template, null, null, false, null, null, null);
-                        dbg?.Append("\n  slot ").Append(i).Append(" -> [EMPTY]");
-                        continue;
-                    }
-                    Sprite icon = def.ViewElementDef.SmallIcon != null
-                        ? def.ViewElementDef.SmallIcon
-                        : def.ViewElementDef.LargeIcon;
-                    WikiIconFactory.MakeCell(grid.transform, template, icon, def, true,
-                        _tooltip, canvasRect, rootCanvas);
-                    dbg?.Append("\n  slot ").Append(i).Append(" -> ").Append(((UnityEngine.Object)(object)def).name);
-                }
-                if (dbg != null)
-                {
-                    OracleLog.Debug(dbg.ToString());
-                }
-            }
-            catch (Exception ex)
-            {
-                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildSelectedUnitSlotRow failed: " + ex.Message);
             }
         }
 
@@ -784,13 +465,11 @@ namespace Morgott.Oracle
         /// </summary>
         private static void BuildClassTrackRow(Transform parent, SpecializationDef spec, GeoCharacter viewer,
             AbilityTrackSkillEntryElement template, float cellSize, RectTransform canvasRect,
-            Canvas rootCanvas, int dualLevel0, Sprite dualIcon, GeoCharacter overrideUnit = null,
-            bool preferDef = false)
+            Canvas rootCanvas, int dualLevel0, Sprite dualIcon)
         {
             try
             {
-                List<TacticalAbilityDef> cells =
-                    ClassPerkProvider.GetClassTrackCells(spec, viewer, out string source, overrideUnit, preferDef);
+                List<TacticalAbilityDef> cells = ClassPerkProvider.GetClassTrackCells(spec, viewer, out string source);
                 if (cells.Count == 0)
                 {
                     return;
@@ -878,7 +557,7 @@ namespace Morgott.Oracle
         /// </summary>
         private static void BuildSlotRow(Transform parent, SpecializationDef spec, GeoCharacter viewer,
             AbilityTrackSkillEntryElement template, float cellSize, RectTransform canvasRect,
-            Canvas rootCanvas, RectTransform panelRt, bool configOnly = false)
+            Canvas rootCanvas, RectTransform panelRt)
         {
             try
             {
@@ -896,14 +575,8 @@ namespace Morgott.Oracle
                 // which diverges from the current TFTV config for existing soldiers. Resolve a representative
                 // soldier's personal track ONCE for this class tab; the TFTV config is the fallback only.
                 // Random slots never read runtime (they stay anonymized), so rolled perks never leak here.
-                // configOnly (merc hire-preview): skip the roster snapshot entirely and take fixed slots
-                // straight from the TFTV config — a NEW hire snapshots the current config, not an old soldier.
-                AbilityTrackSlot[] personalSlots = null;
-                string runtimeSource = "config-only";
-                if (!configOnly)
-                {
-                    personalSlots = ClassPerkProvider.GetPersonalTrackSlots(spec, viewer, out runtimeSource);
-                }
+                AbilityTrackSlot[] personalSlots =
+                    ClassPerkProvider.GetPersonalTrackSlots(spec, viewer, out string runtimeSource);
                 var dbg = OracleMain.DebugLoggingEnabled
                     ? new System.Text.StringBuilder("[Oracle] Row3 render for " + ((UnityEngine.Object)(object)spec).name
                         + " (slots=" + slots + ", runtimeSource=" + runtimeSource + "):")
