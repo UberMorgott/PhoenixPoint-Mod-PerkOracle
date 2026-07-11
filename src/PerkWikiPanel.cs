@@ -342,7 +342,7 @@ namespace Morgott.Oracle
                     BuildBodyTitle(bodyGo.transform, ResolveClassTitle(spec));
                     BuildClassTrackRow(bodyGo.transform, spec, character, template, cellSize, canvasRect,
                         rootCanvas, dualLevel0, dualIcon);
-                    BuildSlotRow(bodyGo.transform, spec, template, cellSize, canvasRect, rootCanvas, panelRt);
+                    BuildSlotRow(bodyGo.transform, spec, character, template, cellSize, canvasRect, rootCanvas, panelRt);
                     LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
                 }
                 catch (Exception ex)
@@ -545,14 +545,17 @@ namespace Morgott.Oracle
         /// <summary>
         /// Row 3: the personal-track SLOTS, native slot semantics on both vanilla and TFTV. One native cell
         /// per slot (<see cref="TftvConfigBridge.PersonalSlotCount"/>): a TFTV FIXED slot shows its
-        /// class-fixed perk with the normal tooltip; a RANDOM slot (all slots on vanilla) shows an
+        /// class-fixed perk RUNTIME-FIRST — the def a representative soldier of the class actually carries
+        /// in its serialized personal track (what the native screen renders), falling back to the TFTV
+        /// config only when no live soldier of the class exists (<see cref="ClassPerkProvider.GetPersonalTrackSlots"/>);
+        /// a RANDOM slot (all slots on vanilla) shows an
         /// ANONYMIZED cell — native frame, no icon, a "?" glyph, the rolled-perk highlight tint — whose
         /// click toggles a flyout listing exactly the perks that can roll in THAT slot
         /// (<see cref="PerkWikiPool.ResolveForSlot"/>). One flyout at a time; clicking the same slot again
         /// closes it, another slot switches it, and a tab switch / backdrop Close tears it down with the
         /// body. Guarded.
         /// </summary>
-        private static void BuildSlotRow(Transform parent, SpecializationDef spec,
+        private static void BuildSlotRow(Transform parent, SpecializationDef spec, GeoCharacter viewer,
             AbilityTrackSkillEntryElement template, float cellSize, RectTransform canvasRect,
             Canvas rootCanvas, RectTransform panelRt)
         {
@@ -565,6 +568,18 @@ namespace Morgott.Oracle
                 }
                 string className = (UnityEngine.Object)(object)spec.ClassTag != (UnityEngine.Object)null
                     ? spec.ClassTag.className
+                    : null;
+
+                // Runtime-first fixed-slot source: the native per-soldier progression screen renders the
+                // soldier's RUNTIME personal track (a snapshot baked at creation, serialized in the save),
+                // which diverges from the current TFTV config for existing soldiers. Resolve a representative
+                // soldier's personal track ONCE for this class tab; the TFTV config is the fallback only.
+                // Random slots never read runtime (they stay anonymized), so rolled perks never leak here.
+                AbilityTrackSlot[] personalSlots =
+                    ClassPerkProvider.GetPersonalTrackSlots(spec, viewer, out string runtimeSource);
+                var dbg = OracleMain.DebugLoggingEnabled
+                    ? new System.Text.StringBuilder("[Oracle] Row3 render for " + ((UnityEngine.Object)(object)spec).name
+                        + " (slots=" + slots + ", runtimeSource=" + runtimeSource + "):")
                     : null;
 
                 BuildRowLabel(parent, Loc.Get(SectionRandomTerm, SectionRandomFallback));
@@ -613,7 +628,20 @@ namespace Morgott.Oracle
                     bool isFixed = TftvConfigBridge.Available && !TftvConfigBridge.IsSlotRandom(level0);
                     if (isFixed)
                     {
-                        if (TftvConfigBridge.TryGetTftvFixedPerk(level0, className, out TacticalAbilityDef def)
+                        // Native truth first: the soldier snapshot's cell at this slot index (== the fixed
+                        // perk, TFTV writes PersonalAbilities[i] at OrderOfPersonalPerks[i]); config fallback.
+                        TacticalAbilityDef runtimeDef = personalSlots != null && level0 < personalSlots.Length
+                            ? personalSlots[level0]?.Ability
+                            : null;
+                        bool hasRuntime = (UnityEngine.Object)(object)runtimeDef != (UnityEngine.Object)null
+                            && (UnityEngine.Object)(object)runtimeDef.ViewElementDef != (UnityEngine.Object)null;
+                        TftvConfigBridge.TryGetTftvFixedPerk(level0, className, out TacticalAbilityDef configDef);
+                        TacticalAbilityDef def = hasRuntime ? runtimeDef : configDef;
+                        dbg?.Append("\n  slot ").Append(level0).Append(" [fixed] config=")
+                            .Append(DefName(configDef)).Append(" runtime=").Append(DefName(runtimeDef))
+                            .Append(" -> ").Append(hasRuntime ? runtimeSource : "config");
+
+                        if ((UnityEngine.Object)(object)def != (UnityEngine.Object)null
                             && (UnityEngine.Object)(object)def.ViewElementDef != (UnityEngine.Object)null)
                         {
                             Sprite icon = def.ViewElementDef.SmallIcon != null
@@ -632,6 +660,8 @@ namespace Morgott.Oracle
                         continue;
                     }
 
+                    dbg?.Append("\n  slot ").Append(level0).Append(" [random] anonymized");
+
                     // Random slot -> anonymized clickable cell opening this slot's roll pool.
                     GameObject cellGo = WikiIconFactory.MakeCell(grid.transform, template, null, null, true,
                         null, null, null);
@@ -647,12 +677,22 @@ namespace Morgott.Oracle
                         btn.onClick.AddListener(() => ToggleFlyout(captured));
                     }
                 }
+                if (dbg != null)
+                {
+                    OracleLog.Debug(dbg.ToString());
+                }
             }
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] PerkWikiPanel.BuildSlotRow failed: " + ex.Message);
             }
         }
+
+        /// <summary>Def name for the Row3 diagnostics, or "[null]" when the def is absent.</summary>
+        private static string DefName(TacticalAbilityDef def)
+            => (UnityEngine.Object)(object)def != (UnityEngine.Object)null
+                ? ((UnityEngine.Object)(object)def).name
+                : "[null]";
 
         /// <summary>
         /// Turn a native cell clone into the anonymized "random slot" look: the rolled-perk highlight tint

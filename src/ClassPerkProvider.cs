@@ -217,6 +217,75 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
+        /// The runtime PERSONAL ability track of a soldier whose MAIN spec is <paramref name="spec"/>,
+        /// EXACTLY as the native progression screen renders row 3. It is a per-soldier SNAPSHOT baked at
+        /// creation and serialized into the save: TFTV's PersonalSpecModification writes
+        /// <c>Progression.PersonalAbilities[i]</c> for <c>OrderOfPersonalPerks[i]</c>
+        /// (refs/TFTV-src PersonalSpecModification.cs:90-125), so <c>AbilitiesByLevel[i].Ability</c> is the
+        /// FIXED perk at row-3 slot <c>i</c>. The wiki row 3 shows a CLASS's fixed personal perks, which are
+        /// class-derived at creation — a representative soldier of the class carries them verbatim, and that
+        /// snapshot can diverge from the current TFTV config for existing (older-vintage) soldiers.
+        /// Composition mirrors the class row: (1) the viewing soldier when their main spec matches
+        /// (runtime:viewer), (2) else the first faction soldier with that main spec (runtime:roster), (3)
+        /// else null so the caller falls back to the TFTV config. Matched by MAIN spec only (the personal
+        /// track is one per soldier; its fixed slots come from the soldier's class). <paramref name="source"/>
+        /// reports the layer used. Null when no live soldier of the class exists or on any error.
+        /// </summary>
+        public static AbilityTrackSlot[] GetPersonalTrackSlots(SpecializationDef spec, GeoCharacter viewer,
+            out string source)
+        {
+            source = "none";
+            try
+            {
+                if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null)
+                {
+                    return null;
+                }
+
+                AbilityTrackSlot[] FromSoldier(GeoCharacter c)
+                {
+                    CharacterProgression p = c?.Progression;
+                    if (p == null
+                        || (UnityEngine.Object)(object)p.MainSpecDef != (UnityEngine.Object)(object)spec)
+                    {
+                        return null;
+                    }
+                    return p.GetAbilityTrack(AbilityTrackSource.Personal)?.AbilitiesByLevel;
+                }
+
+                AbilityTrackSlot[] own = FromSoldier(viewer);
+                if (own != null)
+                {
+                    source = "runtime:viewer";
+                    return own;
+                }
+
+                GeoLevelController level = GameUtl.CurrentLevel()?.GetComponent<GeoLevelController>();
+                GeoFaction faction = (UnityEngine.Object)(object)level != (UnityEngine.Object)null
+                    ? level.PhoenixFaction
+                    : null;
+                if (faction == null)
+                {
+                    return null;
+                }
+                foreach (GeoCharacter c in faction.HumanSoldiers)
+                {
+                    AbilityTrackSlot[] slots = FromSoldier(c);
+                    if (slots != null)
+                    {
+                        source = "runtime:roster";
+                        return slots;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] ClassPerkProvider.GetPersonalTrackSlots failed: " + ex.Message);
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Every playable HUMAN SOLDIER class the wiki can browse: the selectable-subclass universe
         /// (faction initial specs + all class-research rewards), de-duplicated and filtered to specs that
         /// carry an icon (<see cref="SpecializationDef.ViewElementDef"/>) plus a valid ability track and
