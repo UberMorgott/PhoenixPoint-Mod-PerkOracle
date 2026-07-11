@@ -151,12 +151,10 @@ namespace Morgott.Oracle
         ///
         /// NB — TFTV mercenaries (<c>Mercenary_*</c> templates) and Project Osiris revenants are NOT
         /// special: they are ordinary RECRUITED roster soldiers that level on the standard class track and
-        /// keep <c>AvailableForGenericDeployment == true</c> (wiki-rca7 log: ТЯЖ/МИЛИШНИК/РАЗВЕДЧИК were
-        /// caught only by the tag, never by the flag). An earlier build also flagged them via their
-        /// <c>Mercenary_GameTagDef</c>/<c>OCPProduct_GameTagDef</c> template tag, which wrongly listed them
-        /// as row-4 "unique units" and, worse, skipped every one of them as a class representative — so
-        /// classes whose only roster soldiers were mercenaries (Heavy/Berserker in that log) collapsed to
-        /// the def/config fallback. The tag branch is removed; the flag is the sole, precise signal.
+        /// keep <c>AvailableForGenericDeployment == true</c>, so the flag correctly keeps them eligible as
+        /// class representatives. A template-tag signal (<c>Mercenary_GameTagDef</c>/<c>OCPProduct_GameTagDef</c>)
+        /// wrongly skipped them and collapsed merc-only classes to the def/config fallback — the flag is the
+        /// sole, precise signal; do not reintroduce a tag branch.
         ///
         /// A false skip is safe: the caller then falls back to the class def/config. The VIEWER is exempt
         /// (the caller resolves the viewer first, so their own screen truth wins even if special).

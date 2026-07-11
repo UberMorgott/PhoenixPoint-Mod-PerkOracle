@@ -54,7 +54,6 @@ namespace Morgott.Oracle
         // tooltip topmost regardless of sibling order (destroying it also destroys the clone child).
         private static GameObject _tooltipLayer;
         private static GeoRosterAbilityDetailTooltip _tooltip;
-        private static Canvas _rootCanvas;
 
         public static bool IsOpen => (UnityEngine.Object)(object)_root != (UnityEngine.Object)null;
 
@@ -87,7 +86,6 @@ namespace Morgott.Oracle
                 Transform rootParent = ((UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null)
                     ? rootCanvas.transform
                     : canvas.transform;
-                _rootCanvas = rootCanvas;
 
                 // Clone ONE native ability tooltip, shared by all icon triggers (destroyed in Close;
                 // non-fatal if the template is absent). It lives under a full-screen sorting WRAPPER with
@@ -159,7 +157,6 @@ namespace Morgott.Oracle
                 Transform rootParent = ((UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null)
                     ? rootCanvas.transform
                     : canvas.transform;
-                _rootCanvas = rootCanvas;
 
                 // Shared native ability tooltip (same overrideSorting wrapper as the swap wiki).
                 CreateTooltipClone(rootParent, WikiIconFactory.TooltipSortingOrder);
@@ -903,7 +900,6 @@ namespace Morgott.Oracle
             _tooltipLayer = null;
             _tooltipGo = null;
             _tooltip = null;
-            _rootCanvas = null;
             // The shared tooltip clone is now destroyed; re-arm priming so the next panel's fresh clone
             // gets primed on its first hover (the static flag would otherwise stay true for the process).
             WikiAbilityTooltipTrigger.ResetPriming();
