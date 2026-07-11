@@ -180,7 +180,7 @@ namespace Morgott.Oracle
         /// Build marker for verifying WHICH build the game actually loaded (logged at enable + in the
         /// class-wiki diagnostics). Bump per RCA iteration so a stale DLL is immediately visible in the log.
         /// </summary>
-        public const string BuildMarker = "wiki-rca6";
+        public const string BuildMarker = "wiki-rca7";
 
         public override void OnModEnabled()
         {

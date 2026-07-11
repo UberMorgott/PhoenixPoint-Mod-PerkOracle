@@ -105,7 +105,7 @@ namespace Morgott.Oracle
         /// the RCA diagnostics). Empty list on any error.
         /// </summary>
         public static List<TacticalAbilityDef> GetClassTrackCells(SpecializationDef spec, GeoCharacter viewer,
-            out string source)
+            out string source, GeoCharacter overrideUnit = null)
         {
             source = "none";
             var cells = new List<TacticalAbilityDef>();
@@ -116,8 +116,9 @@ namespace Morgott.Oracle
                     return cells;
                 }
 
-                AbilityTrackSlot[] slots = ResolveRuntimeSlots(spec, viewer, ref source);
-                if (slots == null
+                AbilityTrackSlot[] slots = ResolveRuntimeSlots(spec, viewer, ref source, overrideUnit);
+                // A selected row-4 unit is RUNTIME-only: never fall back to the def track for it.
+                if (slots == null && overrideUnit == null
                     && (UnityEngine.Object)(object)spec.AbilityTrack != (UnityEngine.Object)null)
                 {
                     slots = spec.AbilityTrack.AbilitiesByLevel;
@@ -138,6 +139,77 @@ namespace Morgott.Oracle
                 cells.Clear();
             }
             return cells;
+        }
+
+        /// <summary>
+        /// The special/unique roster units (see <see cref="IsSpecialUnit"/>) whose MAIN or SECONDARY spec is
+        /// <paramref name="spec"/>. These become the class wiki's row-4 sub-tabs so their authored per-unit
+        /// tracks can be inspected verbatim. Read live off <c>PhoenixFaction.HumanSoldiers</c>; empty list
+        /// when none, no faction, or on error. Emits the per-tab candidate dump (name / template def name /
+        /// match=main|secondary / special reason) under <see cref="OracleMain.DebugLoggingEnabled"/>.
+        /// </summary>
+        public static List<GeoCharacter> GetSpecialUnitsForClass(SpecializationDef spec)
+        {
+            var result = new List<GeoCharacter>();
+            try
+            {
+                if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null)
+                {
+                    return result;
+                }
+                GeoLevelController level = GameUtl.CurrentLevel()?.GetComponent<GeoLevelController>();
+                GeoFaction faction = (UnityEngine.Object)(object)level != (UnityEngine.Object)null
+                    ? level.PhoenixFaction
+                    : null;
+                if (faction == null)
+                {
+                    return result;
+                }
+
+                var dbg = OracleMain.DebugLoggingEnabled
+                    ? new System.Text.StringBuilder("[Oracle] Row4 unique-unit candidates for "
+                        + ((UnityEngine.Object)(object)spec).name + ":")
+                    : null;
+                foreach (GeoCharacter c in faction.HumanSoldiers)
+                {
+                    CharacterProgression p = c?.Progression;
+                    if (p == null)
+                    {
+                        continue;
+                    }
+                    bool isMain = (UnityEngine.Object)(object)p.MainSpecDef == (UnityEngine.Object)(object)spec;
+                    bool isSecondary =
+                        (UnityEngine.Object)(object)p.SecondarySpecDef == (UnityEngine.Object)(object)spec;
+                    if ((!isMain && !isSecondary) || !IsSpecialUnit(c, out string reason))
+                    {
+                        continue;
+                    }
+                    result.Add(c);
+                    if (dbg != null)
+                    {
+                        string nm;
+                        try { nm = c.GetName() ?? "[null]"; } catch { nm = "[?]"; }
+                        string tpl = (UnityEngine.Object)(object)c.TemplateDef != (UnityEngine.Object)null
+                            ? ((UnityEngine.Object)(object)c.TemplateDef).name : "[no template]";
+                        dbg.Append("\n  ").Append(nm).Append(" template=").Append(tpl)
+                           .Append(" match=").Append(isMain ? "main" : "secondary")
+                           .Append(" reason=").Append(reason ?? "special");
+                    }
+                }
+                if (dbg != null)
+                {
+                    if (result.Count == 0)
+                    {
+                        dbg.Append("\n  <none>");
+                    }
+                    OracleLog.Debug(dbg.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] ClassPerkProvider.GetSpecialUnitsForClass failed: " + ex.Message);
+            }
+            return result;
         }
 
         /// <summary>
@@ -246,7 +318,7 @@ namespace Morgott.Oracle
         /// (see <see cref="IsSpecialUnit"/>) — the viewer above is the one exception.
         /// </summary>
         private static AbilityTrackSlot[] ResolveRuntimeSlots(SpecializationDef spec, GeoCharacter viewer,
-            ref string source)
+            ref string source, GeoCharacter overrideUnit = null)
         {
             try
             {
@@ -266,6 +338,18 @@ namespace Morgott.Oracle
                         return p.GetAbilityTrack(AbilityTrackSource.SecondaryClass)?.AbilitiesByLevel;
                     }
                     return null;
+                }
+
+                // Selected row-4 unit: resolve STRICTLY from that unit's runtime track for this spec
+                // (main or secondary), no roster/def fallback — an absent track shows an empty row.
+                if (overrideUnit != null)
+                {
+                    AbilityTrackSlot[] ov = FromSoldier(overrideUnit);
+                    if (ov != null)
+                    {
+                        source = "runtime:selected";
+                    }
+                    return ov;
                 }
 
                 AbilityTrackSlot[] own = FromSoldier(viewer);
@@ -342,14 +426,25 @@ namespace Morgott.Oracle
         /// reports the layer used. Null when no live soldier of the class exists or on any error.
         /// </summary>
         public static AbilityTrackSlot[] GetPersonalTrackSlots(SpecializationDef spec, GeoCharacter viewer,
-            out string source)
+            out string source, GeoCharacter overrideUnit = null)
         {
             source = "none";
             try
             {
-                if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null)
+                if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null && overrideUnit == null)
                 {
                     return null;
+                }
+
+                // Selected row-4 unit: that unit's FULL runtime personal track VERBATIM (fixed AND rolled
+                // perks), read directly — no main-spec gate, no roster/config fallback.
+                if (overrideUnit != null)
+                {
+                    AbilityTrackSlot[] ov = overrideUnit.Progression != null
+                        ? overrideUnit.Progression.GetAbilityTrack(AbilityTrackSource.Personal)?.AbilitiesByLevel
+                        : null;
+                    source = ov != null ? "runtime:selected" : "none";
+                    return ov;
                 }
 
                 AbilityTrackSlot[] FromSoldier(GeoCharacter c)
