@@ -10,19 +10,12 @@
 [/list]
 
 [h1]Ce qu'il fait[/h1]
-Oracle propose trois aides.
+Oracle propose quatre aides.
 [list]
 [*][b]Anticipation des perks.[/b] Sur l'écran de progression des compétences, les perks personnels aléatoires (« tirés au sort ») sont mis en évidence, pour distinguer d'un coup d'œil ce qui vient du tirage et ce qui vient de la voie de classe fixe. Ouvrez une fenêtre wiki des perks pour voir chaque perk qui aurait pu tomber dans un emplacement, avec les icônes et infobulles natives du jeu. Un échange de perks optionnel, verrouillé par une recherche, vous permet de remplacer un perk appris par un autre perk existant. Vous pouvez aussi ouvrir un wiki des classes depuis une compétence de classe apprise pour parcourir la voie de compétences et les emplacements de perks de chaque classe.
 [*][b]Aperçu des choix d'événement.[/b] Survolez une option de réponse dans un événement d'exploration sur le géoscape et une infobulle affiche le résultat de ce choix [i]avant[/i] que vous le validiez : ressources, réputation, endurance et PV des soldats, objets, sites révélés, et plus encore. Les valeurs correspondent à ce que le jeu accordera réellement, modificateurs de TFTV inclus, et les libellés reprennent le texte localisé natif du jeu.
 [*][b]Aperçu des sous-classes.[/b] Lorsque vous choisissez la seconde classe d'un soldat à la montée de niveau, cliquer sur une sous-classe en affiche aussitôt tous les perks et capacités, directement dans l'écran de confirmation, avec les icônes et infobulles natives du jeu : vous voyez exactement ce que vous obtenez avant de valider. Les sous-classes non encore recherchées apparaissent grisées et se prévisualisent de la même manière.
-[/list]
-
-[h1]Nouveautés de la v1.6.0[/h1]
-[list]
-[*][b]Nouveau : wiki des classes.[/b] Sur l'écran de progression, cliquez sur une compétence de classe apprise pour ouvrir un wiki de toutes les classes — la voie de compétences et les emplacements de perks personnels de chaque classe, lus en direct depuis votre partie, pour correspondre à TFTV et aux mods ajoutant des classes (Officier). Les emplacements de perks fixes de TFTV sont affichés ; les emplacements aléatoires apparaissent comme « ? » et dévoilent au clic leur réserve exacte par emplacement.
-[*][b]Aperçu d'événement affiné :[/b] l'infobulle de résultat n'apparaît désormais que lorsqu'un événement offre réellement un choix (deux options ou plus) ; un résultat unique et inévitable n'affiche plus de prédiction.
-[*][b]Le rendement de démantèlement correspond désormais à TFTV[/b] — la ligne « DISMANTLE » native reflète le remboursement de démantèlement proratisé de TFTV.
-[*][b]Également ajouté récemment :[/b] des interrupteurs marche/arrêt par aide avec un choix de couleur pour le surlignage des perks, et un coût optionnel en points de compétence pour l'échange de perks.
+[*][b]Rendement de démantèlement.[/b] Les infobulles d'objet (équipement, géoscape, tactique, mutation) affichent une ligne « DISMANTLE » native indiquant les ressources récupérées au démantèlement, conforme au remboursement proratisé de TFTV lorsque TFTV est installé.
 [/list]
 
 [h1]Compatibilité[/h1]

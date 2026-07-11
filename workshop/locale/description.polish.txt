@@ -10,19 +10,12 @@
 [/list]
 
 [h1]Co robi[/h1]
-Oracle ma trzy pomocniki.
+Oracle ma cztery pomocniki.
 [list]
 [*][b]Wgląd w perki.[/b] Na ekranie postępu umiejętności losowe („wylosowane") perki osobiste są wyróżnione, dzięki czemu od razu widać, co pochodzi z losowania, a co ze stałej ścieżki klasy. Otwórz wyskakujące okno wiki perków, aby zobaczyć każdy perk, który mógł trafić do danego slotu, z natywnymi ikonami i podpowiedziami gry. Opcjonalna, zależna od badania wymiana perków pozwala zamienić wyuczony perk na inny już istniejący. Możesz też otworzyć wiki klas z wyuczonej umiejętności klasowej, aby przejrzeć ścieżkę zdolności i sloty perków każdej klasy.
 [*][b]Podgląd wyboru w wydarzeniu.[/b] Najedź kursorem na opcję odpowiedzi w wydarzeniu eksploracyjnym na geoskali, a podpowiedź pokaże skutek tego wyboru [i]zanim[/i] go dokonasz: zasoby, reputację, kondycję i punkty życia żołnierzy, przedmioty, odkryte lokacje i więcej. Wartości odpowiadają temu, co gra faktycznie przyzna, łącznie z modyfikatorami TFTV, a etykiety korzystają z natywnych, przetłumaczonych tekstów gry.
 [*][b]Podgląd podklasy.[/b] Gdy przy awansie wybierasz drugą klasę żołnierza, kliknięcie podklasy najpierw pokazuje wszystkie jej perki i zdolności wprost w oknie potwierdzenia, z natywnymi ikonami i podpowiedziami gry, dzięki czemu widzisz, co otrzymasz, zanim zatwierdzisz. Niezbadane podklasy są wyświetlane jako wyszarzone i można je obejrzeć w ten sam sposób.
-[/list]
-
-[h1]Co nowego w v1.6.0[/h1]
-[list]
-[*][b]Nowość: wiki klas.[/b] Na ekranie postępu kliknij wyuczoną umiejętność klasową, aby otworzyć wiki wszystkich klas — ścieżkę zdolności i sloty perków osobistych każdej klasy, odczytane na żywo z twojej gry, tak by pasowały do TFTV i modów dodających klasy (Officer). Stałe sloty perków TFTV są pokazane; losowe sloty pojawiają się jako „?" i po kliknięciu ujawniają dokładną pulę danego slotu.
-[*][b]Podgląd zdarzeń dopracowany:[/b] podpowiedź wyniku pojawia się teraz tylko wtedy, gdy zdarzenie naprawdę daje wybór (dwie lub więcej opcji); pojedynczy nieunikniony wynik nie pokazuje już przewidywania.
-[*][b]Zysk z demontażu teraz zgodny z TFTV[/b] — natywny wiersz „DISMANTLE" odwzorowuje proporcjonalny zwrot z demontażu z TFTV.
-[*][b]Ostatnio dodano również:[/b] osobne przełączniki wł./wył. dla każdego pomocnika z wyborem koloru podświetlania perków oraz opcjonalny koszt wymiany perków w punktach umiejętności.
+[*][b]Zysk z demontażu.[/b] Podpowiedzi przedmiotów (ekwipunek, geoskala, taktyka, mutacje) pokazują natywny wiersz „DISMANTLE" z surowcami odzyskiwanymi przy demontażu, zgodnie z proporcjonalnym zwrotem TFTV, gdy TFTV jest zainstalowany.
 [/list]
 
 [h1]Zgodność[/h1]

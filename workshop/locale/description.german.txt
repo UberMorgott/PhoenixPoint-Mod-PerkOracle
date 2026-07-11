@@ -10,19 +10,12 @@
 [/list]
 
 [h1]Was es macht[/h1]
-Oracle hat drei Helfer.
+Oracle hat vier Helfer.
 [list]
 [*][b]Perk-Voraussicht.[/b] Im Fähigkeiten-Fortschrittsbildschirm werden die zufälligen (ausgewürfelten) persönlichen Perks hervorgehoben, sodass du auf einen Blick erkennst, was aus dem Zufall stammt und was aus der festen Klassenspur. Öffne ein Perk-Wiki-Popup, um jeden Perk zu sehen, der in einem Slot hätte landen können, jeweils mit den eigenen Symbolen und Tooltips des Spiels. Ein optionaler, forschungsgesperrter Perk-Tausch erlaubt dir, einen gelernten Perk durch einen anderen vorhandenen zu ersetzen. Du kannst außerdem über eine gelernte Klassenfähigkeit ein Klassen-Wiki öffnen und die Fähigkeitsspur und Perk-Slots jeder Klasse durchsehen.
 [*][b]Vorschau von Ereignis-Entscheidungen.[/b] Bewege den Mauszeiger über eine Antwortoption in einem Geoscape-Erkundungsereignis, und ein Tooltip zeigt das Ergebnis dieser Wahl, [i]bevor[/i] du sie triffst: Ressourcen, Ruf, Soldaten-Ausdauer und Lebenspunkte, Gegenstände, aufgedeckte Orte und mehr. Die Werte entsprechen dem, was das Spiel tatsächlich gewährt, inklusive der Modifikatoren von TFTV, und die Bezeichnungen nutzen den eigenen lokalisierten Text des Spiels.
 [*][b]Unterklassen-Vorschau.[/b] Wenn du beim Stufenaufstieg die zweite Klasse eines Soldaten auswählst, zeigt dir ein Klick auf eine Unterklasse zuerst deren vollständige Perks und Fähigkeiten direkt im Bestätigungsfenster, jeweils mit den eigenen Symbolen und Tooltips des Spiels, sodass du vor der Entscheidung siehst, was du bekommst. Noch nicht erforschte Unterklassen werden ausgegraut dargestellt und lassen sich auf dieselbe Weise in der Vorschau ansehen.
-[/list]
-
-[h1]Neu in v1.6.0[/h1]
-[list]
-[*][b]Neu: Klassen-Wiki.[/b] Klicke im Fortschrittsbildschirm auf eine gelernte Klassenfähigkeit, um ein Wiki aller Klassen zu öffnen — die Fähigkeitsspur und die persönlichen Perk-Slots jeder Klasse, live aus deinem Spiel gelesen, sodass es mit TFTV und klassen-hinzufügenden Mods (Officer) übereinstimmt. Feste TFTV-Perk-Slots werden angezeigt; zufällige Slots erscheinen als „?" und öffnen bei Klick ihren genauen Slot-Pool.
-[*][b]Ereignis-Vorschau verfeinert:[/b] Der Ergebnis-Tooltip erscheint jetzt nur noch, wenn ein Ereignis wirklich eine Wahl bietet (zwei oder mehr Optionen); ein einzelnes unvermeidliches Ergebnis zeigt keine Vorhersage mehr.
-[*][b]Zerlegungsertrag entspricht jetzt TFTV[/b] — die native „DISMANTLE"-Tooltip-Zeile spiegelt die anteilige Zerlegungs-Rückerstattung von TFTV wider.
-[*][b]Ebenfalls kürzlich hinzugefügt:[/b] eigene Ein/Aus-Schalter je Helfer mit Farbauswahl für die Perk-Hervorhebung und optionale Fähigkeitspunkt-Kosten für den Perk-Tausch.
+[*][b]Zerlegungsertrag.[/b] Gegenstands-Tooltips (Ausrüstung, Geoscape, Taktik, Mutation) zeigen eine native „DISMANTLE"-Zeile mit den Ressourcen, die du beim Zerlegen zurückerhältst, passend zur anteiligen Rückerstattung von TFTV, wenn TFTV installiert ist.
 [/list]
 
 [h1]Kompatibilität[/h1]

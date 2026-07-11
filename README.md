@@ -11,7 +11,7 @@
 [![Forks](https://img.shields.io/github/forks/UberMorgott/PhoenixPoint-Mod-PerkOracle?style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/network/members)
 [![Issues](https://img.shields.io/github/issues/UberMorgott/PhoenixPoint-Mod-PerkOracle?style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues)
 [![Last commit](https://img.shields.io/github/last-commit/UberMorgott/PhoenixPoint-Mod-PerkOracle?style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/commits)
-[![Version](https://img.shields.io/badge/version-1.6.0-1f6feb?style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest)
+[![Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FUberMorgott%2FPhoenixPoint-Mod-PerkOracle%2Fmain%2Fmeta.json&query=%24.Version&label=version&color=1f6feb&style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest)
 [![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-blue?style=flat-square)](LICENSE)
 
 [![Steam Workshop](https://img.shields.io/badge/Steam-Workshop-1b2838?style=for-the-badge&logo=steam&logoColor=white)](https://steamcommunity.com/sharedfiles/filedetails/?id=3739613434)
