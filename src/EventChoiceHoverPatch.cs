@@ -16,6 +16,13 @@ namespace Morgott.Oracle
     /// SiteEncounterChoicesController.SetChoice subscribes a handler (idempotent -=/+=, mirroring the
     /// marketplace) that builds + shows the tooltip from the choice's outcome. Config-gated; fully
     /// guarded so it can never break the event screen.
+    ///
+    /// Multi-choice gate: the preview is only useful for COMPARING outcomes across different answer
+    /// choices, so it is shown ONLY for events that present the player 2+ choices. A single-choice /
+    /// "OK"-acknowledge event has one inevitable outcome and gets NO preview. The gate reads the count
+    /// at render time from <see cref="EventChoiceCountGatePatch"/> (post any TFTV choice filtering) and
+    /// is checked in <see cref="OnEnter"/> — buttons are pooled/reused across events, so a handler left
+    /// on a button by a prior multi-choice event must still honour the CURRENT event's count.
     /// </summary>
     // SetChoice is `internal`, so it cannot be referenced via nameof(); target it by string name plus
     // an explicit argument-type array. Its full signature is
@@ -24,6 +31,13 @@ namespace Morgott.Oracle
         new Type[] { typeof(GeoFaction), typeof(GeoEventChoice), typeof(SiteBaseChoiceButton), typeof(GeoscapeEventContext) })]
     public static class EventChoiceHoverPatch
     {
+        /// <summary>
+        /// True when the currently-displayed site-encounter event presents the player 2+ answer choices;
+        /// false for a single inevitable / "OK"-acknowledge choice (or none). Set per event render by
+        /// <see cref="EventChoiceCountGatePatch"/> and gates all preview output in <see cref="OnEnter"/>.
+        /// </summary>
+        public static bool MultiChoiceEvent;
+
         // Harmony injects the postfix param BY NAME from the original method's signature
         // (GeoFaction, GeoEventChoice, SiteBaseChoiceButton choiceButton, GeoscapeEventContext),
         // so we declare only the one parameter we need, named exactly `choiceButton`.
@@ -62,7 +76,8 @@ namespace Morgott.Oracle
         {
             try
             {
-                if (!OracleMain.ShowEventOutcomePreview || choice == null || choice.Outcome == null)
+                // Multi-choice gate: no preview for a single-choice / "OK"-acknowledge event.
+                if (!OracleMain.ShowEventOutcomePreview || !MultiChoiceEvent || choice == null || choice.Outcome == null)
                 {
                     return;
                 }
@@ -136,6 +151,37 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] EventChoiceHoverPatch.ResolveCanvas failed: " + ex.Message);
                 return null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Records, per event render, whether the site-encounter dialog is showing the player 2+ answer choices,
+    /// so <see cref="EventChoiceHoverPatch.OnEnter"/> can suppress the outcome preview for single-choice /
+    /// "OK"-acknowledge events. <see cref="SiteBaseChoicesController.SetChoices"/> is the single render entry
+    /// point that lays out the choice buttons; it iterates <c>eventData.EventData.Choices</c> (decompile
+    /// SiteBaseChoicesController.cs:31/42) — the exact post-filter list the buttons are built from, so its
+    /// Count is the number the player actually sees (Count==0 renders one synthetic empty button). A Prefix
+    /// runs before that loop, so the per-choice hover Postfix + later hovers read a current flag. Fully
+    /// guarded; any failure defaults to "not multi-choice" (preview stays hidden rather than risk showing).
+    /// </summary>
+    [HarmonyPatch(typeof(SiteBaseChoicesController), nameof(SiteBaseChoicesController.SetChoices))]
+    public static class EventChoiceCountGatePatch
+    {
+        [HarmonyPrefix]
+        public static void Prefix(GeoscapeEvent eventData)
+        {
+            try
+            {
+                EventChoiceHoverPatch.MultiChoiceEvent =
+                    eventData != null && eventData.EventData != null
+                    && eventData.EventData.Choices != null
+                    && eventData.EventData.Choices.Count >= 2;
+            }
+            catch (Exception ex)
+            {
+                EventChoiceHoverPatch.MultiChoiceEvent = false;
+                OracleLog.Debug("[Oracle] EventChoiceCountGatePatch.Prefix failed: " + ex.Message);
             }
         }
     }
