@@ -153,6 +153,8 @@ namespace Morgott.Oracle
                     return;
                 }
 
+                LogNativeTrackComparison(character, mainSpec);
+
                 Canvas rootCanvas = canvas.rootCanvas;
                 Transform rootParent = ((UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null)
                     ? rootCanvas.transform
@@ -225,6 +227,25 @@ namespace Morgott.Oracle
             if (classes.Count == 0)
             {
                 return;
+            }
+
+            // RCA diagnostics: exactly which spec instances become tabs (name/Guid/classTag/icon), so a
+            // clone-derived class (Officer clones Sniper's spec) colliding with its template is visible.
+            if (OracleMain.DebugLoggingEnabled)
+            {
+                var sb = new System.Text.StringBuilder("[Oracle] Wiki tabs (" + OracleMain.BuildMarker + "):");
+                foreach (SpecializationDef s in classes)
+                {
+                    sb.Append("\n  ").Append(((UnityEngine.Object)(object)s).name)
+                      .Append(" guid=").Append(s.Guid)
+                      .Append(" classTag=").Append(
+                          (UnityEngine.Object)(object)s.ClassTag != (UnityEngine.Object)null
+                              ? (s.ClassTag.className ?? "<null className>") : "<no tag>")
+                      .Append(" icon=").Append(
+                          (UnityEngine.Object)(object)s.ViewElementDef != (UnityEngine.Object)null
+                              ? ((UnityEngine.Object)(object)s.ViewElementDef).name : "<no view>");
+                }
+                OracleLog.Debug(sb.ToString());
             }
 
             RectTransform canvasRect = ((UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null)
@@ -315,6 +336,8 @@ namespace Morgott.Oracle
                             kv.Value.SetActive((UnityEngine.Object)(object)kv.Key == (UnityEngine.Object)(object)spec);
                         }
                     }
+                    OracleLog.Debug("[Oracle] Wiki tab selected: " + ((UnityEngine.Object)(object)spec).name
+                        + " guid=" + spec.Guid);
                     ClearChildren(bodyGo.transform);
                     BuildBodyTitle(bodyGo.transform, ResolveClassTitle(spec));
                     BuildClassTrackRow(bodyGo.transform, spec, template, cellSize, canvasRect, rootCanvas,
@@ -449,6 +472,12 @@ namespace Morgott.Oracle
                 {
                     return;
                 }
+                // RCA diagnostics: the exact rendered col -> track-index -> def mapping (col == idx: one
+                // cell appended per index in order; GridLayoutGroup lays out by sibling order).
+                var map = OracleMain.DebugLoggingEnabled
+                    ? new System.Text.StringBuilder("[Oracle] Row2 render for " + ((UnityEngine.Object)(object)spec).name
+                        + " (dualLevel0=" + dualLevel0 + ", cells=" + cells.Count + "):")
+                    : null;
                 BuildRowLabel(parent, Loc.Get(SectionClassTerm, SectionClassFallback));
                 GameObject grid = BuildRowGrid(parent, cells.Count, cellSize);
                 for (int i = 0; i < cells.Count; i++)
@@ -459,6 +488,7 @@ namespace Morgott.Oracle
                         // degrades to an empty bright cell — still never the hidden slot def.
                         WikiIconFactory.MakeCell(grid.transform, template, dualIcon, null, true,
                             null, null, null);
+                        map?.Append("\n  col ").Append(i).Append(" -> [DUAL+]");
                         continue;
                     }
                     TacticalAbilityDef def = cells[i];
@@ -468,6 +498,7 @@ namespace Morgott.Oracle
                         // Empty slot -> inert greyed empty native cell, position preserved.
                         WikiIconFactory.MakeCell(grid.transform, template, null, null, false,
                             null, null, null);
+                        map?.Append("\n  col ").Append(i).Append(" -> [EMPTY]");
                         continue;
                     }
                     Sprite icon = def.ViewElementDef.SmallIcon != null
@@ -475,6 +506,11 @@ namespace Morgott.Oracle
                         : def.ViewElementDef.LargeIcon;
                     WikiIconFactory.MakeCell(grid.transform, template, icon, def, true,
                         _tooltip, canvasRect, rootCanvas);
+                    map?.Append("\n  col ").Append(i).Append(" -> ").Append(((UnityEngine.Object)(object)def).name);
+                }
+                if (map != null)
+                {
+                    OracleLog.Debug(map.ToString());
                 }
             }
             catch (Exception ex)
@@ -696,6 +732,65 @@ namespace Morgott.Oracle
                 Transform c = t.GetChild(i);
                 c.SetParent(null, false); // detach now so sibling order is clean before the deferred Destroy
                 UnityEngine.Object.Destroy(c.gameObject);
+            }
+        }
+
+        /// <summary>
+        /// RCA diagnostics: dump ground truth next to what the wiki will render — the opened soldier's
+        /// RUNTIME primary track (exactly what the native progression row shows, minus the SetDualSpec "+"
+        /// overlay) and the DEF-level track of their main spec (what the wiki reads). A mismatch between
+        /// the two = per-soldier runtime divergence; a mismatch between the native screen and BOTH = the
+        /// wiki is fine and the visual bug is elsewhere. No-op unless debug logging is enabled. Guarded.
+        /// </summary>
+        private static void LogNativeTrackComparison(GeoCharacter character, SpecializationDef mainSpec)
+        {
+            if (!OracleMain.DebugLoggingEnabled)
+            {
+                return;
+            }
+            try
+            {
+                var sb = new System.Text.StringBuilder("[Oracle] Wiki open (" + OracleMain.BuildMarker + ") soldier mainSpec="
+                    + ((UnityEngine.Object)(object)mainSpec).name + " guid=" + mainSpec.Guid);
+
+                AbilityTrack runtime = null;
+                foreach (AbilityTrack t in character.Progression.AbilityTracks)
+                {
+                    if (t != null && t.Source == AbilityTrackSource.PrimaryClass)
+                    {
+                        runtime = t;
+                        break;
+                    }
+                }
+                sb.Append("\n  RUNTIME primary track: ");
+                AppendTrack(sb, runtime?.AbilitiesByLevel);
+                sb.Append("\n  DEF track (wiki source): ");
+                AppendTrack(sb, (UnityEngine.Object)(object)mainSpec.AbilityTrack != (UnityEngine.Object)null
+                    ? mainSpec.AbilityTrack.AbilitiesByLevel
+                    : null);
+                OracleLog.Debug(sb.ToString());
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] LogNativeTrackComparison failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>Append "idx:defName" pairs (or [null]) for a slot array to the diagnostics line.</summary>
+        private static void AppendTrack(System.Text.StringBuilder sb, AbilityTrackSlot[] slots)
+        {
+            if (slots == null)
+            {
+                sb.Append("<none>");
+                return;
+            }
+            for (int i = 0; i < slots.Length; i++)
+            {
+                TacticalAbilityDef a = slots[i]?.Ability;
+                sb.Append(i).Append(':')
+                  .Append((UnityEngine.Object)(object)a != (UnityEngine.Object)null
+                      ? ((UnityEngine.Object)(object)a).name : "[null]")
+                  .Append(i + 1 < slots.Length ? "  " : "");
             }
         }
 

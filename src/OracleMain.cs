@@ -176,10 +176,17 @@ namespace Morgott.Oracle
 
         public override bool CanSafelyDisable => true;
 
+        /// <summary>
+        /// Build marker for verifying WHICH build the game actually loaded (logged at enable + in the
+        /// class-wiki diagnostics). Bump per RCA iteration so a stale DLL is immediately visible in the log.
+        /// </summary>
+        public const string BuildMarker = "wiki-rca2";
+
         public override void OnModEnabled()
         {
             Instance = this;
-            OracleLog.Debug("[Oracle] OnModEnabled");
+            OracleLog.Debug("[Oracle] OnModEnabled BUILD " + BuildMarker + " asm="
+                + Assembly.GetExecutingAssembly().GetName().Version);
             var harmony = (Harmony)HarmonyInstance;
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             OracleLog.Debug("[Oracle] PatchAll done");
