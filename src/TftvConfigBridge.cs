@@ -7,6 +7,7 @@ using Base.Core;
 using Base.Defs;
 using HarmonyLib;
 using PhoenixPoint.Common.Core;
+using PhoenixPoint.Common.Entities;
 using PhoenixPoint.Geoscape.Events;
 using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Tactical.Entities.Abilities;
@@ -522,6 +523,52 @@ namespace Morgott.Oracle
             }
             object value = _resourceMultiplierField.GetValue(null);
             return value is float f ? f : 0f;
+        }
+
+        // ---- Scrap-refund proration (matches the actual grant under TFTV) --------------------------
+
+        // TFTV.TFTVVanillaFixes+ScrapRefundUtils.GetNextScrapRefundMultiplier(ICommonItem) -> float.
+        // Resolved lazily and independently of the BCSettings config above (VanillaFixes ships even if
+        // the perk-config bridge fails).
+        private static MethodInfo _scrapRefundMultiplierMethod;
+        private static bool _scrapRefundResolved;
+
+        /// <summary>
+        /// The multiplier TFTV applies to <c>ItemDef.ScrapPrice</c> when actually scrapping THIS item:
+        /// its <c>GeoFaction.ScrapItem</c> prefix grants <c>ScrapPrice * GetNextScrapRefundMultiplier(item)</c>,
+        /// prorating ammo (<c>ChargesMax &gt; 0</c>, not a combined stack) by
+        /// <c>CurrentCharges / ChargesMax</c> (refs/TFTV-src TFTVVanillaFixes.cs:119-161). Reflected live per
+        /// call so charge changes are always current. Returns <c>1.0</c> when TFTV is absent (vanilla grants
+        /// raw ScrapPrice), <paramref name="item"/> is null (def-only view), or reflection fails — fail open,
+        /// the tooltip never breaks.
+        /// </summary>
+        public static float ScrapRefundMultiplier(ICommonItem item)
+        {
+            if (item == null)
+            {
+                return 1f;
+            }
+            try
+            {
+                if (!_scrapRefundResolved)
+                {
+                    _scrapRefundResolved = true;
+                    Type t = AccessTools.TypeByName("TFTV.TFTVVanillaFixes+ScrapRefundUtils");
+                    _scrapRefundMultiplierMethod = t != null
+                        ? AccessTools.Method(t, "GetNextScrapRefundMultiplier")
+                        : null;
+                }
+                if (_scrapRefundMultiplierMethod == null)
+                {
+                    return 1f;
+                }
+                return (float)_scrapRefundMultiplierMethod.Invoke(null, new object[] { item });
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] ScrapRefundMultiplier failed, using 1.0: " + ex.Message);
+                return 1f;
+            }
         }
 
         // ---- Event diplomacy/reputation multiplier (matches the actual grant under TFTV) -----------

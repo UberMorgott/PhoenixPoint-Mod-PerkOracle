@@ -1,14 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using Base.Defs;
 using Base.UI;
 using HarmonyLib;
 using PhoenixPoint.Common.Core;
+using PhoenixPoint.Common.Entities;
 using PhoenixPoint.Common.Entities.Items;
 using PhoenixPoint.Common.UI;
 using PhoenixPoint.Common.View.ViewControllers.Inventory;
+using PhoenixPoint.Common.View.ViewModules;
 using PhoenixPoint.Geoscape.View.ViewControllers.Inventory;
 using PhoenixPoint.Geoscape.View.ViewControllers.PhoenixBase;
 using PhoenixPoint.Tactical.View.ViewControllers.Inventory;
@@ -23,7 +26,10 @@ namespace Morgott.Oracle
     /// of the item hover tooltip: localized "Dismantle" label on the left (pixel-identical to the other stat-row
     /// labels — it IS a cloned StatPrefab row) and a right-aligned strip of the game's own COLORED resource
     /// icons + amounts in the value area — e.g. <c>Разбор    [materials]12 [tech]3</c>, icons as on the
-    /// manufacturing screen's scrap strip. No resource names.
+    /// manufacturing screen's scrap strip. No resource names. The shown pack is the ACTUAL grant: under TFTV,
+    /// ammo is prorated by the live item's remaining charges via
+    /// <see cref="TftvConfigBridge.ScrapRefundMultiplier"/> (raw ScrapPrice in vanilla), amounts floored like
+    /// the native scrap-zone display.
     ///
     /// Two cooperating patches, because the two pieces live at different levels:
     ///   * DATA gate (this class, postfix on <see cref="UIItemTooltip.GetItemData"/>): GetItemData is the one
@@ -105,6 +111,19 @@ namespace Morgott.Oracle
                     return; // nothing recovered (all-zero manufacture cost)
                 }
 
+                // Show what the game will actually GRANT: under TFTV, ammo refunds are prorated by the LIVE
+                // item's remaining charges (its GeoFaction.ScrapItem prefix grants ScrapPrice * multiplier) —
+                // the def alone can't tell a fresh clip from a spent one. Vanilla / def-only view -> 1.
+                float refundMult = TftvConfigBridge.ScrapRefundMultiplier(ResolveLiveItem(__instance, item));
+                if (refundMult < 1f)
+                {
+                    scrap = scrap * refundMult;
+                }
+                if (!HasDisplayableAmount(scrap))
+                {
+                    return; // prorated below 1 of everything -> the grant displays as nothing -> no row
+                }
+
                 // Preferred: native colored-icon strip — stash the pack for the LinkToData patch to build.
                 if (ResolveIconTemplate() != null)
                 {
@@ -128,6 +147,70 @@ namespace Morgott.Oracle
                 _pendingScrap = null;
                 OracleLog.Debug("[Oracle] ItemScrapTooltipPatch.Postfix failed: " + ex.Message);
             }
+        }
+
+        // Live-item lookup per tooltip type (private view fields, resolved once, null on a miss — AccessTools
+        // .Field logs instead of throwing). Needed because TFTV's proration depends on the ITEM's CurrentCharges.
+        private static readonly FieldInfo TacDisplayedItem = AccessTools.Field(typeof(UITacItemTooltip), "_displayedItem");
+        private static readonly FieldInfo GeoDisplayedItem = AccessTools.Field(typeof(UIGeoItemTooltip), "_displayedItem");
+        private static readonly FieldInfo InvHoveredSlot = AccessTools.Field(typeof(UIInventoryTooltip), "_hoveredSlot");
+        private static readonly FieldInfo InvEquipModule = AccessTools.Field(typeof(UIInventoryTooltip), "_soldierEquipModule");
+
+        /// <summary>
+        /// The LIVE <see cref="ICommonItem"/> whose def the tooltip is currently showing, or null (mutation /
+        /// unknown tooltip = def-only view). Tactical/geoscape tooltips stash it in <c>_displayedItem</c> before
+        /// calling GetItemData; the equip tooltip's primary item is the SELECTED slot's when comparing, else the
+        /// hovered slot's — checked in that order, matched by def.
+        /// </summary>
+        private static ICommonItem ResolveLiveItem(UIItemTooltip tooltip, ItemDef def)
+        {
+            try
+            {
+                switch (tooltip)
+                {
+                    case UITacItemTooltip tac:
+                        return AsLive(TacDisplayedItem?.GetValue(tac) as ICommonItem, def);
+                    case UIGeoItemTooltip geo:
+                        return AsLive(GeoDisplayedItem?.GetValue(geo) as ICommonItem, def);
+                    case UIInventoryTooltip inv:
+                    {
+                        var module = InvEquipModule?.GetValue(inv) as UIModuleSoldierEquip;
+                        ICommonItem selected = AsLive(module?.SelectedSlot?.Item, def);
+                        if (selected != null)
+                        {
+                            return selected;
+                        }
+                        var hovered = InvHoveredSlot?.GetValue(inv) as UIInventorySlot;
+                        return AsLive(hovered?.Item, def);
+                    }
+                    default:
+                        return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] ResolveLiveItem failed: " + ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>The item itself when it is showing exactly this def, else null.</summary>
+        private static ICommonItem AsLive(ICommonItem item, ItemDef def)
+        {
+            return (item != null && item.ItemDef == def) ? item : null;
+        }
+
+        /// <summary>True if at least one resource survives display flooring (&gt;= 1 after proration).</summary>
+        private static bool HasDisplayableAmount(ResourcePack scrap)
+        {
+            foreach (ResourceType type in ScrapOrder)
+            {
+                if (Mathf.FloorToInt(scrap.ByResourceType(type).Value) >= 1)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>Consume the stashed dismantle pack (single-use): returns it and clears the stash so a later
@@ -155,14 +238,16 @@ namespace Morgott.Oracle
 
         /// <summary>
         /// Compose the yield string in <see cref="ScrapOrder"/>, e.g. "12 Materials, 3 Tech". Each resource is
-        /// included only when its rounded amount is &gt;= 1. Used only by the text fallback.
+        /// included only when its FLOORED amount is &gt;= 1 — floor matches both the native scrap-zone display
+        /// (<c>ResourceIconContainer.SetResource(..., floor: true)</c>) and the whole part of the float pack the
+        /// grant actually deposits. Used only by the text fallback.
         /// </summary>
         private static string BuildResourceList(ResourcePack scrap)
         {
             var sb = new StringBuilder();
             foreach (ResourceType type in ScrapOrder)
             {
-                int amount = Mathf.RoundToInt(scrap.ByResourceType(type).Value);
+                int amount = Mathf.FloorToInt(scrap.ByResourceType(type).Value);
                 if (amount <= 0)
                 {
                     continue;
@@ -327,7 +412,8 @@ namespace Morgott.Oracle
 
             foreach (ResourceType type in ItemScrapTooltipPatch.ScrapOrder)
             {
-                int amount = Mathf.RoundToInt(scrap.ByResourceType(type).Value);
+                // Floor, like the native scrap-zone display (SetResource floor:true) and the granted whole part.
+                int amount = Mathf.FloorToInt(scrap.ByResourceType(type).Value);
                 if (amount <= 0)
                 {
                     continue;
