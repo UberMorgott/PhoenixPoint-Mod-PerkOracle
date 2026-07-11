@@ -12,17 +12,17 @@
 [h1]Ce qu'il fait[/h1]
 Oracle propose trois aides.
 [list]
-[*][b]Anticipation des perks.[/b] Sur l'écran de progression des compétences, les perks personnels aléatoires (« tirés au sort ») sont mis en évidence, pour distinguer d'un coup d'œil ce qui vient du tirage et ce qui vient de la voie de classe fixe. Ouvrez une fenêtre wiki des perks pour voir chaque perk qui aurait pu tomber dans un emplacement, avec les icônes et infobulles natives du jeu. Un échange de perks optionnel, verrouillé par une recherche, vous permet de remplacer un perk appris par un autre perk existant.
+[*][b]Anticipation des perks.[/b] Sur l'écran de progression des compétences, les perks personnels aléatoires (« tirés au sort ») sont mis en évidence, pour distinguer d'un coup d'œil ce qui vient du tirage et ce qui vient de la voie de classe fixe. Ouvrez une fenêtre wiki des perks pour voir chaque perk qui aurait pu tomber dans un emplacement, avec les icônes et infobulles natives du jeu. Un échange de perks optionnel, verrouillé par une recherche, vous permet de remplacer un perk appris par un autre perk existant. Vous pouvez aussi ouvrir un wiki des classes depuis une compétence de classe apprise pour parcourir la voie de compétences et les emplacements de perks de chaque classe.
 [*][b]Aperçu des choix d'événement.[/b] Survolez une option de réponse dans un événement d'exploration sur le géoscape et une infobulle affiche le résultat de ce choix [i]avant[/i] que vous le validiez : ressources, réputation, endurance et PV des soldats, objets, sites révélés, et plus encore. Les valeurs correspondent à ce que le jeu accordera réellement, modificateurs de TFTV inclus, et les libellés reprennent le texte localisé natif du jeu.
 [*][b]Aperçu des sous-classes.[/b] Lorsque vous choisissez la seconde classe d'un soldat à la montée de niveau, cliquer sur une sous-classe en affiche aussitôt tous les perks et capacités, directement dans l'écran de confirmation, avec les icônes et infobulles natives du jeu : vous voyez exactement ce que vous obtenez avant de valider. Les sous-classes non encore recherchées apparaissent grisées et se prévisualisent de la même manière.
 [/list]
 
-[h1]Nouveautés de la v1.5.0[/h1]
+[h1]Nouveautés de la v1.6.0[/h1]
 [list]
-[*][b]Refonte des paramètres.[/b] Chaque aide a désormais son propre interrupteur marche/arrêt (surlignage, wiki des perks, aperçu de confirmation de sous-classe, aperçu du résultat d'événement, rendement de démantèlement), et le surlignage des perks aléatoires dispose d'un choix de couleur (Blue, Green, Gold, Red, Purple, White). Le tout localisé en 8 langues.
-[*][b]Nouveau : rendement de démantèlement dans les infobulles d'objet.[/b] Les infobulles d'objet (équipement/inventaire, géoscape, tactique, écrans de mutation) affichent désormais une ligne « DISMANTLE » de style natif avec les ressources récupérées en démantelant l'objet — icônes de ressources colorées et chiffres dorés.
-[*][b]L'échange de perks coûte désormais des points de compétence.[/b] Quand il est activé (par défaut), un échange dépense les points de compétence du soldat (50 par défaut, configurable) et est bloqué s'il ne peut pas se le permettre ; le coût est indiqué sur l'infobulle du perk. La recherche d'échange n'existe plus que lorsque l'échange de perks est activé (le basculer en cours de partie est sûr pour les sauvegardes).
-[*][b]Correction :[/b] les infobulles de capacité s'affichent désormais au-dessus de toutes les fenêtres et boîtes de dialogue modales (elles pouvaient auparavant se cacher derrière la boîte de confirmation de sous-classe).
+[*][b]Nouveau : wiki des classes.[/b] Sur l'écran de progression, cliquez sur une compétence de classe apprise pour ouvrir un wiki de toutes les classes — la voie de compétences et les emplacements de perks personnels de chaque classe, lus en direct depuis votre partie, pour correspondre à TFTV et aux mods ajoutant des classes (Officier). Les emplacements de perks fixes de TFTV sont affichés ; les emplacements aléatoires apparaissent comme « ? » et dévoilent au clic leur réserve exacte par emplacement.
+[*][b]Aperçu d'événement affiné :[/b] l'infobulle de résultat n'apparaît désormais que lorsqu'un événement offre réellement un choix (deux options ou plus) ; un résultat unique et inévitable n'affiche plus de prédiction.
+[*][b]Le rendement de démantèlement correspond désormais à TFTV[/b] — la ligne « DISMANTLE » native reflète le remboursement de démantèlement proratisé de TFTV.
+[*][b]Également ajouté récemment :[/b] des interrupteurs marche/arrêt par aide avec un choix de couleur pour le surlignage des perks, et un coût optionnel en points de compétence pour l'échange de perks.
 [/list]
 
 [h1]Compatibilité[/h1]

@@ -12,17 +12,17 @@
 [h1]What it does[/h1]
 Oracle has three helpers.
 [list]
-[*][b]Perk foresight.[/b] On the ability-progression screen, the random ("rolled") personal perks are highlighted, so you can tell at a glance which came from the roll and which from the fixed class track. Open a perk wiki popup to see every perk that could have landed in a slot, with the game's own icons and tooltips. An optional, research-gated perk swap lets you change a learned perk for another existing one.
+[*][b]Perk foresight.[/b] On the ability-progression screen, the random ("rolled") personal perks are highlighted, so you can tell at a glance which came from the roll and which from the fixed class track. Open a perk wiki popup to see every perk that could have landed in a slot, with the game's own icons and tooltips. An optional, research-gated perk swap lets you change a learned perk for another existing one. You can also open a class wiki from a trained class skill to browse every class's ability track and perk slots.
 [*][b]Event choice preview.[/b] Hover an answer option in a geoscape exploration event and a tooltip shows that choice's outcome [i]before[/i] you pick it: resources, reputation, soldier stamina and HP, items, sites revealed, and more. Values match what the game will actually grant, including TFTV's modifiers, and the labels use the game's own localized text.
 [*][b]Subclass preview.[/b] When you pick a soldier's second class at level-up, clicking a subclass first shows its full perks and abilities right in the confirmation, with the game's own icons and tooltips, so you see what you are getting before you commit. Unresearched subclasses are shown greyed out and can be previewed the same way.
 [/list]
 
-[h1]What's new in v1.5.0[/h1]
+[h1]What's new in v1.6.0[/h1]
 [list]
-[*][b]Settings overhaul.[/b] Every helper now has its own on/off toggle (highlight, perk wiki, subclass-confirm preview, event outcome preview, dismantle yield), and the rolled-perk highlight gets a color picker (Blue, Green, Gold, Red, Purple, White). All options are localized in 8 languages.
-[*][b]New: dismantle yield in item tooltips.[/b] Item tooltips (equip/inventory, geoscape, tactical, mutation screens) now show a native-styled "DISMANTLE" row with the resources you recover by scrapping the item — colored resource icons and gold digits.
-[*][b]Perk swap now costs Skill Points.[/b] When on (default), a swap spends the soldier's skill points (default 50, configurable) and is blocked if they can't afford it; the cost is shown on the perk's tooltip. The perk-swap research now exists only while Perk Swap is enabled (mid-campaign toggling is save-safe).
-[*][b]Fix:[/b] ability tooltips now render above all windows and modal dialogs (they could previously hide behind the subclass confirmation dialog).
+[*][b]New: Class wiki.[/b] On the progression screen, click a trained class skill to open a wiki of every class — each class's ability track and personal perk slots, read live from your game so it matches TFTV and class-adding mods (Officer). Fixed TFTV perk slots are shown; random slots appear as "?" and expand to their exact per-slot pool when clicked.
+[*][b]Event preview refined.[/b] The outcome tooltip now appears only when an event actually offers a choice (two or more options); a single forced outcome no longer shows a prediction.
+[*][b]Dismantle yield now matches TFTV[/b] — the native "DISMANTLE" tooltip row mirrors TFTV's prorated scrap refund.
+[*][b]Also recently added:[/b] per-helper on/off toggles with a rolled-perk highlight color picker, and an optional skill-point cost for perk swap.
 [/list]
 
 [h1]Compatibility[/h1]

@@ -12,17 +12,17 @@
 [h1]Qué hace[/h1]
 Oracle tiene tres ayudantes.
 [list]
-[*][b]Anticipación de perks.[/b] En la pantalla de progresión de habilidades, los perks personales aleatorios (obtenidos al azar) aparecen resaltados, para que veas de un vistazo cuáles provienen del azar y cuáles de la vía de clase fija. Abre la ventana «wiki» de perks para ver todos los perks que podrían haber caído en una ranura, con los iconos e información emergente nativos del juego. Un intercambio de perks opcional, sujeto a investigación, te permite cambiar un perk aprendido por otro ya existente.
+[*][b]Anticipación de perks.[/b] En la pantalla de progresión de habilidades, los perks personales aleatorios (obtenidos al azar) aparecen resaltados, para que veas de un vistazo cuáles provienen del azar y cuáles de la vía de clase fija. Abre la ventana «wiki» de perks para ver todos los perks que podrían haber caído en una ranura, con los iconos e información emergente nativos del juego. Un intercambio de perks opcional, sujeto a investigación, te permite cambiar un perk aprendido por otro ya existente. También puedes abrir una wiki de clases desde una habilidad de clase aprendida para consultar la vía de habilidades y las ranuras de perks de cada clase.
 [*][b]Vista previa de opciones de eventos.[/b] Pasa el cursor sobre una respuesta en un evento de exploración del geoscape y una información emergente muestra el resultado de esa opción [i]antes[/i] de elegirla: recursos, reputación, vigor y PV del soldado, objetos, lugares revelados y más. Los valores coinciden con lo que el juego concederá realmente, incluidos los modificadores de TFTV, y las etiquetas usan el propio texto localizado del juego.
 [*][b]Vista previa de subclases.[/b] Cuando eliges la segunda clase de un soldado al subir de nivel, hacer clic primero en una subclase muestra todos sus perks y habilidades directamente en la confirmación, con los iconos e información emergente nativos del juego, para que veas lo que vas a obtener antes de confirmar. Las subclases aún no investigadas aparecen en gris y puedes previsualizarlas de la misma manera.
 [/list]
 
-[h1]Novedades de la v1.5.0[/h1]
+[h1]Novedades de la v1.6.0[/h1]
 [list]
-[*][b]Revisión de los ajustes.[/b] Cada ayudante tiene ahora su propio interruptor de activación (resaltado, wiki de perks, vista previa de confirmación de subclase, vista previa del resultado de eventos, rendimiento de desmantelamiento), y el resaltado de perks aleatorios ofrece una selección de color (Blue, Green, Gold, Red, Purple, White). Todo localizado en 8 idiomas.
-[*][b]Nuevo: rendimiento de desmantelamiento en la información de objetos.[/b] La información emergente de los objetos (equipo/inventario, geoscape, táctico, pantallas de mutación) ahora muestra una fila «DISMANTLE» de estilo nativo con los recursos que recuperas al desmantelar el objeto — iconos de recursos coloreados y cifras doradas.
-[*][b]El intercambio de perks ahora cuesta puntos de habilidad.[/b] Cuando está activado (por defecto), un intercambio gasta los puntos de habilidad del soldado (50 por defecto, configurable) y se bloquea si no puede permitírselo; el coste se muestra en la información del perk. La investigación de intercambio solo existe mientras el intercambio de perks está activado (cambiarlo a mitad de campaña es seguro para las partidas guardadas).
-[*][b]Corrección:[/b] la información emergente de habilidades ahora se dibuja por encima de todas las ventanas y diálogos modales (antes podían ocultarse tras el diálogo de confirmación de subclase).
+[*][b]Nuevo: wiki de clases.[/b] En la pantalla de progresión, haz clic en una habilidad de clase aprendida para abrir una wiki de todas las clases — la vía de habilidades y las ranuras de perks personales de cada clase, leídas en directo desde tu partida, para que coincida con TFTV y con los mods que añaden clases (Oficial). Las ranuras de perks fijas de TFTV se muestran; las ranuras aleatorias aparecen como «?» y al hacer clic revelan su reserva exacta por ranura.
+[*][b]Vista previa de eventos afinada:[/b] la información emergente de resultado ahora solo aparece cuando un evento ofrece realmente una elección (dos o más opciones); un resultado único e inevitable ya no muestra predicción.
+[*][b]El rendimiento de desmantelamiento ahora coincide con TFTV[/b] — la fila «DISMANTLE» nativa refleja el reembolso de desmantelamiento prorrateado de TFTV.
+[*][b]También añadido recientemente:[/b] interruptores de activación por ayudante con selección de color para el resaltado de perks, y un coste opcional en puntos de habilidad para el intercambio de perks.
 [/list]
 
 [h1]Compatibilidad[/h1]

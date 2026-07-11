@@ -12,17 +12,17 @@
 [h1]Cosa fa[/h1]
 Oracle ha tre assistenti.
 [list]
-[*][b]Previsione dei perk.[/b] Nella schermata di progressione delle abilità, i perk personali casuali (estratti casualmente) vengono evidenziati, così capisci a colpo d'occhio quali provengono dall'estrazione e quali dal ramo di classe fisso. Apri la finestra wiki dei perk per vedere ogni perk che avrebbe potuto cadere in uno slot, con le icone e i tooltip nativi del gioco. Uno scambio dei perk opzionale, subordinato a una ricerca, ti permette di sostituire un perk appreso con un altro già esistente.
+[*][b]Previsione dei perk.[/b] Nella schermata di progressione delle abilità, i perk personali casuali (estratti casualmente) vengono evidenziati, così capisci a colpo d'occhio quali provengono dall'estrazione e quali dal ramo di classe fisso. Apri la finestra wiki dei perk per vedere ogni perk che avrebbe potuto cadere in uno slot, con le icone e i tooltip nativi del gioco. Uno scambio dei perk opzionale, subordinato a una ricerca, ti permette di sostituire un perk appreso con un altro già esistente. Puoi anche aprire una wiki delle classi da un'abilità di classe appresa per sfogliare il ramo di abilità e gli slot dei perk di ogni classe.
 [*][b]Anteprima delle scelte negli eventi.[/b] Passa il cursore su un'opzione di risposta in un evento di esplorazione sulla mappa strategica e un tooltip mostra l'esito di quella scelta [i]prima[/i] di selezionarla: risorse, reputazione, stamina e PS dei soldati, oggetti, siti rivelati e altro ancora. I valori corrispondono a ciò che il gioco assegnerà davvero, compresi i modificatori di TFTV, e le etichette usano il testo localizzato nativo del gioco.
 [*][b]Anteprima delle sottoclassi.[/b] Quando, all'avanzamento di livello, scegli la seconda classe di un soldato, fai clic su una sottoclasse e la finestra di conferma ne mostra subito tutti i perk e le abilità, con le icone e i tooltip nativi del gioco, così vedi cosa ottieni [i]prima[/i] di confermare la scelta. Le sottoclassi non ancora ricercate compaiono in grigio e si possono visualizzare in anteprima allo stesso modo.
 [/list]
 
-[h1]Novità nella v1.5.0[/h1]
+[h1]Novità nella v1.6.0[/h1]
 [list]
-[*][b]Revisione delle impostazioni.[/b] Ogni assistente ora ha il proprio interruttore on/off (evidenziazione, wiki dei perk, anteprima conferma sottoclasse, anteprima esito evento, resa smantellamento) e l'evidenziazione dei perk casuali offre una scelta del colore (Blue, Green, Gold, Red, Purple, White). Tutto localizzato in 8 lingue.
-[*][b]Nuovo: resa dello smantellamento nei tooltip degli oggetti.[/b] I tooltip degli oggetti (equipaggiamento/inventario, geoscape, tattica, schermate di mutazione) ora mostrano una riga «DISMANTLE» in stile nativo con le risorse che recuperi smantellando l'oggetto — icone delle risorse colorate e cifre dorate.
-[*][b]Lo scambio dei perk ora costa punti abilità.[/b] Quando è attivo (predefinito), uno scambio spende i punti abilità del soldato (50 predefiniti, configurabile) e viene bloccato se non può permetterselo; il costo è mostrato sul tooltip del perk. La ricerca dello scambio esiste solo finché lo scambio dei perk è attivo (cambiarlo a metà campagna è sicuro per i salvataggi).
-[*][b]Correzione:[/b] i tooltip delle abilità ora vengono disegnati sopra tutte le finestre e le finestre di dialogo modali (prima potevano nascondersi dietro la finestra di conferma della sottoclasse).
+[*][b]Nuovo: wiki delle classi.[/b] Nella schermata di progressione, fai clic su un'abilità di classe appresa per aprire una wiki di ogni classe — il ramo di abilità e gli slot dei perk personali di ciascuna classe, letti dal vivo dalla tua partita, così da corrispondere a TFTV e ai mod che aggiungono classi (Ufficiale). Gli slot dei perk fissi di TFTV sono mostrati; gli slot casuali appaiono come «?» e al clic rivelano il pool esatto dello slot.
+[*][b]Anteprima degli eventi affinata:[/b] il tooltip dell'esito ora appare solo quando un evento offre davvero una scelta (due o più opzioni); un esito unico e inevitabile non mostra più una previsione.
+[*][b]La resa dello smantellamento ora corrisponde a TFTV[/b] — la riga nativa «DISMANTLE» rispecchia il rimborso di smantellamento proporzionale di TFTV.
+[*][b]Aggiunto di recente anche:[/b] interruttori on/off per ogni assistente con scelta del colore per l'evidenziazione dei perk e un costo opzionale in punti abilità per lo scambio dei perk.
 [/list]
 
 [h1]Compatibilità[/h1]

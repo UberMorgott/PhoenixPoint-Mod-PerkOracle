@@ -4,6 +4,26 @@ All notable changes to Oracle are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-07-11
+
+### Added
+- **Class wiki.** Clicking a trained main-class skill cell on the ability-progression
+  screen opens a popup with a tab per class, each showing that class's ability track
+  and personal perk slots. Everything is resolved from live runtime data (what the game
+  actually renders), so it matches TFTV and class-adding mods (e.g. Officer): fixed TFTV
+  perk slots are shown as-is, while random slots are anonymized as "?" and can be clicked
+  to reveal the exact per-slot candidate pool.
+
+### Changed
+- **Event outcome preview only on real choices.** The preview tooltip now appears only
+  for events that offer two or more selectable answers; an event with a single inevitable
+  outcome no longer shows a prediction.
+
+### Fixed
+- The item-tooltip **"DISMANTLE"** row now matches TFTV's prorated scrap refund.
+- Wiki data is sourced runtime-first (from the native render path) for mod compatibility,
+  with localization cleanup across all 8 languages.
+
 ## [1.5.0] - 2026-07-11
 
 ### Added
@@ -129,6 +149,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial release: rolled-perk highlight, in-game candidate wiki with native ability
   tooltips, optional free perk swap, and 8-language localization.
 
+[1.6.0]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.6.0
 [1.5.0]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.5.0
 [1.4.0]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.4.0
 [1.3.0]: https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/tag/v1.3.0

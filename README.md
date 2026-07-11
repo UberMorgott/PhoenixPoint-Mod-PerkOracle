@@ -11,7 +11,7 @@
 [![Forks](https://img.shields.io/github/forks/UberMorgott/PhoenixPoint-Mod-PerkOracle?style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/network/members)
 [![Issues](https://img.shields.io/github/issues/UberMorgott/PhoenixPoint-Mod-PerkOracle?style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues)
 [![Last commit](https://img.shields.io/github/last-commit/UberMorgott/PhoenixPoint-Mod-PerkOracle?style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/commits)
-[![Version](https://img.shields.io/badge/version-1.5.0-1f6feb?style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest)
+[![Version](https://img.shields.io/badge/version-1.6.0-1f6feb?style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest)
 [![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-blue?style=flat-square)](LICENSE)
 
 [![Steam Workshop](https://img.shields.io/badge/Steam-Workshop-1b2838?style=for-the-badge&logo=steam&logoColor=white)](https://steamcommunity.com/sharedfiles/filedetails/?id=3739613434)
@@ -26,8 +26,9 @@ An in-game advisor for Phoenix Point that surfaces information the game normally
 
 - **Rolled-perk highlight** — random ("rolled") personal perks get a colored tint on the ability-progression screen, so they stand out from fixed and class perks.
 - **Candidate wiki** — right-click a perk to open a popup of every perk that could have landed in that slot, using the game's own ability cells and framed tooltips.
+- **Class wiki** — click a trained class skill on the progression screen to open a wiki of every class: each class's ability track and personal perk slots, read live from your game (so it matches TFTV and class-adding mods like Officer). Fixed TFTV slots are shown; random slots appear as `?` and expand to their exact per-slot pool on click.
 - **Subclass preview** — picking a soldier's second class confirms with that subclass's perks shown, and lets you preview the subclasses you weren't offered (including unresearched, shown greyed out).
-- **Event outcome preview** — hover a geoscape event answer to see its outcome (resources, reputation, soldier HP/stamina, items, sites revealed) before you pick it; accurate under TFTV.
+- **Event outcome preview** — hover a geoscape event answer to see its outcome (resources, reputation, soldier HP/stamina, items, sites revealed) before you pick it; accurate under TFTV. Shown only when the event actually offers a choice (2+ options).
 - **Dismantle yield** — item tooltips (equip, geoscape, tactical, mutation) show a native "DISMANTLE" row with the resources you recover by scrapping.
 - **Optional perk swap** — off by default; left-click a wiki perk to swap a soldier's learned perk in that slot for another existing one (spends skill points, optionally gated behind an in-game research).
 

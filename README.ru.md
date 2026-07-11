@@ -11,7 +11,7 @@
 [![Forks](https://img.shields.io/github/forks/UberMorgott/PhoenixPoint-Mod-PerkOracle?style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/network/members)
 [![Issues](https://img.shields.io/github/issues/UberMorgott/PhoenixPoint-Mod-PerkOracle?style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues)
 [![Last commit](https://img.shields.io/github/last-commit/UberMorgott/PhoenixPoint-Mod-PerkOracle?style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/commits)
-[![Version](https://img.shields.io/badge/version-1.5.0-1f6feb?style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest)
+[![Version](https://img.shields.io/badge/version-1.6.0-1f6feb?style=flat-square)](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/releases/latest)
 [![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-blue?style=flat-square)](LICENSE)
 
 [![Steam Workshop](https://img.shields.io/badge/Steam-Workshop-1b2838?style=for-the-badge&logo=steam&logoColor=white)](https://steamcommunity.com/sharedfiles/filedetails/?id=3739613434)
@@ -26,8 +26,9 @@
 
 - **Подсветка роленых перков** — случайные («роленые») персональные перки получают цветную подсветку на экране прогрессии, чтобы отличать их от фиксированных и классовых.
 - **Вики кандидатов** — правый клик по перку открывает окно со всеми перками, которые могли выпасть в этот слот, с родными ячейками способностей и подсказками игры.
+- **Вики классов** — клик по выученному классовому навыку на экране прогрессии открывает вики всех классов: ветку способностей и слоты персональных перков каждого класса, взятые вживую из вашей игры (совпадает с TFTV и модами, добавляющими классы, например Officer). Фиксированные слоты TFTV показаны; случайные слоты отображаются как `?` и по клику раскрывают точный пул перков для слота.
 - **Предпросмотр подкласса** — при выборе второго класса бойца подтверждение показывает перки этого подкласса и даёт предпросмотр непредложенных подклассов (включая неисследованные, показанные затенёнными).
-- **Предпросмотр исхода события** — наведите курсор на вариант ответа в событии на геоскейпе, чтобы увидеть его исход (ресурсы, репутация, здоровье/выносливость бойцов, предметы, открытые точки) до выбора; точно под TFTV.
+- **Предпросмотр исхода события** — наведите курсор на вариант ответа в событии на геоскейпе, чтобы увидеть его исход (ресурсы, репутация, здоровье/выносливость бойцов, предметы, открытые точки) до выбора; точно под TFTV. Показывается только когда событие реально предлагает выбор (2+ варианта).
 - **Выход при разборе** — подсказки предметов (экипировка, геоскейп, тактика, мутации) показывают строку «DISMANTLE» в нативном стиле с ресурсами за разбор.
 - **Опциональная замена перков** — по умолчанию выключена; левый клик по перку в вики заменяет выученный перк бойца в этом слоте на другой существующий (тратит очки навыков, опционально с гейтом по исследованию).
 
