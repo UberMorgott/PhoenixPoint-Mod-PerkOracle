@@ -11,6 +11,7 @@ using PhoenixPoint.Common.Entities.GameTagsTypes;
 using PhoenixPoint.Geoscape.Entities;
 using PhoenixPoint.Geoscape.Entities.Research.Reward;
 using PhoenixPoint.Geoscape.Levels;
+using PhoenixPoint.Tactical.Entities;
 using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
 
@@ -105,7 +106,7 @@ namespace Morgott.Oracle
         /// the RCA diagnostics). Empty list on any error.
         /// </summary>
         public static List<TacticalAbilityDef> GetClassTrackCells(SpecializationDef spec, GeoCharacter viewer,
-            out string source, GeoCharacter overrideUnit = null)
+            out string source, GeoCharacter overrideUnit = null, bool preferDef = false)
         {
             source = "none";
             var cells = new List<TacticalAbilityDef>();
@@ -116,13 +117,25 @@ namespace Morgott.Oracle
                     return cells;
                 }
 
-                AbilityTrackSlot[] slots = ResolveRuntimeSlots(spec, viewer, ref source, overrideUnit);
-                // A selected row-4 unit is RUNTIME-only: never fall back to the def track for it.
-                if (slots == null && overrideUnit == null
+                AbilityTrackSlot[] slots;
+                if (preferDef && overrideUnit == null
                     && (UnityEngine.Object)(object)spec.AbilityTrack != (UnityEngine.Object)null)
                 {
+                    // Merc hire-preview: the class DEF track EXACTLY as a NEW soldier snapshots it at
+                    // creation, not an existing roster soldier's (possibly older-vintage) runtime snapshot.
                     slots = spec.AbilityTrack.AbilitiesByLevel;
                     source = "def";
+                }
+                else
+                {
+                    slots = ResolveRuntimeSlots(spec, viewer, ref source, overrideUnit);
+                    // A selected row-4 unit is RUNTIME-only: never fall back to the def track for it.
+                    if (slots == null && overrideUnit == null
+                        && (UnityEngine.Object)(object)spec.AbilityTrack != (UnityEngine.Object)null)
+                    {
+                        slots = spec.AbilityTrack.AbilitiesByLevel;
+                        source = "def";
+                    }
                 }
                 if (slots == null)
                 {
@@ -191,7 +204,7 @@ namespace Morgott.Oracle
                         try { nm = c.GetName() ?? "[null]"; } catch { nm = "[?]"; }
                         string tpl = (UnityEngine.Object)(object)c.TemplateDef != (UnityEngine.Object)null
                             ? ((UnityEngine.Object)(object)c.TemplateDef).name : "[no template]";
-                        dbg.Append("\n  ").Append(nm).Append(" template=").Append(tpl)
+                        dbg.Append("\n  ").Append(nm).Append(" kind=roster template=").Append(tpl)
                            .Append(" match=").Append(isMain ? "main" : "secondary")
                            .Append(" reason=").Append(reason ?? "special");
                     }
@@ -208,6 +221,112 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] ClassPerkProvider.GetSpecialUnitsForClass failed: " + ex.Message);
+            }
+            return result;
+        }
+
+        // TFTV's "Mercenary" template tag (GUID {49BDADBC-...}, TFTVMercenaries.cs:635), resolved once by
+        // def name from the vanilla DefRepository (same pattern as the reverted rca6 tag lookup). Null when
+        // TFTV is absent, so the merc-archetype row is naturally empty under vanilla.
+        private static bool _mercTagResolved;
+        private static GameTagDef _mercTag;
+
+        private static GameTagDef GetMercenaryTag()
+        {
+            if (_mercTagResolved)
+            {
+                return _mercTag;
+            }
+            _mercTagResolved = true;
+            try
+            {
+                DefRepository repo = GameUtl.GameComponent<DefRepository>();
+                if (repo != null)
+                {
+                    foreach (GameTagDef tag in repo.GetAllDefs<GameTagDef>())
+                    {
+                        if (tag != null && ((UnityEngine.Object)tag).name == "Mercenary_GameTagDef")
+                        {
+                            _mercTag = tag;
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] Mercenary tag resolve failed: " + ex.Message);
+            }
+            return _mercTag;
+        }
+
+        /// <summary>
+        /// TFTV mercenary ARCHETYPE templates (hireable, not-yet-in-roster) of class <paramref name="spec"/>:
+        /// every <see cref="TacCharacterDef"/> carrying TFTV's Mercenary tag whose <c>ClassTag</c> matches the
+        /// spec's class tag — the game's OWN template->spec key (<c>TacCharacterDef.ApplyPogression</c> picks the
+        /// spec by <c>s.ClassTag == template.ClassTag</c>). These become the class wiki's row-4 hire-preview
+        /// cells (regular + level-5 "_Vet" variants). Naturally empty when TFTV is absent (tag not found) or the
+        /// class has no archetype. Read live off the DefRepository; emits the per-tab template dump (name /
+        /// kind=template) under <see cref="OracleMain.DebugLoggingEnabled"/>. Each match is guarded so one
+        /// malformed modded def cannot abort the enumeration.
+        /// </summary>
+        public static List<TacCharacterDef> GetMercArchetypesForClass(SpecializationDef spec)
+        {
+            var result = new List<TacCharacterDef>();
+            try
+            {
+                if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null
+                    || (UnityEngine.Object)(object)spec.ClassTag == (UnityEngine.Object)null)
+                {
+                    return result;
+                }
+                GameTagDef mercTag = GetMercenaryTag();
+                if ((UnityEngine.Object)(object)mercTag == (UnityEngine.Object)null)
+                {
+                    return result; // TFTV absent -> no merc archetypes
+                }
+                DefRepository repo = GameUtl.GameComponent<DefRepository>();
+                if (repo == null)
+                {
+                    return result;
+                }
+
+                var dbg = OracleMain.DebugLoggingEnabled
+                    ? new System.Text.StringBuilder("[Oracle] Row4 merc-archetype candidates for "
+                        + ((UnityEngine.Object)(object)spec).name + ":")
+                    : null;
+                foreach (TacCharacterDef tpl in repo.GetAllDefs<TacCharacterDef>())
+                {
+                    bool match;
+                    try
+                    {
+                        match = (UnityEngine.Object)(object)tpl != (UnityEngine.Object)null
+                            && (UnityEngine.Object)(object)tpl.ClassTag == (UnityEngine.Object)(object)spec.ClassTag
+                            && tpl.GetGameTags().Contains(mercTag);
+                    }
+                    catch
+                    {
+                        continue; // malformed def (null Data/ComponentSet) -> skip, keep enumerating
+                    }
+                    if (!match)
+                    {
+                        continue;
+                    }
+                    result.Add(tpl);
+                    dbg?.Append("\n  ").Append(((UnityEngine.Object)(object)tpl).name).Append(" kind=template");
+                }
+                if (dbg != null)
+                {
+                    if (result.Count == 0)
+                    {
+                        dbg.Append("\n  <none>");
+                    }
+                    OracleLog.Debug(dbg.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] ClassPerkProvider.GetMercArchetypesForClass failed: " + ex.Message);
             }
             return result;
         }
