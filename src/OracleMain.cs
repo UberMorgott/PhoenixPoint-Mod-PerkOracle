@@ -180,13 +180,22 @@ namespace Morgott.Oracle
         /// Build marker for verifying WHICH build the game actually loaded (logged at enable + in the
         /// class-wiki diagnostics). Bump per RCA iteration so a stale DLL is immediately visible in the log.
         /// </summary>
-        public const string BuildMarker = "wiki-rca2";
+        public const string BuildMarker = "wiki-rca3";
 
         public override void OnModEnabled()
         {
             Instance = this;
-            OracleLog.Debug("[Oracle] OnModEnabled BUILD " + BuildMarker + " asm="
-                + Assembly.GetExecutingAssembly().GetName().Version);
+            // UNCONDITIONAL (Info-level, not debug-gated): the marker must identify the loaded build even
+            // when debug logging is off at game start (it gets toggled mid-session at the earliest).
+            try
+            {
+                Logger.LogInfo("[Oracle] BUILD " + BuildMarker + " asm="
+                    + Assembly.GetExecutingAssembly().GetName().Version);
+            }
+            catch
+            {
+                UnityEngine.Debug.Log("[Oracle] BUILD " + BuildMarker);
+            }
             var harmony = (Harmony)HarmonyInstance;
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             OracleLog.Debug("[Oracle] PatchAll done");

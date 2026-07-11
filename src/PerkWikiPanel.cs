@@ -340,8 +340,8 @@ namespace Morgott.Oracle
                         + " guid=" + spec.Guid);
                     ClearChildren(bodyGo.transform);
                     BuildBodyTitle(bodyGo.transform, ResolveClassTitle(spec));
-                    BuildClassTrackRow(bodyGo.transform, spec, template, cellSize, canvasRect, rootCanvas,
-                        dualLevel0, dualIcon);
+                    BuildClassTrackRow(bodyGo.transform, spec, character, template, cellSize, canvasRect,
+                        rootCanvas, dualLevel0, dualIcon);
                     BuildSlotRow(bodyGo.transform, spec, template, cellSize, canvasRect, rootCanvas, panelRt);
                     LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
                 }
@@ -454,20 +454,22 @@ namespace Morgott.Oracle
 
         /// <summary>
         /// Row 2: the class ability track EXACTLY as the native progression row renders it — cell i =
-        /// <c>AbilitiesByLevel[i]</c> in level order (AbilityTrackContainerElement.cs:251-261), empty
-        /// slots as inert empty native cells (SetEmpty equivalent, :232-236), and the
+        /// <c>AbilitiesByLevel[i]</c> in level order (AbilityTrackContainerElement.cs:251-261) from the
+        /// RUNTIME-first composition (<see cref="ClassPerkProvider.GetClassTrackCells"/>: the same
+        /// per-soldier snapshot layer the native screen renders, def only when no soldier of the class
+        /// exists), empty slots as inert empty native cells (SetEmpty equivalent, :232-236), and the
         /// SecondSpecializationLevel-1 cell overlaid with the native dual-class "+" visuals exactly like
         /// HumanAbilityTrackContainer.SetDualSpec — the def in that slot is NEVER rendered natively
         /// (TFTV leaves it unconfigured: MainSpecModification.cs:47 "3 = secondary class selector").
-        /// No prepend/compaction/dedup, so runtime-mutated tracks (TFTV, Officer) match 1:1. Guarded.
+        /// No prepend/compaction/dedup. Guarded.
         /// </summary>
-        private static void BuildClassTrackRow(Transform parent, SpecializationDef spec,
+        private static void BuildClassTrackRow(Transform parent, SpecializationDef spec, GeoCharacter viewer,
             AbilityTrackSkillEntryElement template, float cellSize, RectTransform canvasRect,
             Canvas rootCanvas, int dualLevel0, Sprite dualIcon)
         {
             try
             {
-                List<TacticalAbilityDef> cells = ClassPerkProvider.GetClassTrackCells(spec);
+                List<TacticalAbilityDef> cells = ClassPerkProvider.GetClassTrackCells(spec, viewer, out string source);
                 if (cells.Count == 0)
                 {
                     return;
@@ -476,7 +478,7 @@ namespace Morgott.Oracle
                 // cell appended per index in order; GridLayoutGroup lays out by sibling order).
                 var map = OracleMain.DebugLoggingEnabled
                     ? new System.Text.StringBuilder("[Oracle] Row2 render for " + ((UnityEngine.Object)(object)spec).name
-                        + " (dualLevel0=" + dualLevel0 + ", cells=" + cells.Count + "):")
+                        + " (dualLevel0=" + dualLevel0 + ", cells=" + cells.Count + ", source=" + source + "):")
                     : null;
                 BuildRowLabel(parent, Loc.Get(SectionClassTerm, SectionClassFallback));
                 GameObject grid = BuildRowGrid(parent, cells.Count, cellSize);

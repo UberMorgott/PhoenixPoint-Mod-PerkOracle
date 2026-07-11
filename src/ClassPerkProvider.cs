@@ -7,6 +7,7 @@ using PhoenixPoint.Common.Core;
 using PhoenixPoint.Common.Entities;
 using PhoenixPoint.Common.Entities.Characters;
 using PhoenixPoint.Common.Entities.GameTagsTypes;
+using PhoenixPoint.Geoscape.Entities;
 using PhoenixPoint.Geoscape.Entities.Research.Reward;
 using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Tactical.Entities.Abilities;
@@ -84,28 +85,48 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// The class ability track EXACTLY as the native progression row renders it: one entry per level
-        /// slot (index = level-1), NULLS PRESERVED for empty slots, read LIVE from
-        /// <c>spec.AbilityTrack.AbilitiesByLevel</c> at call time (TFTV MainSpecModification and the
-        /// Officer mod mutate these track defs in place at load — never cache). Mirrors
-        /// <c>AbilityTrackContainerElement.GetAbilitySlots</c>/<c>SetAbilitySlot</c>
-        /// (AbilityTrackContainerElement.cs:251-261/230-249: cell b &lt;- AbilitiesByLevel[b], null -&gt;
-        /// SetEmpty). No proficiency prepend, no compaction, no dedup — the proficiency already sits in
-        /// its own slot. The caller overlays the dual-class cell (HumanAbilityTrackContainer.SetDualSpec).
-        /// Empty list on any error.
+        /// The class ability track EXACTLY as the native progression row renders it for a soldier of
+        /// <paramref name="spec"/>: one entry per level slot (index = level-1), NULLS PRESERVED.
+        ///
+        /// SOURCE ORDER — runtime first, def as fallback. The native screen renders the soldier's
+        /// RUNTIME track (<c>_character.Progression.AbilityTracks</c>,
+        /// AbilityTrackContainerElement.cs:147/251-261), a per-soldier SNAPSHOT of the spec's track def
+        /// cloned at soldier creation (CharacterProgression.cs:104) and SERIALIZED into the save. The
+        /// def layer is a mod battleground rewritten at enable time (TFTV MainSpecModification rewrites
+        /// all class tracks; the Officer mod writes Assault[5]/Sniper[6] — ModHandler.cs:69-72), so
+        /// def != runtime for existing soldiers (e.g. Sniper L7: runtime MarkedForDeath vs def Deadeye).
+        /// Composition:
+        ///   1. the viewing soldier's own runtime track when spec is their main (PrimaryClass track) or
+        ///      secondary (SecondaryClass track) spec;
+        ///   2. else the first faction soldier whose main (then secondary) spec matches — their snapshot;
+        ///   3. else the CURRENT def track (what a soldier created right now would snapshot).
+        /// Read live on every call — no caching. <paramref name="source"/> reports the layer used (for
+        /// the RCA diagnostics). Empty list on any error.
         /// </summary>
-        public static List<TacticalAbilityDef> GetClassTrackCells(SpecializationDef spec)
+        public static List<TacticalAbilityDef> GetClassTrackCells(SpecializationDef spec, GeoCharacter viewer,
+            out string source)
         {
+            source = "none";
             var cells = new List<TacticalAbilityDef>();
             try
             {
-                if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null
-                    || (UnityEngine.Object)(object)spec.AbilityTrack == (UnityEngine.Object)null
-                    || spec.AbilityTrack.AbilitiesByLevel == null)
+                if ((UnityEngine.Object)(object)spec == (UnityEngine.Object)null)
                 {
                     return cells;
                 }
-                foreach (AbilityTrackSlot slot in spec.AbilityTrack.AbilitiesByLevel)
+
+                AbilityTrackSlot[] slots = ResolveRuntimeSlots(spec, viewer, ref source);
+                if (slots == null
+                    && (UnityEngine.Object)(object)spec.AbilityTrack != (UnityEngine.Object)null)
+                {
+                    slots = spec.AbilityTrack.AbilitiesByLevel;
+                    source = "def";
+                }
+                if (slots == null)
+                {
+                    return cells;
+                }
+                foreach (AbilityTrackSlot slot in slots)
                 {
                     cells.Add(slot?.Ability); // null kept: the native row shows an EMPTY cell there
                 }
@@ -116,6 +137,83 @@ namespace Morgott.Oracle
                 cells.Clear();
             }
             return cells;
+        }
+
+        /// <summary>
+        /// Find the runtime (per-soldier snapshot) track slots for <paramref name="spec"/>: the viewer's
+        /// own tracks first, then any faction soldier with that main spec (exact native primary row),
+        /// then any with it as secondary. Null when no live soldier carries the spec. Sets
+        /// <paramref name="source"/> on a hit.
+        /// </summary>
+        private static AbilityTrackSlot[] ResolveRuntimeSlots(SpecializationDef spec, GeoCharacter viewer,
+            ref string source)
+        {
+            try
+            {
+                AbilityTrackSlot[] FromSoldier(GeoCharacter c)
+                {
+                    CharacterProgression p = c?.Progression;
+                    if (p == null)
+                    {
+                        return null;
+                    }
+                    if ((UnityEngine.Object)(object)p.MainSpecDef == (UnityEngine.Object)(object)spec)
+                    {
+                        return p.GetAbilityTrack(AbilityTrackSource.PrimaryClass)?.AbilitiesByLevel;
+                    }
+                    if ((UnityEngine.Object)(object)p.SecondarySpecDef == (UnityEngine.Object)(object)spec)
+                    {
+                        return p.GetAbilityTrack(AbilityTrackSource.SecondaryClass)?.AbilitiesByLevel;
+                    }
+                    return null;
+                }
+
+                AbilityTrackSlot[] own = FromSoldier(viewer);
+                if (own != null)
+                {
+                    source = "runtime:viewer";
+                    return own;
+                }
+
+                GeoLevelController level = GameUtl.CurrentLevel()?.GetComponent<GeoLevelController>();
+                GeoFaction faction = (UnityEngine.Object)(object)level != (UnityEngine.Object)null
+                    ? level.PhoenixFaction
+                    : null;
+                if (faction == null)
+                {
+                    return null;
+                }
+                // Main-spec matches are the exact native primary row; prefer them across all soldiers
+                // before settling for a secondary-track snapshot.
+                foreach (GeoCharacter c in faction.HumanSoldiers)
+                {
+                    if (c?.Progression != null
+                        && (UnityEngine.Object)(object)c.Progression.MainSpecDef == (UnityEngine.Object)(object)spec)
+                    {
+                        AbilityTrackSlot[] slots = c.Progression
+                            .GetAbilityTrack(AbilityTrackSource.PrimaryClass)?.AbilitiesByLevel;
+                        if (slots != null)
+                        {
+                            source = "runtime:main";
+                            return slots;
+                        }
+                    }
+                }
+                foreach (GeoCharacter c in faction.HumanSoldiers)
+                {
+                    AbilityTrackSlot[] slots = FromSoldier(c);
+                    if (slots != null)
+                    {
+                        source = "runtime:secondary";
+                        return slots;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] ClassPerkProvider.ResolveRuntimeSlots failed: " + ex.Message);
+            }
+            return null;
         }
 
         /// <summary>
