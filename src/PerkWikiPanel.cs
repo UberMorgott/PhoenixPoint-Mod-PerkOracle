@@ -1260,12 +1260,20 @@ namespace Morgott.Oracle
                 ? rootCanvas.transform as RectTransform
                 : null;
 
+            // Cell markers: what the slot holds right now, and what it originally held (the revert target,
+            // resolved when the wiki was opened — see OnCancelInputHandlerPatch). Both null on the
+            // view-only wikis, which then render exactly as before.
+            TacticalAbilityDef currentDef = slot != null ? slot.Ability : null;
+            TacticalAbilityDef originalDef = swapContext != null ? swapContext.OriginalDef : null;
+
             foreach (TacticalAbilityDef def in defs)
             {
                 if (useNative)
                 {
                     WikiIconFactory.MakeNative(contentGo.transform, def, template, slot,
-                        _tooltip, canvasRect, rootCanvas, swapContext);
+                        _tooltip, canvasRect, rootCanvas, swapContext,
+                        isCurrent: ReferenceEquals(def, currentDef),
+                        isOriginal: ReferenceEquals(def, originalDef));
                 }
                 else
                 {

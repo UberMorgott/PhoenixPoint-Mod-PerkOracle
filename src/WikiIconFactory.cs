@@ -107,7 +107,7 @@ namespace Morgott.Oracle
         public static GameObject MakeNative(Transform parent, TacticalAbilityDef def,
             AbilityTrackSkillEntryElement template, AbilityTrackSlot slot,
             GeoRosterAbilityDetailTooltip tooltip, RectTransform canvasRect, Canvas rootCanvas,
-            PerkSwapContext swapContext)
+            PerkSwapContext swapContext, bool isCurrent = false, bool isOriginal = false)
         {
             if ((UnityEngine.Object)(object)parent == (UnityEngine.Object)null || def == null
                 || (UnityEngine.Object)(object)template == (UnityEngine.Object)null || slot == null
@@ -152,6 +152,32 @@ namespace Morgott.Oracle
 
                 // Disable the native (text) tooltip; we provide the rich framed tooltip ourselves.
                 cell.SetTooltip(null);
+
+                // Slot state markers, both reusing what the panel already has:
+                //  - CURRENT: the game's own dim "unavailable" arm of SetSkillState (same one MakeCell's
+                //    !bright uses) — this is what the slot already holds, so it is not a choice.
+                //  - ORIGINAL (and not current): the CellBackground wash, i.e. "this is the slot's default";
+                //    the cell stays fully clickable so reverting runs the ordinary TrySwap path.
+                // The template is usually a ROLLED personal cell, so the clone can inherit its tint child;
+                // hide it on every cell first, then light it only on the original, so the marker means
+                // exactly one thing. Hide (not Destroy) because Unity's Destroy is deferred — a re-created
+                // child could otherwise collide with the pending one.
+                if (isCurrent)
+                {
+                    CellBackground.Apply(cell, false);
+                    if ((object)SetSkillStateMethod != null)
+                    {
+                        SetSkillStateMethod.Invoke(cell, new object[] { false, true, false, true });
+                    }
+                }
+                else if (isOriginal)
+                {
+                    CellBackground.ApplyAlways(cell);
+                }
+                else
+                {
+                    CellBackground.Apply(cell, false);
+                }
 
                 // Let the GridLayoutGroup own placement/size regardless of the prefab's anchoring.
                 var rt = cloneGo.GetComponent<RectTransform>();

@@ -61,7 +61,12 @@ namespace Morgott.Oracle
                     return true; // not over a rolled cell -> normal back
                 }
 
-                List<TacticalAbilityDef> defs = PerkWikiPool.ResolveForSlot(level0, className);
+                // The pool itself stays exactly what it always was (ResolveForSlot is memoized per
+                // (level0, className) and also feeds RolledPoolMembership, so it must not be polluted).
+                // Drills and the stored original are appended HERE, on a private copy, for this one wiki.
+                TacticalAbilityDef originalDef = ResolveStoredOriginal(character, cell.TrackSlot, level0);
+                List<TacticalAbilityDef> defs = AppendExtraCandidates(
+                    PerkWikiPool.ResolveForSlot(level0, className), character, originalDef);
                 if (defs == null || defs.Count == 0)
                 {
                     OracleLog.Debug("[Oracle] perk wiki: empty pool for level0=" + level0
@@ -77,7 +82,7 @@ namespace Morgott.Oracle
 
                 // Build the swap context so wiki left-clicks can replace this slot's perk (gated by the
                 // AllowPerkSwap config at click time). Null character/slot just disables swapping.
-                var swapContext = new PerkSwapContext(character, cell.TrackSlot, __instance, level0);
+                var swapContext = new PerkSwapContext(character, cell.TrackSlot, __instance, level0, originalDef);
 
                 PerkWikiPanel.Open(canvas, defs, swapContext);
                 __result = true;
@@ -87,6 +92,101 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] OnCancelInputHandler prefix failed: " + ex.Message);
                 return true; // on any failure, never block the normal back action
+            }
+        }
+
+        /// <summary>
+        /// The candidate list the wiki actually shows: the slot's normal pool, plus (when TFTV is loaded)
+        /// the drills this soldier may take, plus the slot's stored original ability. Returns the pool
+        /// list UNCHANGED — same reference — when there is nothing to append, so the no-TFTV / never-swapped
+        /// path is byte-identical to before. Never throws; on any failure the plain pool is used.
+        ///
+        /// Everything appended is read live: the drill list, its order and its requirements all come out of
+        /// TFTV at call time, so drills TFTV adds, renames or removes appear/disappear with no code change.
+        /// </summary>
+        private static List<TacticalAbilityDef> AppendExtraCandidates(List<TacticalAbilityDef> pool,
+            GeoCharacter character, TacticalAbilityDef originalDef)
+        {
+            try
+            {
+                List<TacticalAbilityDef> extra = null;
+
+                if (TftvDrillsBridge.DrillsAvailable)
+                {
+                    // "Ignore drill requirements" means the player wants to BROWSE everything, so show the
+                    // whole live drill list; otherwise show exactly what TFTV says this soldier can take.
+                    List<TacticalAbilityDef> drills = OracleMain.IgnoreDrillRequirements
+                        ? TftvDrillsBridge.AllDrills
+                        : TftvDrillsBridge.GetAvailableDrills(
+                            character?.Faction?.GeoLevel?.PhoenixFaction, character);
+                    Append(ref extra, pool, drills);
+                }
+
+                if ((UnityEngine.Object)(object)originalDef != (UnityEngine.Object)null)
+                {
+                    Append(ref extra, pool, new[] { originalDef });
+                }
+
+                if (extra == null)
+                {
+                    return pool;
+                }
+
+                var merged = new List<TacticalAbilityDef>(pool);
+                merged.AddRange(extra);
+                return merged;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] perk wiki: extra-candidate append failed: " + ex.Message);
+                return pool;
+            }
+        }
+
+        /// <summary>Collect the members of <paramref name="add"/> not already in the pool or in <paramref name="extra"/>.</summary>
+        private static void Append(ref List<TacticalAbilityDef> extra, List<TacticalAbilityDef> pool,
+            IEnumerable<TacticalAbilityDef> add)
+        {
+            if (add == null)
+            {
+                return;
+            }
+            foreach (TacticalAbilityDef def in add)
+            {
+                if ((UnityEngine.Object)(object)def == (UnityEngine.Object)null
+                    || pool.Contains(def)
+                    || (extra != null && extra.Contains(def)))
+                {
+                    continue;
+                }
+                (extra ?? (extra = new List<TacticalAbilityDef>())).Add(def);
+            }
+        }
+
+        /// <summary>
+        /// The ability this slot held before PerkOracle first changed it, resolved against the LIVE def
+        /// repository. Null when nothing is stored, the slot was changed behind us, the slot is already
+        /// back to its default, or the stored def no longer exists (renamed/removed by a content update —
+        /// the entry is simply left on disk untouched). Never throws.
+        /// </summary>
+        private static TacticalAbilityDef ResolveStoredOriginal(GeoCharacter character, AbilityTrackSlot slot,
+            int level0)
+        {
+            try
+            {
+                if (character == null || slot == null
+                    || (UnityEngine.Object)(object)slot.Ability == (UnityEngine.Object)null)
+                {
+                    return null;
+                }
+                string originalName = OriginalPerkStore.GetOriginalDefName(
+                    (int)character.Id, level0, slot.Ability.name);
+                return TftvConfigBridge.ResolveDefByName(originalName);
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] perk wiki: stored-original lookup failed: " + ex.Message);
+                return null;
             }
         }
 

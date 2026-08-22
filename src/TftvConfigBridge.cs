@@ -422,6 +422,21 @@ namespace Morgott.Oracle
             return _defByName != null && _defByName.TryGetValue(defName, out TacticalAbilityDef def) ? def : null;
         }
 
+        /// <summary>
+        /// Resolve a raw def NAME (<c>TacticalAbilityDef.name</c>) against the live def repository, using
+        /// the same lazily-built index the TFTV pool resolution uses. Returns null when the def no longer
+        /// exists — e.g. a TFTV update renamed or removed it — so callers can just skip it.
+        /// </summary>
+        public static TacticalAbilityDef ResolveDefByName(string defName)
+        {
+            if (string.IsNullOrEmpty(defName))
+            {
+                return null;
+            }
+            EnsureDefIndex();
+            return _defByName != null && _defByName.TryGetValue(defName, out TacticalAbilityDef def) ? def : null;
+        }
+
         /// <summary>Lazily index every TacticalAbilityDef by its def name (built once, on first need).</summary>
         private static void EnsureDefIndex()
         {

@@ -23,13 +23,22 @@ namespace Morgott.Oracle
         public readonly UIModuleCharacterProgression Module;
         public readonly int Level0;
 
+        /// <summary>
+        /// The ability this slot held before PerkOracle first changed it (from
+        /// <see cref="OriginalPerkStore"/>), or null when nothing is stored / the stored def no longer
+        /// resolves. Purely informational here: the wiki uses it to mark the "default" cell; the swap
+        /// itself treats that cell like any other candidate.
+        /// </summary>
+        public readonly TacticalAbilityDef OriginalDef;
+
         public PerkSwapContext(GeoCharacter character, AbilityTrackSlot slot,
-            UIModuleCharacterProgression module, int level0)
+            UIModuleCharacterProgression module, int level0, TacticalAbilityDef originalDef = null)
         {
             Character = character;
             Slot = slot;
             Module = module;
             Level0 = level0;
+            OriginalDef = originalDef;
         }
 
         /// <summary>True if the context carries the minimum needed to attempt a swap.</summary>
@@ -214,6 +223,11 @@ namespace Morgott.Oracle
                 // repaint the SP counter. Done last so a mid-swap failure/rollback never charges the player.
                 ChargeSwapCost(progression, ctx.Module, swapCost);
 
+                // Remember what this slot originally held so the player can put it back. First write wins
+                // (a second swap still reverts to the true default) and the entry clears itself once the
+                // slot is restored — see OriginalPerkStore. Vanilla-safe: no TFTV involved.
+                RecordOriginal(ctx, oldDef, chosenDef);
+
                 OracleLog.Debug("[Oracle] PerkSwap: " + DefName(oldDef) + " -> " + DefName(chosenDef)
                           + " @ level " + LevelLabel(ctx));
                 return true;
@@ -222,6 +236,23 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] PerkSwapper.TrySwap failed: " + ex.Message);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Persist "this slot originally held <paramref name="oldDef"/>" for the soldier's own serialized
+        /// <c>GeoCharacter.Id</c> + slot level. Guarded: the store is a convenience, never a reason for a
+        /// committed swap to report failure.
+        /// </summary>
+        private static void RecordOriginal(PerkSwapContext ctx, TacticalAbilityDef oldDef, TacticalAbilityDef chosenDef)
+        {
+            try
+            {
+                OriginalPerkStore.RecordSwap((int)ctx.Character.Id, ctx.Level0, DefName(oldDef), DefName(chosenDef));
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkSwap original-perk record failed: " + ex.Message);
             }
         }
 
