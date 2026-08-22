@@ -47,7 +47,8 @@ namespace Morgott.Oracle
         /// Gating order mirrors the design spec:
         ///   1. current must be owned (learned) — else <see cref="PerkSwapVerdict.DenyNotLearned"/>;
         ///   2. chosen == current — <see cref="PerkSwapVerdict.DenySameAsCurrent"/> (no-op);
-        ///   3. chosen already owned elsewhere — <see cref="PerkSwapVerdict.DenyAlreadyOwned"/>;
+        ///   3. chosen already owned elsewhere, or already scheduled in a later (locked) slot of the
+        ///      soldier's track — <see cref="PerkSwapVerdict.DenyAlreadyOwned"/>;
         ///   4. otherwise <see cref="PerkSwapVerdict.Allow"/>.
         /// </summary>
         /// <typeparam name="T">Def type (a real TacticalAbilityDef in game; a fake in tests).</typeparam>
@@ -55,11 +56,17 @@ namespace Morgott.Oracle
         /// <param name="current">The perk currently in the slot.</param>
         /// <param name="owned">The perks the soldier already has; membership tested via Contains.</param>
         /// <param name="comparer">Optional equality comparer; defaults to <see cref="EqualityComparer{T}.Default"/>.</param>
+        /// <param name="scheduled">
+        /// Optional: perks already baked into OTHER slots of the soldier's track, including future,
+        /// not-yet-unlocked ones. Kept SEPARATE from <paramref name="owned"/> on purpose — folding it in
+        /// would make locked slots look learned and wrongly open swaps on them.
+        /// </param>
         public static PerkSwapVerdict Evaluate<T>(
             T chosen,
             T current,
             IReadOnlyCollection<T> owned,
-            IEqualityComparer<T> comparer = null)
+            IEqualityComparer<T> comparer = null,
+            IReadOnlyCollection<T> scheduled = null)
         {
             comparer = comparer ?? EqualityComparer<T>.Default;
 
@@ -85,6 +92,13 @@ namespace Morgott.Oracle
             // 3) The chosen perk is already owned in another slot: a swap would create a duplicate, so
             //    skip (and the caller logs it).
             if (Contains(owned, chosen, comparer))
+            {
+                return PerkSwapVerdict.DenyAlreadyOwned;
+            }
+
+            // 3b) The chosen perk is already scheduled in a later, not-yet-unlocked slot of the track:
+            //     swapping it in early would hand the soldier the perk twice / ~4 levels early.
+            if (scheduled != null && Contains(scheduled, chosen, comparer))
             {
                 return PerkSwapVerdict.DenyAlreadyOwned;
             }

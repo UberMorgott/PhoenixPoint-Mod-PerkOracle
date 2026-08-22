@@ -69,7 +69,8 @@ namespace Morgott.Oracle
 
                 // Decision gate (learned? same? already-owned?). Owned set = progression.Abilities.
                 IReadOnlyList<TacticalAbilityDef> owned = progression.Abilities;
-                PerkSwapVerdict verdict = PerkSwapDecision.Evaluate(chosenDef, oldDef, owned);
+                PerkSwapVerdict verdict = PerkSwapDecision.Evaluate(
+                    chosenDef, oldDef, owned, null, ScheduledPerks(progression, slot));
                 if (verdict != PerkSwapVerdict.Allow)
                 {
                     if (verdict == PerkSwapVerdict.DenyAlreadyOwned)
@@ -197,6 +198,42 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] PerkSwapper.TrySwap failed: " + ex.Message);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Every perk baked into the soldier's tracks (all slots, including future, not-yet-unlocked
+        /// ones), EXCEPT the slot being swapped so re-swapping the same slot stays allowed. Feeds the
+        /// duplicate gate: without it a perk scheduled at a later level can be swapped into an early
+        /// slot and the soldier gets it twice / levels early (issue #1). Guarded: on any failure returns
+        /// null, i.e. the previous behaviour.
+        /// </summary>
+        private static List<TacticalAbilityDef> ScheduledPerks(CharacterProgression progression, AbilityTrackSlot skip)
+        {
+            try
+            {
+                var scheduled = new List<TacticalAbilityDef>();
+                foreach (AbilityTrack track in progression.AbilityTracks)
+                {
+                    if (track == null || track.AbilitiesByLevel == null)
+                    {
+                        continue;
+                    }
+                    foreach (AbilityTrackSlot s in track.AbilitiesByLevel)
+                    {
+                        if (s == null || ReferenceEquals(s, skip) || s.Ability == null)
+                        {
+                            continue;
+                        }
+                        scheduled.Add(s.Ability);
+                    }
+                }
+                return scheduled;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkSwap scheduled-perk scan failed: " + ex.Message);
+                return null;
             }
         }
 

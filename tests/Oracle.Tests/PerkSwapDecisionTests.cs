@@ -37,6 +37,32 @@ namespace Morgott.Oracle.Tests
         }
 
         [Fact]
+        public void ChosenScheduledInLaterSlot_Denies()
+        {
+            // "D" is not learned yet but is already baked into a later, locked slot of the track =>
+            // swapping it into an early slot would grant it twice / levels early (issue #1).
+            var verdict = PerkSwapDecision.Evaluate("D", "A", Owned(), scheduled: new List<string> { "D" });
+            Assert.Equal(PerkSwapVerdict.DenyAlreadyOwned, verdict);
+        }
+
+        [Fact]
+        public void ScheduledElsewhere_UnrelatedChoice_Allows()
+        {
+            // A scheduled perk the player did not pick must not block an otherwise valid swap.
+            var verdict = PerkSwapDecision.Evaluate("B", "A", Owned(), scheduled: new List<string> { "D" });
+            Assert.Equal(PerkSwapVerdict.Allow, verdict);
+        }
+
+        [Fact]
+        public void ScheduledCurrent_StillNotLearned()
+        {
+            // Scheduled must NOT be folded into owned: a slot whose current perk is only scheduled
+            // (not learned) stays out of scope.
+            var verdict = PerkSwapDecision.Evaluate("B", "X", Owned(), scheduled: new List<string> { "X" });
+            Assert.Equal(PerkSwapVerdict.DenyNotLearned, verdict);
+        }
+
+        [Fact]
         public void ValidSwap_Allows()
         {
             // Current "A" learned; chosen "B" differs and is not owned => allow.
