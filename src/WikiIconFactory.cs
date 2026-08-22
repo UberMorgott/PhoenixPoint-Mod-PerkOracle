@@ -165,9 +165,18 @@ namespace Morgott.Oracle
                 if (isCurrent)
                 {
                     CellBackground.Apply(cell, false);
-                    if ((object)SetSkillStateMethod != null)
+                    // Own try: dimming is cosmetic, but a throw here would abort the whole cell — and
+                    // this is the CURRENT perk's cell, which would then vanish from the wiki entirely.
+                    try
                     {
-                        SetSkillStateMethod.Invoke(cell, new object[] { false, true, false, true });
+                        if ((object)SetSkillStateMethod != null)
+                        {
+                            SetSkillStateMethod.Invoke(cell, new object[] { false, true, false, true });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        OracleLog.Debug("[Oracle] WikiIconFactory current-cell dim failed: " + ex.Message);
                     }
                 }
                 else if (isOriginal)

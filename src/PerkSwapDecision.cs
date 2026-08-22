@@ -84,6 +84,19 @@ namespace Morgott.Oracle
         /// acquired-drill proficiency guard still apply.
         /// </summary>
         public bool IsRevertToOriginal;
+
+        /// <summary>
+        /// Fold TFTV's two nullable SAFETY answers into <see cref="RemovalBreaksAcquiredDrill"/>. A
+        /// <c>null</c> means the bridge could NOT obtain the answer (member unresolved / TFTV threw), and
+        /// an unknown safety answer must count exactly like "yes, this would break an acquired drill" —
+        /// fail closed. Pure so the fail-closed rule is unit-tested engine-free.
+        /// </summary>
+        public static bool SafetyDenies(bool? currentIsAcquiredDrill, bool? removalBreaksAcquiredDrill)
+        {
+            return currentIsAcquiredDrill == null
+                   || removalBreaksAcquiredDrill == null
+                   || removalBreaksAcquiredDrill == true;
+        }
     }
 
     /// <summary>

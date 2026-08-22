@@ -248,11 +248,40 @@ namespace Morgott.Oracle
         {
             try
             {
-                OriginalPerkStore.RecordSwap((int)ctx.Character.Id, ctx.Level0, DefName(oldDef), DefName(chosenDef));
+                if (ctx.Level0 < 0)
+                {
+                    // The store keys on the slot level, so a slot whose level could not be resolved can
+                    // never be recorded — and would silently become non-revertable. Say so.
+                    OracleLog.Debug("[Oracle] PerkSwap: slot level unknown (Level0=" + ctx.Level0
+                              + "); this swap is NOT recorded and the slot will not be revertable.");
+                    return;
+                }
+                OriginalPerkStore.RecordSwap((int)ctx.Character.Id, ctx.Level0, TrackKey(ctx.Slot),
+                    DefName(oldDef), DefName(chosenDef));
             }
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] PerkSwap original-perk record failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Track dimension of the store key: without it two slots at the same level in DIFFERENT tracks
+        /// (primary class / secondary class / personal) collide on one entry. Taken live from the track's
+        /// own <c>Source</c> enum, so nothing is hardcoded. Empty when the track cannot be resolved — the
+        /// key then degrades to the pre-track shape rather than dropping the entry.
+        /// </summary>
+        public static string TrackKey(AbilityTrackSlot slot)
+        {
+            try
+            {
+                AbilityTrack track = slot?.AbilityTrack;
+                return track != null ? track.Source.ToString() : string.Empty;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkSwap track-key resolve failed: " + ex.Message);
+                return string.Empty;
             }
         }
 
@@ -266,32 +295,48 @@ namespace Morgott.Oracle
         private static DrillSwapContext BuildDrillContext(GeoCharacter character, TacticalAbilityDef oldDef,
             TacticalAbilityDef chosenDef, bool isRevertToOriginal)
         {
+            // Outside the try on purpose: TFTV-absent must stay a plain "no drill context" (vanilla
+            // behaviour), never the fail-closed deny the catch below returns.
+            if (!TftvDrillsBridge.DrillsAvailable)
+            {
+                return null;
+            }
             try
             {
-                if (!TftvDrillsBridge.DrillsAvailable)
-                {
-                    return null;
-                }
-
                 List<TacticalAbilityDef> drills = TftvDrillsBridge.AllDrills;
                 bool chosenIsDrill = drills.Contains(chosenDef);
                 bool currentIsDrill = drills.Contains(oldDef);
                 GeoPhoenixFaction faction = character?.Faction?.GeoLevel?.PhoenixFaction;
+
+                // The two SAFETY answers are nullable: null means the bridge could not obtain them
+                // (member unresolved / TFTV threw). Fail CLOSED — an unknown safety answer is treated
+                // exactly like "yes, this swap would break an acquired drill", so one exception inside
+                // TFTV can never let a dangerous swap through.
+                bool? currentIsAcquired = currentIsDrill
+                    ? TftvDrillsBridge.CharacterHasDrill(character, oldDef)
+                    : false;
+                bool? breaksAcquired = TftvDrillsBridge.WouldBreakWeaponProficiencyRequirement(
+                    character, oldDef, out List<string> blockingDrills);
+                bool unknown = currentIsAcquired == null || breaksAcquired == null;
+                bool denies = DrillSwapContext.SafetyDenies(currentIsAcquired, breaksAcquired);
 
                 var info = new DrillSwapContext
                 {
                     ChosenIsDrill = chosenIsDrill,
                     ChosenDrillUnlocked = chosenIsDrill
                         && TftvDrillsBridge.IsDrillUnlocked(faction, character, chosenDef),
-                    CurrentIsAcquiredDrill = currentIsDrill
-                        && TftvDrillsBridge.CharacterHasDrill(character, oldDef),
-                    RemovalBreaksAcquiredDrill = TftvDrillsBridge.WouldBreakWeaponProficiencyRequirement(
-                        character, oldDef, out List<string> blockingDrills),
+                    CurrentIsAcquiredDrill = currentIsAcquired ?? true,
+                    RemovalBreaksAcquiredDrill = denies,
                     IgnoreDrillRequirements = OracleMain.IgnoreDrillRequirements,
                     AllowDrillReSwap = OracleMain.AllowDrillReSwap,
                     IsRevertToOriginal = isRevertToOriginal,
                 };
-                if (info.RemovalBreaksAcquiredDrill)
+                if (unknown)
+                {
+                    OracleLog.Debug("[Oracle] PerkSwap blocked: TFTV drill safety check unavailable for "
+                              + DefName(oldDef) + "; denying rather than risking an acquired drill.");
+                }
+                else if (info.RemovalBreaksAcquiredDrill)
                 {
                     OracleLog.Debug("[Oracle] PerkSwap blocked: removing " + DefName(oldDef)
                               + " would invalidate acquired drill(s): "
@@ -301,8 +346,9 @@ namespace Morgott.Oracle
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] PerkSwap drill context build failed: " + ex.Message);
-                return null;
+                // Drills ARE loaded (checked above) but the context could not be built: fail closed.
+                OracleLog.Debug("[Oracle] PerkSwap drill context build failed, denying: " + ex.Message);
+                return new DrillSwapContext { RemovalBreaksAcquiredDrill = true };
             }
         }
 

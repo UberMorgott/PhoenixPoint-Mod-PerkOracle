@@ -55,6 +55,12 @@ namespace Morgott.Oracle
         private const string DrillTakenFallback = "Already learned";
         private const string DrillLockedTerm = "ORACLE_DRILL_STATUS_LOCKED";
         private const string DrillLockedFallback = "Locked";
+        private const string DrillLevelTerm = "ORACLE_DRILL_LEVEL";
+        private const string DrillLevelFallback = "Level";
+        private const string DrillOrTerm = "ORACLE_DRILL_OR";
+        private const string DrillOrFallback = "or";
+        private const string DrillResearchTerm = "ORACLE_DRILL_RESEARCH";
+        private const string DrillResearchFallback = "Research";
         private const float DrillInfoWidth = 520f; // wrap width of the drill requirement flyout text
 
         // Class-wiki (3-row native-cell tab panel) layout.
@@ -418,8 +424,9 @@ namespace Morgott.Oracle
                     OracleLog.Debug("[Oracle] drills row faction lookup failed: " + ex.Message);
                 }
 
-                BuildRowLabel(parent, Loc.Get(SectionDrillsTerm, SectionDrillsFallback));
-                GameObject grid = BuildRowGrid(parent, drills.Count, cellSize);
+                // Label + grid are created LAZILY, on the first drill that actually yields a cell: every
+                // drill missing a ViewElementDef would otherwise leave a labelled, empty row on screen.
+                GameObject grid = null;
 
                 // One info flyout at a time (same toggle semantics as the random-slot flyout).
                 GameObject flyout = null;
@@ -460,12 +467,17 @@ namespace Morgott.Oracle
                     {
                         continue;
                     }
-                    bool taken = viewer != null && TftvDrillsBridge.CharacterHasDrill(viewer, def);
+                    bool taken = viewer != null && TftvDrillsBridge.CharacterHasDrill(viewer, def) == true;
                     bool unlocked = viewer != null && faction != null
                         && TftvDrillsBridge.IsDrillUnlocked(faction, viewer, def);
                     Sprite icon = def.ViewElementDef.SmallIcon != null
                         ? def.ViewElementDef.SmallIcon
                         : def.ViewElementDef.LargeIcon;
+                    if ((UnityEngine.Object)(object)grid == (UnityEngine.Object)null)
+                    {
+                        BuildRowLabel(parent, Loc.Get(SectionDrillsTerm, SectionDrillsFallback));
+                        grid = BuildRowGrid(parent, drills.Count, cellSize);
+                    }
                     GameObject cellGo = WikiIconFactory.MakeCell(grid.transform, template, icon, def,
                         taken || unlocked || viewer == null, _tooltip, canvasRect, rootCanvas);
                     if ((UnityEngine.Object)(object)cellGo == (UnityEngine.Object)null)
@@ -498,7 +510,7 @@ namespace Morgott.Oracle
         {
             var lines = new List<string> { AbilityName(info.Drill) };
 
-            bool taken = viewer != null && TftvDrillsBridge.CharacterHasDrill(viewer, info.Drill);
+            bool taken = viewer != null && TftvDrillsBridge.CharacterHasDrill(viewer, info.Drill) == true;
             bool unlocked = viewer != null && faction != null
                 && TftvDrillsBridge.IsDrillUnlocked(faction, viewer, info.Drill);
             if (viewer != null)
@@ -530,16 +542,26 @@ namespace Morgott.Oracle
             }
 
             var reqs = new List<string>();
-            string classLine = DrillWikiFormat.ClassLevelLine(gates, Loc.Get(DrillAnyClassTerm, DrillAnyClassFallback));
+            string classLine = DrillWikiFormat.ClassLevelLine(gates,
+                Loc.Get(DrillAnyClassTerm, DrillAnyClassFallback),
+                Loc.Get(DrillLevelTerm, DrillLevelFallback));
             if (!string.IsNullOrEmpty(classLine))
             {
                 reqs.Add(classLine);
             }
             if (info.RequiredResearchIds.Count > 0)
             {
-                reqs.Add("Research: " + string.Join(", ", info.RequiredResearchIds.ToArray()));
+                // TFTV's own id -> display-name resolution, so the wording matches its Drills UI exactly;
+                // an unresolvable id falls back to the raw id (what was always printed).
+                var names = new List<string>();
+                foreach (string id in info.RequiredResearchIds)
+                {
+                    names.Add(TftvDrillsBridge.ResearchName(id));
+                }
+                reqs.Add(Loc.Get(DrillResearchTerm, DrillResearchFallback) + ": "
+                         + string.Join(", ", names.ToArray()));
             }
-            string profLine = DrillWikiFormat.ProficiencyLine(profGroups);
+            string profLine = DrillWikiFormat.ProficiencyLine(profGroups, Loc.Get(DrillOrTerm, DrillOrFallback));
             if (!string.IsNullOrEmpty(profLine))
             {
                 reqs.Add(profLine);

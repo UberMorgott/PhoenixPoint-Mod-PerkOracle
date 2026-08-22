@@ -56,6 +56,7 @@ namespace Morgott.Oracle
         private static MethodInfo _hasTrainingFacility;
         private static MethodInfo _wouldBreakProficiency;
         private static MethodInfo _missingRequirements;
+        private static MethodInfo _tryGetResearchName;      // cosmetic: research id -> display name
 
         private static List<DrillRequirementInfo> _requirements;
 
@@ -118,10 +119,14 @@ namespace Morgott.Oracle
             return Invoke(_isDrillUnlocked, new object[] { faction, viewer, ability }) as bool? ?? false;
         }
 
-        /// <summary>True if the soldier already has this drill; false when unavailable.</summary>
-        public static bool CharacterHasDrill(GeoCharacter soldier, TacticalAbilityDef drill)
+        /// <summary>
+        /// True if the soldier already has this drill. SAFETY CHECK: returns <c>null</c> when the answer
+        /// could not be obtained (member unresolved, or TFTV threw) so callers can fail CLOSED instead of
+        /// reading an error as "no, they don't have it".
+        /// </summary>
+        public static bool? CharacterHasDrill(GeoCharacter soldier, TacticalAbilityDef drill)
         {
-            return Invoke(_characterHasDrill, new object[] { soldier, drill }) as bool? ?? false;
+            return Invoke(_characterHasDrill, new object[] { soldier, drill }) as bool?;
         }
 
         /// <summary>True if the base has a working training facility; false when unavailable.</summary>
@@ -133,18 +138,17 @@ namespace Morgott.Oracle
         /// <summary>
         /// Collision guard for a swap: true if removing <paramref name="abilityToRemove"/> would strip
         /// a weapon proficiency some already-owned drill requires; <paramref name="blockingDrills"/>
-        /// then names them. False (and an empty list) when unavailable.
+        /// then names them. SAFETY CHECK: returns <c>null</c> when the answer could not be obtained
+        /// (member unresolved, or TFTV threw) so callers can fail CLOSED — reading an error as "no, it
+        /// breaks nothing" would let a swap silently invalidate a drill the soldier already paid for.
         /// </summary>
-        public static bool WouldBreakWeaponProficiencyRequirement(GeoCharacter soldier, TacticalAbilityDef abilityToRemove, out List<string> blockingDrills)
+        public static bool? WouldBreakWeaponProficiencyRequirement(GeoCharacter soldier, TacticalAbilityDef abilityToRemove, out List<string> blockingDrills)
         {
             blockingDrills = new List<string>();
+            EnsureResolved();
             if (_wouldBreakProficiency == null)
             {
-                EnsureResolved();
-                if (_wouldBreakProficiency == null)
-                {
-                    return false;
-                }
+                return null;
             }
             try
             {
@@ -159,7 +163,7 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] WouldBreakWeaponProficiencyRequirement failed: " + ex.Message);
-                return false;
+                return null;
             }
         }
 
@@ -201,26 +205,75 @@ namespace Morgott.Oracle
                 }
 
                 // Both types are internal and the condition map is private static — AccessTools
-                // already searches non-public members.
+                // already searches non-public members. Every method is resolved with an EXPLICIT
+                // parameter-type array (signatures read from refs/TFTV-src TFTVDrills/DrillsUnlock.cs
+                // :53 /:90 /:144 /:155 /:241 /:330) so a future TFTV overload cannot make the
+                // name-only lookup throw AmbiguousMatchException and take the whole bridge down.
                 _drillsField = AccessTools.Field(tDefs, "Drills");
                 _conditionsField = AccessTools.Field(tUnlock, "DrillUnlockConditions");
-                _getAvailableDrills = AccessTools.Method(tUnlock, "GetAvailableDrills");
-                _isDrillUnlocked = AccessTools.Method(tUnlock, "IsDrillUnlocked");
-                _characterHasDrill = AccessTools.Method(tUnlock, "CharacterHasDrill");
-                _hasTrainingFacility = AccessTools.Method(tUnlock, "HasFunctioningTrainingFacility");
-                _wouldBreakProficiency = AccessTools.Method(tUnlock, "WouldBreakWeaponProficiencyRequirement");
-                _missingRequirements = AccessTools.Method(tUnlock, "GetMissingRequirementDescriptions");
+                _getAvailableDrills = AccessTools.Method(tUnlock, "GetAvailableDrills",
+                    new[] { typeof(GeoPhoenixFaction), typeof(GeoCharacter) });
+                _isDrillUnlocked = AccessTools.Method(tUnlock, "IsDrillUnlocked",
+                    new[] { typeof(GeoPhoenixFaction), typeof(GeoCharacter), typeof(TacticalAbilityDef) });
+                _characterHasDrill = AccessTools.Method(tUnlock, "CharacterHasDrill",
+                    new[] { typeof(GeoCharacter), typeof(TacticalAbilityDef) });
+                _hasTrainingFacility = AccessTools.Method(tUnlock, "HasFunctioningTrainingFacility",
+                    new[] { typeof(GeoPhoenixFaction) });
+                _wouldBreakProficiency = AccessTools.Method(tUnlock, "WouldBreakWeaponProficiencyRequirement",
+                    new[] { typeof(GeoCharacter), typeof(TacticalAbilityDef), typeof(List<string>).MakeByRefType() });
+                _missingRequirements = AccessTools.Method(tUnlock, "GetMissingRequirementDescriptions",
+                    new[] { typeof(GeoPhoenixFaction), typeof(GeoCharacter), typeof(TacticalAbilityDef) });
+                // Cosmetic only (drill flyout research names) — deliberately NOT part of the
+                // availability gate; a miss just falls back to printing the raw research id.
+                _tryGetResearchName = AccessTools.Method(tUnlock, "TryGetResearchName",
+                    new[] { typeof(string) });
 
-                _available = _drillsField != null;
-                if (!_available)
-                {
-                    OracleLog.Debug("[Oracle] TFTV drills bridge: DrillsDefs.Drills not found.");
-                }
+                // Availability requires the drill list AND every member a GATE depends on. Gating on
+                // the field alone would leave DrillsAvailable true while the accessors silently return
+                // false — which disables the acquired-drill gate and the hard proficiency guard.
+                _available = ReportMissing("DrillsDefs.Drills", _drillsField)
+                             & ReportMissing("IsDrillUnlocked", _isDrillUnlocked)
+                             & ReportMissing("CharacterHasDrill", _characterHasDrill)
+                             & ReportMissing("WouldBreakWeaponProficiencyRequirement", _wouldBreakProficiency)
+                             & ReportMissing("GetAvailableDrills", _getAvailableDrills);
             }
             catch (Exception ex)
             {
                 _available = false;
                 OracleLog.Debug("[Oracle] TFTV drills bridge unavailable: " + ex.Message);
+            }
+        }
+
+        /// <summary>True when <paramref name="member"/> resolved; otherwise logs exactly which one failed.</summary>
+        private static bool ReportMissing(string name, MemberInfo member)
+        {
+            if (member != null)
+            {
+                return true;
+            }
+            OracleLog.Debug("[Oracle] TFTV drills bridge unavailable: " + name + " not found.");
+            return false;
+        }
+
+        /// <summary>
+        /// TFTV's own research-id -> display-name resolution (DrillsUnlock.TryGetResearchName:830), so the
+        /// wiki prints exactly the wording TFTV prints. Returns the raw id when unavailable.
+        /// </summary>
+        public static string ResearchName(string researchId)
+        {
+            EnsureResolved();
+            if (_tryGetResearchName == null || string.IsNullOrEmpty(researchId))
+            {
+                return researchId;
+            }
+            try
+            {
+                return _tryGetResearchName.Invoke(null, new object[] { researchId }) as string ?? researchId;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] TryGetResearchName failed: " + ex.Message);
+                return researchId;
             }
         }
 

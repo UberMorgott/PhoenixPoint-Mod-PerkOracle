@@ -198,6 +198,43 @@ namespace Morgott.Oracle.Tests
             Assert.Equal(PerkSwapVerdict.Allow, PerkSwapDecision.Evaluate("B", "A", Owned(), drills: ok));
         }
 
+        // ---- fail-closed on an UNKNOWN TFTV safety answer -------------------------------------------
+
+        [Theory]
+        [InlineData(null, null)]
+        [InlineData(null, false)]
+        [InlineData(false, null)]
+        [InlineData(false, true)]
+        [InlineData(true, null)]
+        public void SafetyDenies_UnknownOrBreaking_Denies(bool? currentIsAcquired, bool? removalBreaks)
+        {
+            Assert.True(DrillSwapContext.SafetyDenies(currentIsAcquired, removalBreaks));
+        }
+
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        public void SafetyDenies_BothKnownAndSafe_Allows(bool? currentIsAcquired, bool? removalBreaks)
+        {
+            Assert.False(DrillSwapContext.SafetyDenies(currentIsAcquired, removalBreaks));
+        }
+
+        [Fact]
+        public void UnknownSafetyAnswer_ReachesTheGateAsAHardDeny()
+        {
+            // What PerkSwapper.BuildDrillContext builds when the bridge could not answer: an unknown
+            // safety result folds into RemovalBreaksAcquiredDrill, which no option can lift.
+            var unknown = new DrillSwapContext
+            {
+                RemovalBreaksAcquiredDrill = DrillSwapContext.SafetyDenies(null, null),
+                IgnoreDrillRequirements = true,
+                AllowDrillReSwap = true,
+                IsRevertToOriginal = true,
+            };
+            Assert.Equal(PerkSwapVerdict.DenyDrillBreaksAcquired,
+                PerkSwapDecision.Evaluate("B", "A", Owned(), drills: unknown));
+        }
+
         [Fact]
         public void EffectiveCost_Disabled_IsFree()
         {

@@ -41,7 +41,7 @@ namespace Morgott.Oracle.Tests
         public void ClassLevelLine_SingleGate_UsesTftvWording()
         {
             var gates = new List<KeyValuePair<string, int>> { Gate("assault", 3) };
-            Assert.Equal("Level: 3 assault", DrillWikiFormat.ClassLevelLine(gates, "Any class"));
+            Assert.Equal("Level: 3 assault", DrillWikiFormat.ClassLevelLine(gates, "Any class", "Level"));
         }
 
         [Fact]
@@ -49,7 +49,7 @@ namespace Morgott.Oracle.Tests
         {
             var gates = new List<KeyValuePair<string, int>> { Gate(null, 5), Gate("", 2) };
             Assert.Equal("Level: 5 Any class, Level: 2 Any class",
-                DrillWikiFormat.ClassLevelLine(gates, "Any class"));
+                DrillWikiFormat.ClassLevelLine(gates, "Any class", "Level"));
         }
 
         [Fact]
@@ -57,14 +57,30 @@ namespace Morgott.Oracle.Tests
         {
             var gates = new List<KeyValuePair<string, int>> { Gate("assault", 3), Gate("heavy", 5) };
             Assert.Equal("Level: 3 assault, Level: 5 heavy",
-                DrillWikiFormat.ClassLevelLine(gates, "Any class"));
+                DrillWikiFormat.ClassLevelLine(gates, "Any class", "Level"));
+        }
+
+        [Fact]
+        public void ClassLevelLine_UsesTheSuppliedLevelLabel()
+        {
+            // The word "Level" comes from I2 (ORACLE_DRILL_LEVEL), never hardcoded.
+            var gates = new List<KeyValuePair<string, int>> { new KeyValuePair<string, int>("assault", 3) };
+            Assert.Equal("Уровень: 3 assault", DrillWikiFormat.ClassLevelLine(gates, "Любой класс", "Уровень"));
+        }
+
+        [Fact]
+        public void ProficiencyLine_UsesTheSuppliedOrWord()
+        {
+            // The word "or" comes from I2 (ORACLE_DRILL_OR), never hardcoded.
+            var groups = new List<IReadOnlyList<string>> { new List<string> { "Pistols", "Rifles" } };
+            Assert.Equal("Pistols или Rifles", DrillWikiFormat.ProficiencyLine(groups, "или"));
         }
 
         [Fact]
         public void ClassLevelLine_NoGates_ReturnsNull()
         {
-            Assert.Null(DrillWikiFormat.ClassLevelLine(null, "Any class"));
-            Assert.Null(DrillWikiFormat.ClassLevelLine(new List<KeyValuePair<string, int>>(), "Any class"));
+            Assert.Null(DrillWikiFormat.ClassLevelLine(null, "Any class", "Level"));
+            Assert.Null(DrillWikiFormat.ClassLevelLine(new List<KeyValuePair<string, int>>(), "Any class", "Level"));
         }
 
         [Fact]
@@ -76,7 +92,7 @@ namespace Morgott.Oracle.Tests
                 new List<string> { "Heavy Weapons" },
             };
             Assert.Equal("Assault Rifles or Sniper Rifles, Heavy Weapons",
-                DrillWikiFormat.ProficiencyLine(groups));
+                DrillWikiFormat.ProficiencyLine(groups, "or"));
         }
 
         [Fact]
@@ -88,14 +104,14 @@ namespace Morgott.Oracle.Tests
                 new List<string>(),
                 null,
             };
-            Assert.Equal("Pistols", DrillWikiFormat.ProficiencyLine(groups));
+            Assert.Equal("Pistols", DrillWikiFormat.ProficiencyLine(groups, "or"));
         }
 
         [Fact]
         public void ProficiencyLine_NothingToShow_ReturnsNull()
         {
-            Assert.Null(DrillWikiFormat.ProficiencyLine(null));
-            Assert.Null(DrillWikiFormat.ProficiencyLine(new List<IReadOnlyList<string>>()));
+            Assert.Null(DrillWikiFormat.ProficiencyLine(null, "or"));
+            Assert.Null(DrillWikiFormat.ProficiencyLine(new List<IReadOnlyList<string>>(), "or"));
         }
     }
 }

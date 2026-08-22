@@ -21,6 +21,13 @@ namespace Morgott.Oracle
     /// "current" still equals what the slot actually holds; a cross-campaign id collision or an outside
     /// edit therefore silently offers nothing instead of offering the wrong perk.
     ///
+    /// EXCEPTION, deliberate: <see cref="Observe"/> re-points "current" at what the slot actually holds
+    /// whenever the wiki looks at a slot that already has a baseline. Without that, a slot rewritten by
+    /// TFTV's own DrillSwapUI reads as stale forever and can never be put back — the case this store
+    /// exists for. The trade is that a cross-campaign id collision on a slot with a baseline can now be
+    /// offered the OTHER campaign's default as its "default" cell; clicking it is still an ordinary,
+    /// fully-gated swap, so the worst case is one misleading marker, not a broken soldier.
+    ///
     /// Nothing here is keyed on TFTV content: def NAMES are stored and resolved against the live def
     /// repository at use time. A def TFTV renamed/removed simply fails to resolve, no revert is offered,
     /// and the entry is left alone (a later load may have that def again).
@@ -63,7 +70,8 @@ namespace Morgott.Oracle
         /// to the true default); the entry is dropped entirely once the slot is back to its original.
         /// Never throws.
         /// </summary>
-        public static void RecordSwap(int characterId, int level0, string originalDefName, string newDefName)
+        public static void RecordSwap(int characterId, int level0, string trackKey,
+            string originalDefName, string newDefName)
         {
             try
             {
@@ -72,7 +80,7 @@ namespace Morgott.Oracle
                     return;
                 }
                 Dictionary<string, string> map = EnsureLoaded();
-                Record(map, BuildKey(characterId, level0), originalDefName, newDefName);
+                Record(map, BuildKey(characterId, level0, trackKey), originalDefName, newDefName);
                 Save(FilePath, map);
             }
             catch (Exception ex)
@@ -82,11 +90,37 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
+        /// Note what a slot holds the FIRST time the wiki looks at it, and keep the "current" pointer in
+        /// step afterwards. This is what makes a slot changed by SOMEONE ELSE (TFTV's own DrillSwapUI is
+        /// the normal way a player takes a drill) revertable: without a baseline there is no entry at all
+        /// and no default cell can be offered. Never throws.
+        /// </summary>
+        public static void ObserveSlot(int characterId, int level0, string trackKey, string currentDefName)
+        {
+            try
+            {
+                if (level0 < 0 || string.IsNullOrEmpty(currentDefName))
+                {
+                    return;
+                }
+                Dictionary<string, string> map = EnsureLoaded();
+                if (Observe(map, BuildKey(characterId, level0, trackKey), currentDefName))
+                {
+                    Save(FilePath, map);
+                }
+            }
+            catch (Exception ex)
+            {
+                Warn("[Oracle] OriginalPerkStore.ObserveSlot failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
         /// Def name this slot originally held, or null when nothing is stored, the stored "current" no
         /// longer matches <paramref name="currentDefName"/> (other campaign / edited behind us), or the
         /// slot is already back to its original. Never throws.
         /// </summary>
-        public static string GetOriginalDefName(int characterId, int level0, string currentDefName)
+        public static string GetOriginalDefName(int characterId, int level0, string trackKey, string currentDefName)
         {
             try
             {
@@ -94,7 +128,7 @@ namespace Morgott.Oracle
                 {
                     return null;
                 }
-                return GetOriginal(EnsureLoaded(), BuildKey(characterId, level0), currentDefName);
+                return GetOriginal(EnsureLoaded(), BuildKey(characterId, level0, trackKey), currentDefName);
             }
             catch (Exception ex)
             {
@@ -110,11 +144,56 @@ namespace Morgott.Oracle
 
         // ---- pure core (unit-tested) ----------------------------------------------------------
 
-        /// <summary>Stable per-(soldier, slot) key. The soldier id comes from <c>GeoCharacter.Id</c>.</summary>
-        public static string BuildKey(int characterId, int level0)
+        /// <summary>
+        /// Stable per-(soldier, track, slot) key. The soldier id comes from <c>GeoCharacter.Id</c>;
+        /// <paramref name="trackKey"/> is the slot's track source, without which two slots at the same
+        /// level in different tracks share one entry. Entries written before the track dimension existed
+        /// use the 2-part shape and are simply never matched again (they are inert, not migrated).
+        /// </summary>
+        public static string BuildKey(int characterId, int level0, string trackKey)
         {
             return characterId.ToString(CultureInfo.InvariantCulture) + "#"
-                   + level0.ToString(CultureInfo.InvariantCulture);
+                   + level0.ToString(CultureInfo.InvariantCulture) + "#"
+                   + (trackKey ?? string.Empty);
+        }
+
+        /// <summary>
+        /// Baseline-on-observe: remember what the slot holds when it is first seen, and refresh the
+        /// "current" pointer when it has changed since (someone else — e.g. TFTV's DrillSwapUI — wrote
+        /// the slot), so the baseline stays offerable instead of reading as stale. Drops the entry once
+        /// the slot is back at its baseline. Returns true when <paramref name="map"/> changed.
+        /// </summary>
+        public static bool Observe(IDictionary<string, string> map, string key, string currentName)
+        {
+            if (map == null || string.IsNullOrEmpty(key) || string.IsNullOrEmpty(currentName))
+            {
+                return false;
+            }
+
+            string oKey = OriginalPrefix + key;
+            string cKey = CurrentPrefix + key;
+
+            if (!map.TryGetValue(oKey, out string original) || string.IsNullOrEmpty(original))
+            {
+                map[oKey] = currentName; // first sighting IS the baseline
+                map[cKey] = currentName;
+                return true;
+            }
+
+            if (string.Equals(original, currentName, StringComparison.Ordinal))
+            {
+                map.Remove(oKey);       // back at the baseline -> forget the slot
+                map.Remove(cKey);
+                return true;
+            }
+
+            if (map.TryGetValue(cKey, out string current)
+                && string.Equals(current, currentName, StringComparison.Ordinal))
+            {
+                return false;           // already up to date
+            }
+            map[cKey] = currentName;
+            return true;
         }
 
         /// <summary>
@@ -192,7 +271,12 @@ namespace Morgott.Oracle
             }
         }
 
-        /// <summary>Write the map to <paramref name="path"/>. A null path or any IO error is a silent no-op.</summary>
+        /// <summary>
+        /// Write the map to <paramref name="path"/>. A null path or any IO error is a silent no-op.
+        /// Writes a sibling ".tmp" first and then swaps it in, so a crash mid-write can never leave a
+        /// TRUNCATED document behind — <see cref="Parse"/> reads a truncated document as an empty map,
+        /// which would silently wipe every slot's revert history.
+        /// </summary>
         public static void Save(string path, IDictionary<string, string> map)
         {
             try
@@ -201,7 +285,25 @@ namespace Morgott.Oracle
                 {
                     return;
                 }
-                File.WriteAllText(path, Serialize(map), Encoding.UTF8);
+                string tmp = path + ".tmp";
+                File.WriteAllText(tmp, Serialize(map), Encoding.UTF8);
+                if (!File.Exists(path))
+                {
+                    File.Move(tmp, path);
+                    return;
+                }
+                try
+                {
+                    File.Replace(tmp, path, null); // atomic on NTFS
+                }
+                catch (Exception ex)
+                {
+                    // Replace is unsupported on a few filesystems; the delete+move window is still far
+                    // smaller than truncating the live file.
+                    Warn("[Oracle] OriginalPerkStore.Save atomic replace failed: " + ex.Message);
+                    File.Delete(path);
+                    File.Move(tmp, path);
+                }
             }
             catch (Exception ex)
             {

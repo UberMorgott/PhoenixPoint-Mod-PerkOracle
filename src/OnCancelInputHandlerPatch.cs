@@ -164,10 +164,14 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// The ability this slot held before PerkOracle first changed it, resolved against the LIVE def
-        /// repository. Null when nothing is stored, the slot was changed behind us, the slot is already
-        /// back to its default, or the stored def no longer exists (renamed/removed by a content update —
-        /// the entry is simply left on disk untouched). Never throws.
+        /// The ability this slot held before it was first changed, resolved against the LIVE def
+        /// repository. The wiki BASELINES the slot on the way in (<see cref="OriginalPerkStore.ObserveSlot"/>):
+        /// a personal slot is a random roll with no def-level default anywhere (AbilityTrack.cs
+        /// CreatePersonalAbilityTrack — the roll is only ever persisted in the save's own
+        /// AbilitiesByLevel), so the first sighting is the ONLY thing that can serve as its default. That
+        /// is also what makes a slot changed by TFTV's own DrillSwapUI revertable, not just one PerkOracle
+        /// wrote itself. Null when the slot is already at its baseline or the stored def no longer exists
+        /// (renamed/removed by a content update — the entry is left on disk untouched). Never throws.
         /// </summary>
         private static TacticalAbilityDef ResolveStoredOriginal(GeoCharacter character, AbilityTrackSlot slot,
             int level0)
@@ -179,8 +183,10 @@ namespace Morgott.Oracle
                 {
                     return null;
                 }
+                string trackKey = PerkSwapper.TrackKey(slot);
+                OriginalPerkStore.ObserveSlot((int)character.Id, level0, trackKey, slot.Ability.name);
                 string originalName = OriginalPerkStore.GetOriginalDefName(
-                    (int)character.Id, level0, slot.Ability.name);
+                    (int)character.Id, level0, trackKey, slot.Ability.name);
                 return TftvConfigBridge.ResolveDefByName(originalName);
             }
             catch (Exception ex)

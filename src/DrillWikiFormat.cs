@@ -36,9 +36,11 @@ namespace Morgott.Oracle
         /// DrillsUnlock.BuildClassRequirementMessage:482). A null/empty class name means "any class" and
         /// renders <paramref name="anyClassLabel"/>. TFTV requires EVERY gate
         /// (MeetsClassLevelRequirements:393 fails on the first unmet one), so gates join with ", ".
-        /// Returns null when there is no gate.
+        /// <paramref name="levelLabel"/> is the localized word for "Level". Returns null when there is
+        /// no gate.
         /// </summary>
-        public static string ClassLevelLine(IReadOnlyList<KeyValuePair<string, int>> gates, string anyClassLabel)
+        public static string ClassLevelLine(IReadOnlyList<KeyValuePair<string, int>> gates, string anyClassLabel,
+            string levelLabel)
         {
             if (gates == null || gates.Count == 0)
             {
@@ -48,17 +50,18 @@ namespace Morgott.Oracle
             foreach (KeyValuePair<string, int> gate in gates)
             {
                 string cls = string.IsNullOrEmpty(gate.Key) ? anyClassLabel : gate.Key;
-                parts.Add("Level: " + gate.Value + " " + cls);
+                parts.Add(levelLabel + ": " + gate.Value + " " + cls);
             }
             return parts.Count == 0 ? null : string.Join(", ", parts.ToArray());
         }
 
         /// <summary>
-        /// The weapon-proficiency wording: each group is an OR-set ("A or B"), and every group is
-        /// required (MeetsWeaponProficiencyRequirements:464), so groups join with ", ". Empty groups and
-        /// empty names are skipped; returns null when nothing is left.
+        /// The weapon-proficiency wording: each group is an OR-set ("A or B", with the localized
+        /// <paramref name="orWord"/>), and every group is required (MeetsWeaponProficiencyRequirements:464),
+        /// so groups join with ", ". Empty groups and empty names are skipped; returns null when nothing
+        /// is left.
         /// </summary>
-        public static string ProficiencyLine(IEnumerable<IReadOnlyList<string>> groups)
+        public static string ProficiencyLine(IEnumerable<IReadOnlyList<string>> groups, string orWord)
         {
             if (groups == null)
             {
@@ -81,7 +84,7 @@ namespace Morgott.Oracle
                 }
                 if (names.Count > 0)
                 {
-                    parts.Add(string.Join(" or ", names.ToArray()));
+                    parts.Add(string.Join(" " + orWord + " ", names.ToArray()));
                 }
             }
             return parts.Count == 0 ? null : string.Join(", ", parts.ToArray());
