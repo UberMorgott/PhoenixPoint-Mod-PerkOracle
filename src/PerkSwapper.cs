@@ -81,7 +81,7 @@ namespace Morgott.Oracle
                 IReadOnlyList<TacticalAbilityDef> owned = progression.Abilities;
                 PerkSwapVerdict verdict = PerkSwapDecision.Evaluate(
                     chosenDef, oldDef, owned, null, ScheduledPerks(progression, slot),
-                    BuildDrillContext(ctx.Character, oldDef, chosenDef));
+                    BuildDrillContext(ctx.Character, oldDef, chosenDef, IsRevertToOriginal(ctx, chosenDef)));
                 if (verdict != PerkSwapVerdict.Allow)
                 {
                     if (verdict == PerkSwapVerdict.DenyAlreadyOwned)
@@ -264,7 +264,7 @@ namespace Morgott.Oracle
         /// rather than blocking a vanilla swap.
         /// </summary>
         private static DrillSwapContext BuildDrillContext(GeoCharacter character, TacticalAbilityDef oldDef,
-            TacticalAbilityDef chosenDef)
+            TacticalAbilityDef chosenDef, bool isRevertToOriginal)
         {
             try
             {
@@ -289,6 +289,7 @@ namespace Morgott.Oracle
                         character, oldDef, out List<string> blockingDrills),
                     IgnoreDrillRequirements = OracleMain.IgnoreDrillRequirements,
                     AllowDrillReSwap = OracleMain.AllowDrillReSwap,
+                    IsRevertToOriginal = isRevertToOriginal,
                 };
                 if (info.RemovalBreaksAcquiredDrill)
                 {
@@ -303,6 +304,17 @@ namespace Morgott.Oracle
                 OracleLog.Debug("[Oracle] PerkSwap drill context build failed: " + ex.Message);
                 return null;
             }
+        }
+
+        /// <summary>
+        /// True when the click puts the slot back to the ability it held before PerkOracle first changed
+        /// it (<see cref="PerkSwapContext.OriginalDef"/>). Restoring the default must always be possible,
+        /// so this lifts the acquired-drill re-swap gate — see <see cref="DrillSwapContext.IsRevertToOriginal"/>.
+        /// </summary>
+        private static bool IsRevertToOriginal(PerkSwapContext ctx, TacticalAbilityDef chosenDef)
+        {
+            return (UnityEngine.Object)(object)ctx.OriginalDef != (UnityEngine.Object)null
+                   && ReferenceEquals(ctx.OriginalDef, chosenDef);
         }
 
         /// <summary>

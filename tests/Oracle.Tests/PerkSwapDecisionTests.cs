@@ -136,6 +136,48 @@ namespace Morgott.Oracle.Tests
         }
 
         [Fact]
+        public void RevertToOriginal_AllowedEvenWithReSwapOff()
+        {
+            // Slot currently holds an acquired drill; the click restores the slot's stored original.
+            // A restore is not a re-swap, so it must pass with AllowDrillReSwap OFF (the default).
+            var revert = new DrillSwapContext { CurrentIsAcquiredDrill = true, IsRevertToOriginal = true };
+            Assert.Equal(PerkSwapVerdict.Allow,
+                PerkSwapDecision.Evaluate("B", "A", Owned(), drills: revert));
+        }
+
+        [Fact]
+        public void NonRevertDrillReSwap_StillDeniedWithReSwapOff()
+        {
+            // Same slot state, but the click is an ordinary drill re-swap => still gated.
+            var reswap = new DrillSwapContext { CurrentIsAcquiredDrill = true, IsRevertToOriginal = false };
+            Assert.Equal(PerkSwapVerdict.DenyDrillReSwapBlocked,
+                PerkSwapDecision.Evaluate("B", "A", Owned(), drills: reswap));
+        }
+
+        [Fact]
+        public void RevertToOriginal_StillDeniedWhenItBreaksAcquiredDrill()
+        {
+            // The proficiency guard outranks the restore: reverting must not invalidate a paid-for drill.
+            var revert = new DrillSwapContext
+            {
+                CurrentIsAcquiredDrill = true,
+                IsRevertToOriginal = true,
+                RemovalBreaksAcquiredDrill = true,
+            };
+            Assert.Equal(PerkSwapVerdict.DenyDrillBreaksAcquired,
+                PerkSwapDecision.Evaluate("B", "A", Owned(), drills: revert));
+        }
+
+        [Fact]
+        public void RevertToOriginal_StillDeniedWhenAlreadyOwned()
+        {
+            // A restore does not bypass the duplicate guard.
+            var revert = new DrillSwapContext { CurrentIsAcquiredDrill = true, IsRevertToOriginal = true };
+            Assert.Equal(PerkSwapVerdict.DenyAlreadyOwned,
+                PerkSwapDecision.Evaluate("C", "A", Owned(), drills: revert));
+        }
+
+        [Fact]
         public void RemovalBreakingAcquiredDrill_AlwaysDenies()
         {
             // Hard guard: neither option lifts it.

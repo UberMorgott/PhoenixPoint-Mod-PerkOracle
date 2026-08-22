@@ -75,6 +75,15 @@ namespace Morgott.Oracle
 
         /// <summary>Config option: allow swapping an already-acquired drill away again.</summary>
         public bool AllowDrillReSwap;
+
+        /// <summary>
+        /// The chosen perk is the ability this slot originally held (<c>PerkSwapContext.OriginalDef</c>),
+        /// i.e. the click is a RESTORE, not a re-swap. Putting a slot back to its default must always be
+        /// possible, so this lifts the acquired-drill re-swap gate exactly like
+        /// <see cref="AllowDrillReSwap"/> would — and nothing else: the duplicate guards and the
+        /// acquired-drill proficiency guard still apply.
+        /// </summary>
+        public bool IsRevertToOriginal;
     }
 
     /// <summary>
@@ -162,8 +171,10 @@ namespace Morgott.Oracle
                     return PerkSwapVerdict.DenyDrillBreaksAcquired;
                 }
 
-                // 4b) Swapping an acquired drill away is a TFTV-forbidden move; opt-in only.
-                if (drills.CurrentIsAcquiredDrill && !drills.AllowDrillReSwap)
+                // 4b) Swapping an acquired drill away is a TFTV-forbidden move; opt-in only. A revert to
+                //     the slot's own stored original is a RESTORE, not a re-swap: the player must always
+                //     be able to undo what this mod did, so it is allowed regardless of the option.
+                if (drills.CurrentIsAcquiredDrill && !drills.AllowDrillReSwap && !drills.IsRevertToOriginal)
                 {
                     return PerkSwapVerdict.DenyDrillReSwapBlocked;
                 }
