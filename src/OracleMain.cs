@@ -76,6 +76,34 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
+        /// Runtime read of the TFTV-only "ignore drill unlock requirements" toggle. Defaults to false
+        /// (TFTV's own gate honoured) when the config is unavailable. Read by <see cref="PerkSwapper"/>.
+        /// </summary>
+        public static bool IgnoreDrillRequirements
+        {
+            get
+            {
+                OracleMain inst = Instance;
+                OracleConfig cfg = inst != null ? inst.Config : null;
+                return cfg != null && cfg.IgnoreDrillRequirements;
+            }
+        }
+
+        /// <summary>
+        /// Runtime read of the TFTV-only "allow re-swapping drills" toggle. Defaults to false when the
+        /// config is unavailable. Read by <see cref="PerkSwapper"/>.
+        /// </summary>
+        public static bool AllowDrillReSwap
+        {
+            get
+            {
+                OracleMain inst = Instance;
+                OracleConfig cfg = inst != null ? inst.Config : null;
+                return cfg != null && cfg.AllowDrillReSwap;
+            }
+        }
+
+        /// <summary>
         /// Runtime read of the debug-logging toggle. Defaults to false when the config is unavailable,
         /// so the mod stays silent unless the user explicitly opts in. Read by <see cref="OracleLog"/>.
         /// </summary>

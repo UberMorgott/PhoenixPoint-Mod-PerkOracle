@@ -107,6 +107,23 @@ namespace Morgott.Oracle
         /// </summary>
         public int PerkSwapSkillPointCost = 50;
 
+        // --- Perk swap: TFTV drills (no effect without TFTV) --------------------------------------
+
+        /// <summary>
+        /// When true, a TFTV drill can be swapped in even though its unlock requirements (class level,
+        /// research, weapon proficiency, functioning Training Facility) are not met. Default OFF: TFTV's
+        /// own <c>IsDrillUnlocked</c> verdict is honoured. Dead without TFTV — the drill gate is skipped
+        /// entirely when TFTV is absent (see <see cref="PerkSwapDecision"/> step 4).
+        /// </summary>
+        public bool IgnoreDrillRequirements = false;
+
+        /// <summary>
+        /// When true, a drill the soldier has already acquired may be swapped back to a normal perk or to
+        /// another drill — something TFTV itself does not allow. Default OFF. Dead without TFTV.
+        /// Never lifts the acquired-drill proficiency guard (that stays a hard deny).
+        /// </summary>
+        public bool AllowDrillReSwap = false;
+
         // --- Diagnostics -------------------------------------------------------------------------
 
         /// <summary>
@@ -196,6 +213,20 @@ namespace Morgott.Oracle
                     field.GetDescription = () => Loc.Get(
                         "ORACLE_PerkSwapSkillPointCost_DESCRIPTION",
                         "How many skill points a perk swap costs when \"Swap Costs Skill Points\" is on. Set to 0 for free swaps.");
+                }
+                else if (field.ID == nameof(IgnoreDrillRequirements))
+                {
+                    field.GetText = () => Loc.Get("ORACLE_IgnoreDrillRequirements", "Ignore Drill Requirements (TFTV)");
+                    field.GetDescription = () => Loc.Get(
+                        "ORACLE_IgnoreDrillRequirements_DESCRIPTION",
+                        "TFTV only. When on, a drill can be taken even without the required level, research, weapon proficiency or working Training Facility. No effect without TFTV.");
+                }
+                else if (field.ID == nameof(AllowDrillReSwap))
+                {
+                    field.GetText = () => Loc.Get("ORACLE_AllowDrillReSwap", "Allow Re-Swapping Drills (TFTV)");
+                    field.GetDescription = () => Loc.Get(
+                        "ORACLE_AllowDrillReSwap_DESCRIPTION",
+                        "TFTV only. When on, a drill the soldier already has can be swapped back to a normal perk or to another drill. No effect without TFTV.");
                 }
                 else if (field.ID == nameof(EnableDebugLogging))
                 {

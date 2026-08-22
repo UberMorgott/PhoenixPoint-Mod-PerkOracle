@@ -92,6 +92,70 @@ namespace Morgott.Oracle.Tests
             Assert.Equal(PerkSwapVerdict.DenyNotLearned, verdict);
         }
 
+        // --- TFTV drills -------------------------------------------------------------------------
+
+        [Fact]
+        public void NoDrillContext_TftvAbsent_BehavesAsBefore()
+        {
+            // drills == null (TFTV not installed) => no extra gate at all.
+            Assert.Equal(PerkSwapVerdict.Allow, PerkSwapDecision.Evaluate("B", "A", Owned(), drills: null));
+        }
+
+        [Fact]
+        public void DrillAlreadyOwned_DeniesViaExistingOwnedGate()
+        {
+            // An acquired drill lives in Progression.Abilities, so the shared owned/scheduled gate
+            // catches it before the drill step ever runs — no parallel dedupe.
+            var verdict = PerkSwapDecision.Evaluate("C", "A", Owned(),
+                drills: new DrillSwapContext { ChosenIsDrill = true, ChosenDrillUnlocked = true });
+            Assert.Equal(PerkSwapVerdict.DenyAlreadyOwned, verdict);
+        }
+
+        [Fact]
+        public void LockedDrill_Denies_UnlessRequirementsIgnored()
+        {
+            var locked = new DrillSwapContext { ChosenIsDrill = true, ChosenDrillUnlocked = false };
+            Assert.Equal(PerkSwapVerdict.DenyDrillLocked,
+                PerkSwapDecision.Evaluate("B", "A", Owned(), drills: locked));
+
+            locked.IgnoreDrillRequirements = true; // option (a) flips the verdict
+            Assert.Equal(PerkSwapVerdict.Allow,
+                PerkSwapDecision.Evaluate("B", "A", Owned(), drills: locked));
+        }
+
+        [Fact]
+        public void AcquiredDrillInSlot_Denies_UnlessReSwapAllowed()
+        {
+            var acquired = new DrillSwapContext { CurrentIsAcquiredDrill = true };
+            Assert.Equal(PerkSwapVerdict.DenyDrillReSwapBlocked,
+                PerkSwapDecision.Evaluate("B", "A", Owned(), drills: acquired));
+
+            acquired.AllowDrillReSwap = true; // option (b) flips the verdict
+            Assert.Equal(PerkSwapVerdict.Allow,
+                PerkSwapDecision.Evaluate("B", "A", Owned(), drills: acquired));
+        }
+
+        [Fact]
+        public void RemovalBreakingAcquiredDrill_AlwaysDenies()
+        {
+            // Hard guard: neither option lifts it.
+            var breaks = new DrillSwapContext
+            {
+                RemovalBreaksAcquiredDrill = true,
+                IgnoreDrillRequirements = true,
+                AllowDrillReSwap = true,
+            };
+            Assert.Equal(PerkSwapVerdict.DenyDrillBreaksAcquired,
+                PerkSwapDecision.Evaluate("B", "A", Owned(), drills: breaks));
+        }
+
+        [Fact]
+        public void UnlockedDrill_NotOwned_Allows()
+        {
+            var ok = new DrillSwapContext { ChosenIsDrill = true, ChosenDrillUnlocked = true };
+            Assert.Equal(PerkSwapVerdict.Allow, PerkSwapDecision.Evaluate("B", "A", Owned(), drills: ok));
+        }
+
         [Fact]
         public void EffectiveCost_Disabled_IsFree()
         {

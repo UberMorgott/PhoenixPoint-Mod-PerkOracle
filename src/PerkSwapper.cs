@@ -4,6 +4,7 @@ using System.Reflection;
 using HarmonyLib;
 using PhoenixPoint.Common.Entities.Characters;
 using PhoenixPoint.Geoscape.Entities;
+using PhoenixPoint.Geoscape.Levels.Factions;
 using PhoenixPoint.Geoscape.View.ViewModules;
 using PhoenixPoint.Tactical.Entities.Abilities;
 using UnityEngine;
@@ -70,7 +71,8 @@ namespace Morgott.Oracle
                 // Decision gate (learned? same? already-owned?). Owned set = progression.Abilities.
                 IReadOnlyList<TacticalAbilityDef> owned = progression.Abilities;
                 PerkSwapVerdict verdict = PerkSwapDecision.Evaluate(
-                    chosenDef, oldDef, owned, null, ScheduledPerks(progression, slot));
+                    chosenDef, oldDef, owned, null, ScheduledPerks(progression, slot),
+                    BuildDrillContext(ctx.Character, oldDef, chosenDef));
                 if (verdict != PerkSwapVerdict.Allow)
                 {
                     if (verdict == PerkSwapVerdict.DenyAlreadyOwned)
@@ -78,6 +80,17 @@ namespace Morgott.Oracle
                         OracleLog.Debug("[Oracle] PerkSwap skipped: "
                                   + DefName(chosenDef) + " already owned by soldier.");
                     }
+                    else if (verdict == PerkSwapVerdict.DenyDrillReSwapBlocked)
+                    {
+                        OracleLog.Debug("[Oracle] PerkSwap skipped: " + DefName(oldDef)
+                                  + " is an acquired drill (enable \"Allow Re-Swapping Drills\" to move it).");
+                    }
+                    else if (verdict == PerkSwapVerdict.DenyDrillLocked)
+                    {
+                        OracleLog.Debug("[Oracle] PerkSwap skipped: drill " + DefName(chosenDef)
+                                  + " is locked for this soldier.");
+                    }
+                    // DenyDrillBreaksAcquired already logged the blocking drills in BuildDrillContext.
                     // Not-learned / same-as-current / invalid: silent no-op per design.
                     return false;
                 }
@@ -99,6 +112,17 @@ namespace Morgott.Oracle
                                   + available + " < " + swapCost + ").");
                         return false;
                     }
+                }
+
+                // Re-read the slot immediately before mutating: TFTV's own drill apply writes
+                // slot.Ability directly (DrillsUI.Helpers.cs:294) with no locking, so a drill taken
+                // while this wiki was open would otherwise be silently clobbered. Last writer wins —
+                // make sure it is not us.
+                if (!ReferenceEquals(slot.Ability, oldDef))
+                {
+                    OracleLog.Debug("[Oracle] PerkSwap aborted: slot changed under us ("
+                              + DefName(oldDef) + " -> " + DefName(slot.Ability) + ").");
+                    return false;
                 }
 
                 // step 2: un-learn old via reflection (no public remover on CharacterProgression).
@@ -198,6 +222,55 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] PerkSwapper.TrySwap failed: " + ex.Message);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Collect the TFTV drill facts for one swap, or null when TFTV is absent (then
+        /// <see cref="PerkSwapDecision.Evaluate{T}"/> skips its drill step entirely and the gate is
+        /// exactly the pre-drills one). Everything comes from <see cref="TftvDrillsBridge"/>, which is
+        /// itself no-op/false without TFTV; guarded so a bridge hiccup degrades to "no drill context"
+        /// rather than blocking a vanilla swap.
+        /// </summary>
+        private static DrillSwapContext BuildDrillContext(GeoCharacter character, TacticalAbilityDef oldDef,
+            TacticalAbilityDef chosenDef)
+        {
+            try
+            {
+                if (!TftvDrillsBridge.DrillsAvailable)
+                {
+                    return null;
+                }
+
+                List<TacticalAbilityDef> drills = TftvDrillsBridge.AllDrills;
+                bool chosenIsDrill = drills.Contains(chosenDef);
+                bool currentIsDrill = drills.Contains(oldDef);
+                GeoPhoenixFaction faction = character?.Faction?.GeoLevel?.PhoenixFaction;
+
+                var info = new DrillSwapContext
+                {
+                    ChosenIsDrill = chosenIsDrill,
+                    ChosenDrillUnlocked = chosenIsDrill
+                        && TftvDrillsBridge.IsDrillUnlocked(faction, character, chosenDef),
+                    CurrentIsAcquiredDrill = currentIsDrill
+                        && TftvDrillsBridge.CharacterHasDrill(character, oldDef),
+                    RemovalBreaksAcquiredDrill = TftvDrillsBridge.WouldBreakWeaponProficiencyRequirement(
+                        character, oldDef, out List<string> blockingDrills),
+                    IgnoreDrillRequirements = OracleMain.IgnoreDrillRequirements,
+                    AllowDrillReSwap = OracleMain.AllowDrillReSwap,
+                };
+                if (info.RemovalBreaksAcquiredDrill)
+                {
+                    OracleLog.Debug("[Oracle] PerkSwap blocked: removing " + DefName(oldDef)
+                              + " would invalidate acquired drill(s): "
+                              + string.Join(", ", blockingDrills.ToArray()));
+                }
+                return info;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkSwap drill context build failed: " + ex.Message);
+                return null;
             }
         }
 

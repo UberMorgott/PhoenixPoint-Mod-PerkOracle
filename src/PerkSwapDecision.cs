@@ -30,6 +30,51 @@ namespace Morgott.Oracle
         /// (which stays Unity-free and game-API-free).
         /// </summary>
         DenyResearchLocked,
+
+        /// <summary>
+        /// Removing the slot's current perk would strip a weapon proficiency an already-acquired TFTV
+        /// drill requires, invalidating that drill. Hard deny (no option bypasses it).
+        /// </summary>
+        DenyDrillBreaksAcquired,
+
+        /// <summary>
+        /// The slot's current perk is an already-acquired TFTV drill and re-swapping drills is not
+        /// enabled (TFTV itself does not permit it). Lifted by <see cref="DrillSwapContext.AllowDrillReSwap"/>.
+        /// </summary>
+        DenyDrillReSwapBlocked,
+
+        /// <summary>
+        /// The chosen perk is a TFTV drill whose unlock requirements (level / research / weapon
+        /// proficiency / training facility) are not met. Lifted by
+        /// <see cref="DrillSwapContext.IgnoreDrillRequirements"/>.
+        /// </summary>
+        DenyDrillLocked,
+    }
+
+    /// <summary>
+    /// Everything the decision needs to know about TFTV drills for ONE swap, as plain bools so the gate
+    /// stays Unity-/TFTV-free. Built by <see cref="PerkSwapper"/> from <see cref="TftvDrillsBridge"/>;
+    /// null (TFTV absent) means the drill gates are skipped entirely and behaviour is pre-drills exact.
+    /// </summary>
+    public sealed class DrillSwapContext
+    {
+        /// <summary>The clicked perk is one of TFTV's drills.</summary>
+        public bool ChosenIsDrill;
+
+        /// <summary>TFTV's own <c>IsDrillUnlocked</c> verdict for the clicked drill.</summary>
+        public bool ChosenDrillUnlocked;
+
+        /// <summary>The slot's current perk is a drill the soldier has already acquired.</summary>
+        public bool CurrentIsAcquiredDrill;
+
+        /// <summary>Removing the current perk would invalidate an already-acquired drill.</summary>
+        public bool RemovalBreaksAcquiredDrill;
+
+        /// <summary>Config option: take a drill even with its unlock requirements unmet.</summary>
+        public bool IgnoreDrillRequirements;
+
+        /// <summary>Config option: allow swapping an already-acquired drill away again.</summary>
+        public bool AllowDrillReSwap;
     }
 
     /// <summary>
@@ -66,7 +111,8 @@ namespace Morgott.Oracle
             T current,
             IReadOnlyCollection<T> owned,
             IEqualityComparer<T> comparer = null,
-            IReadOnlyCollection<T> scheduled = null)
+            IReadOnlyCollection<T> scheduled = null,
+            DrillSwapContext drills = null)
         {
             comparer = comparer ?? EqualityComparer<T>.Default;
 
@@ -101,6 +147,32 @@ namespace Morgott.Oracle
             if (scheduled != null && Contains(scheduled, chosen, comparer))
             {
                 return PerkSwapVerdict.DenyAlreadyOwned;
+            }
+
+            // 4) TFTV drills. Skipped entirely when drills is null (TFTV absent) => behaviour above is
+            //    the complete gate, exactly as before drills existed. Note there is NO separate
+            //    "already has this drill" check: an acquired drill lives in Progression.Abilities (TFTV
+            //    LearnAbility) and in its track slot, so steps 3/3b above already deduplicate it.
+            if (drills != null)
+            {
+                // 4a) Hard guard: never strip a proficiency an acquired drill depends on. No option lifts
+                //     this — it would silently invalidate a drill the soldier already paid for.
+                if (drills.RemovalBreaksAcquiredDrill)
+                {
+                    return PerkSwapVerdict.DenyDrillBreaksAcquired;
+                }
+
+                // 4b) Swapping an acquired drill away is a TFTV-forbidden move; opt-in only.
+                if (drills.CurrentIsAcquiredDrill && !drills.AllowDrillReSwap)
+                {
+                    return PerkSwapVerdict.DenyDrillReSwapBlocked;
+                }
+
+                // 4c) The chosen drill's own unlock requirements; opt-in bypass.
+                if (drills.ChosenIsDrill && !drills.ChosenDrillUnlocked && !drills.IgnoreDrillRequirements)
+                {
+                    return PerkSwapVerdict.DenyDrillLocked;
+                }
             }
 
             return PerkSwapVerdict.Allow;
