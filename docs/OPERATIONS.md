@@ -83,9 +83,14 @@ from the native local mods folder. To let them test a new build in-game:
 
 ```powershell
 pwsh -File workshop/pack-dist.ps1
-robocopy "E:\DEV\PhoenixPoint\PerkOracle\workshop\Dist" "D:\Steam\steamapps\common\Phoenix Point\Mods\Oracle" /MIR
+robocopy "E:\DEV\PhoenixPoint\PerkOracle\workshop\Dist" "D:\Steam\steamapps\common\Phoenix Point\Mods\Oracle" /MIR /XF OraclePerkOriginals.json
 ```
 
+- **Never drop the `/XF`.** `/MIR` deletes every file in the destination that is
+  not in `Dist`, and `OraclePerkOriginals.json` is the player's LIVE runtime data
+  (written by the mod at `Entry.Directory`, holds the original-perk history used
+  by revert). It is not shipped in `Dist`, so a bare `/MIR` silently destroys it.
+  Any future runtime file written to the mod folder must be added to `/XF` too.
 - `robocopy` exit codes 0–7 = success (3 = copied + extras removed).
 - Game reads the folder at startup — the owner must **restart Phoenix Point**.
 - This ships nothing to subscribers; Workshop publish stays a separate explicit
