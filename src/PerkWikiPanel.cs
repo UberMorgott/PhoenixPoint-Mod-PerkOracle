@@ -63,13 +63,20 @@ namespace Morgott.Oracle
         private const string DrillResearchFallback = "Research";
         private const float DrillInfoWidth = 520f; // wrap width of the drill requirement flyout text
 
+        // Fraction of the root canvas a wiki panel may cover (the rest is the visible backdrop margin).
+        private const float ScreenFill = 0.92f;
+
         // Class-wiki (3-row native-cell tab panel) layout.
-        private const int MaxRowColumns = 10;   // wrap a row onto a new line past this many cells
+        private const int MaxRowColumns = 10;   // preferred wrap width; narrowed to what the screen holds
         private const float RowSpacing = 12f;    // vertical gap between the tabs row / title / sections
         private const float RowLabelHeight = 26f;
 
         private static GameObject _root;
         private static Font _titleFont;
+
+        // Width (root-canvas units) a class-wiki row may use, measured once when that panel is built and
+        // read by BuildRowGrid. 0 = not measured -> rows keep the preferred MaxRowColumns wrap.
+        private static float _rowAvailableWidth;
 
         // Single native ability-tooltip clone, owned by the panel: created in Open, destroyed in Close.
         // Shared by every icon's WikiAbilityTooltipTrigger so there's exactly one live tooltip.
@@ -225,6 +232,9 @@ namespace Morgott.Oracle
             }
             float cellSize = MeasureCellSize(template);
 
+            // Row wrap budget for this panel (see BuildRowGrid); height is handled by FitToScreen below.
+            MeasureAvailableArea(rootCanvas, out _rowAvailableWidth, out float _);
+
             // Owned classes (main + secondary) render bright; the rest greyed. Reference identity.
             var owned = new HashSet<SpecializationDef>();
             foreach (SpecializationDef s in character.Progression.GetSpecializations())
@@ -365,6 +375,7 @@ namespace Morgott.Oracle
                         rootCanvas, dualLevel0, dualIcon);
                     BuildSlotRow(bodyGo.transform, spec, character, template, cellSize, canvasRect, rootCanvas, panelRt);
                     LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
+                    FitToScreen(panelRt, rootCanvas);
                 }
                 catch (Exception ex)
                 {
@@ -381,6 +392,10 @@ namespace Morgott.Oracle
 
             // Row 4 (TFTV only, class-independent -> built ONCE, outside the per-tab body).
             BuildDrillsRow(panelGo.transform, character, template, cellSize, canvasRect, rootCanvas, panelRt);
+
+            // The drills row's length is TFTV's to decide, so only now is the panel's real size known.
+            LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
+            FitToScreen(panelRt, rootCanvas);
         }
 
         /// <summary>
@@ -447,11 +462,13 @@ namespace Morgott.Oracle
                         {
                             flyoutInfo = null; // second click on the same drill -> just close
                             LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
+                            FitToScreen(panelRt, rootCanvas);
                             return;
                         }
                         flyout = BuildDrillInfoFlyout(parent, DrillInfoText(info, faction, viewer));
                         flyoutInfo = info;
                         LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
+                        FitToScreen(panelRt, rootCanvas);
                     }
                     catch (Exception ex)
                     {
@@ -651,7 +668,12 @@ namespace Morgott.Oracle
             return holder;
         }
 
-        /// <summary>Create a row container with a wrapping fixed-column <see cref="GridLayoutGroup"/>.</summary>
+        /// <summary>
+        /// Create a row container with a wrapping fixed-column <see cref="GridLayoutGroup"/>. The wrap
+        /// width is <see cref="MaxRowColumns"/> narrowed to whatever the screen can actually hold at this
+        /// cell size (<see cref="_rowAvailableWidth"/>, measured once per panel), so a row of any length —
+        /// e.g. every drill TFTV happens to ship — wraps instead of running off the panel.
+        /// </summary>
         private static GameObject BuildRowGrid(Transform parent, int count, float cellSize)
         {
             var gridGo = new GameObject("Row", typeof(RectTransform), typeof(GridLayoutGroup));
@@ -660,7 +682,8 @@ namespace Morgott.Oracle
             grid.cellSize = new Vector2(cellSize, cellSize);
             grid.spacing = new Vector2(CellSpacing, CellSpacing);
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            grid.constraintCount = Mathf.Max(1, Mathf.Min(count, MaxRowColumns));
+            grid.constraintCount = Mathf.Max(1, WikiGridLayout.Plan(
+                count, cellSize, CellSpacing, MaxRowColumns, _rowAvailableWidth, float.MaxValue).Columns);
             grid.childAlignment = TextAnchor.MiddleCenter; // center cells inside the panel-wide row
             return gridGo;
         }
@@ -1216,12 +1239,25 @@ namespace Morgott.Oracle
             bool useNative = (UnityEngine.Object)(object)template != (UnityEngine.Object)null && slot != null;
             float cellSize = useNative ? MeasureCellSize(template) : CellSize;
 
-            // Centered panel sized to the column count; height clamped, content scrolls if it overflows.
-            int rows = Mathf.CeilToInt(defs.Count / (float)Columns);
-            float gridWidth = Columns * cellSize + (Columns - 1) * CellSpacing;
-            float gridHeight = rows * cellSize + Mathf.Max(0, rows - 1) * CellSpacing;
+            // ADAPTIVE grid: the candidate count is live (TFTV drills + the stored original are appended
+            // to the pool), so columns/rows/cell size are derived from that count and the area the screen
+            // actually offers — never from a fixed row/column budget. A vanilla-sized pool still resolves
+            // to the preferred Columns at the measured native cell size, i.e. renders exactly as before.
+            MeasureAvailableArea(rootCanvas, out float availableWidth, out float availableHeight);
+            WikiGridPlan plan = WikiGridLayout.Plan(defs.Count, cellSize, CellSpacing, Columns,
+                availableWidth, availableHeight);
+            int columns = Mathf.Max(1, plan.Columns);
+            if (plan.CellSize > 0f)
+            {
+                cellSize = plan.CellSize;
+            }
+
+            // Centered panel sized to the resolved grid; the viewport is clamped to the free screen height
+            // and the content scrolls when even the smallest cells cannot fit (unbounded drill counts).
+            float gridWidth = plan.Width > 0f ? plan.Width : cellSize;
+            float gridHeight = plan.Height > 0f ? plan.Height : cellSize;
             float panelWidth = gridWidth + 2f * Padding;
-            float viewportHeight = Mathf.Min(gridHeight, MaxPanelHeight) + 2f * Padding;
+            float viewportHeight = Mathf.Min(gridHeight, availableHeight) + 2f * Padding;
             float panelHeight = viewportHeight + TitleHeight;
 
             var panelGo = new GameObject("Panel", typeof(RectTransform), typeof(Image));
@@ -1271,7 +1307,7 @@ namespace Morgott.Oracle
             grid.cellSize = new Vector2(cellSize, cellSize);
             grid.spacing = new Vector2(CellSpacing, CellSpacing);
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            grid.constraintCount = Columns;
+            grid.constraintCount = columns;
             grid.childAlignment = TextAnchor.UpperCenter;
 
             var fitter = contentGo.AddComponent<ContentSizeFitter>();
@@ -1342,6 +1378,64 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] PerkWikiPanel.ResolveTemplateCell failed: " + ex.Message);
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// The area a wiki grid may occupy, in root-canvas units: the canvas rect minus the screen margin,
+        /// the panel padding and (vertically) the fixed title strip. Falls back to width 0 / height
+        /// <see cref="MaxPanelHeight"/> when the canvas has not been laid out — width 0 makes
+        /// <see cref="WikiGridLayout"/> keep the preferred shape, i.e. the pre-adaptive behaviour.
+        /// </summary>
+        private static void MeasureAvailableArea(Canvas rootCanvas, out float width, out float height)
+        {
+            width = 0f;
+            height = MaxPanelHeight;
+            try
+            {
+                RectTransform rt = (UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null
+                    ? rootCanvas.transform as RectTransform
+                    : null;
+                if ((UnityEngine.Object)(object)rt != (UnityEngine.Object)null
+                    && rt.rect.width > 1f && rt.rect.height > 1f)
+                {
+                    width = rt.rect.width * ScreenFill - 2f * Padding;
+                    height = rt.rect.height * ScreenFill - 2f * Padding - TitleHeight;
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.MeasureAvailableArea failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Shrink an auto-sized panel uniformly until it fits the screen. The class wiki stacks a live
+        /// number of rows (class tabs, the selected track, the random pool and every TFTV drill), so its
+        /// content height is not knowable up front; a uniform localScale is the game's own way of fitting
+        /// an over-tall layout and keeps every native cell proportion intact. Never scales UP.
+        /// </summary>
+        private static void FitToScreen(RectTransform panelRt, Canvas rootCanvas)
+        {
+            try
+            {
+                RectTransform rt = (UnityEngine.Object)(object)rootCanvas != (UnityEngine.Object)null
+                    ? rootCanvas.transform as RectTransform
+                    : null;
+                if ((UnityEngine.Object)(object)rt == (UnityEngine.Object)null
+                    || (UnityEngine.Object)(object)panelRt == (UnityEngine.Object)null
+                    || panelRt.rect.width <= 1f || panelRt.rect.height <= 1f)
+                {
+                    return;
+                }
+                float scale = Mathf.Min(1f,
+                    rt.rect.width * ScreenFill / panelRt.rect.width,
+                    rt.rect.height * ScreenFill / panelRt.rect.height);
+                panelRt.localScale = new Vector3(scale, scale, 1f);
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.FitToScreen failed: " + ex.Message);
             }
         }
 

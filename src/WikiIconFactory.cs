@@ -144,20 +144,38 @@ namespace Morgott.Oracle
                     nativeButton.onClick.RemoveAllListeners();
                 }
 
-                // Drive the bright "known/owned" look via the game's own renderer:
-                // isLocked:false, isAvailable:false, isBuyable:false, isLearnable:true -> KnownSkill ->
-                // PrimaryUIColor. Pass the real personal slot so the cell internals stay valid.
-                cell.SetSkill(AbilityTrackSource.Personal, slot, def,
-                    isLocked: false, isAvailable: false, isBuyable: false, isLearnable: true);
+                // IDENTITY BEFORE STATE — do NOT use the public SetSkill(…, TacticalAbilityDef) overload
+                // here. Per the decompile (AbilityTrackSkillEntryElement.cs:74-88) it assigns
+                // AbilityDef = trackSlot.Ability and runs SetSkillState FIRST, writing the real def only
+                // afterwards. Every clone would therefore enter the patched state seam claiming to be the
+                // ability the SLOT currently holds — one ability for the whole grid. TFTV postfixes that
+                // same seam (TFTV DrillsUI.Patches.cs:127-165) and paints from exactly that ability:
+                // when the slot holds a learned drill it sets SkillIcon.color = DrillPulseColor and lights
+                // the drill indicator on EVERY clone, which is the reported "all cells change shade at
+                // once after swapping to a TFTV perk". Setting the identity first makes each clone state
+                // itself, so shade encodes THAT cell's state — drill and vanilla cells alike. Same order
+                // MakeCell already used, so both wiki paths now render through one code path.
+                cell.TrackSource = AbilityTrackSource.Personal;
+                cell.TrackSlot = slot;
+                cell.AbilityDef = def;
+                if ((UnityEngine.Object)(object)cell.SkillIcon != (UnityEngine.Object)null)
+                {
+                    cell.SkillIcon.gameObject.SetActive(true);
+                    cell.SkillIcon.sprite = def.ViewElementDef.SmallIcon;
+                }
+
+                // Slot state -> native look, applied ONCE:
+                //  - CURRENT: the game's own dim "unavailable" arm (isAvailable:true) — the same one
+                //    MakeCell's !bright uses; this is what the slot already holds, so it is not a choice.
+                //  - everything else: isLocked:F, isAvailable:F, isBuyable:F, isLearnable:T -> KnownSkill
+                //    -> PrimaryUIColor (the bright "owned/known" look).
+                SetState(cell, dim: isCurrent);
 
                 // Disable the native (text) tooltip; we provide the rich framed tooltip ourselves.
                 cell.SetTooltip(null);
 
-                // Slot state markers, both reusing what the panel already has:
-                //  - CURRENT: the game's own dim "unavailable" arm of SetSkillState (same one MakeCell's
-                //    !bright uses) — this is what the slot already holds, so it is not a choice.
-                //  - ORIGINAL (and not current): the CellBackground wash, i.e. "this is the slot's default";
-                //    the cell stays fully clickable so reverting runs the ordinary TrySwap path.
+                // ORIGINAL (and not current): the CellBackground wash, i.e. "this is the slot's default";
+                // the cell stays fully clickable so reverting runs the ordinary TrySwap path.
                 // The template is usually a ROLLED personal cell, so the clone can inherit its tint child;
                 // hide it on every cell first, then light it only on the original, so the marker means
                 // exactly one thing. Hide (not Destroy) because Unity's Destroy is deferred — a re-created
@@ -165,19 +183,6 @@ namespace Morgott.Oracle
                 if (isCurrent)
                 {
                     CellBackground.Apply(cell, false);
-                    // Own try: dimming is cosmetic, but a throw here would abort the whole cell — and
-                    // this is the CURRENT perk's cell, which would then vanish from the wiki entirely.
-                    try
-                    {
-                        if ((object)SetSkillStateMethod != null)
-                        {
-                            SetSkillStateMethod.Invoke(cell, new object[] { false, true, false, true });
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        OracleLog.Debug("[Oracle] WikiIconFactory current-cell dim failed: " + ex.Message);
-                    }
                 }
                 else if (isOriginal)
                 {
@@ -274,12 +279,7 @@ namespace Morgott.Oracle
                 //   grey:   unavailable -> (locked:F, avail:T, buyable:F, learn:T) => AvailableSkill, and since
                 //           buyable is F the "Available" pulse image stays off AND the native click is inert
                 //           => SecondaryUIColor (the game's own dim "unknown skill" tint).
-                if ((object)SetSkillStateMethod != null)
-                {
-                    SetSkillStateMethod.Invoke(cell, bright
-                        ? new object[] { false, false, false, true }
-                        : new object[] { false, true, false, true });
-                }
+                SetState(cell, dim: !bright);
 
                 // Let the GridLayoutGroup own placement/size regardless of the prefab's anchoring.
                 var rt = cloneGo.GetComponent<RectTransform>();
@@ -301,6 +301,38 @@ namespace Morgott.Oracle
             {
                 OracleLog.Debug("[Oracle] WikiIconFactory.MakeCell failed: " + ex.Message);
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Drive a wiki clone into one of the two native looks through the cell's OWN private state
+        /// machine — the single seam both MakeNative and MakeCell use, so a drill cell and a vanilla-perk
+        /// cell in the same state are pixel-identical:
+        ///   bright (dim:false) -> KnownSkill  => Colors.PrimaryUIColor,
+        ///   dim    (dim:true)  -> AvailableSkill (buyable:false, so the click stays inert)
+        ///                      => Colors.SecondaryUIColor.
+        /// Afterwards the "Available" indicator is force-cleared: with buyable:false the game never lights
+        /// it (so this is a no-op without TFTV), but TFTV's postfix on the same seam re-purposes that image
+        /// as its pulsing drill badge — in the wiki the shade must encode state, not which mod added the
+        /// ability. Guarded: a throw here would otherwise drop the whole cell.
+        /// </summary>
+        private static void SetState(AbilityTrackSkillEntryElement cell, bool dim)
+        {
+            try
+            {
+                if ((object)SetSkillStateMethod != null)
+                {
+                    SetSkillStateMethod.Invoke(cell, new object[] { false, dim, false, true });
+                }
+                if ((UnityEngine.Object)(object)cell.Available != (UnityEngine.Object)null)
+                {
+                    cell.Available.gameObject.SetActive(false);
+                }
+                cell.AvailableSkill = dim; // keep the look, drop any foreign LateUpdate pulse claim
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] WikiIconFactory.SetState failed: " + ex.Message);
             }
         }
 

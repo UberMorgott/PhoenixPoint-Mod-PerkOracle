@@ -40,5 +40,8 @@
     <!-- VariableNarratives (pure story-variable id -> narrative phrase/suffix mapping) is engine-free
          (only depends on EventOutcomeFormat), so it links and unit-tests under net8. -->
     <Compile Include="..\..\src\VariableNarratives.cs" Link="VariableNarratives.cs" />
+    <!-- WikiGridLayout is the pure wiki grid sizing core (columns/rows/cell size for a live count in a
+         given area; no Unity types), so it links and unit-tests under net8. -->
+    <Compile Include="..\..\src\WikiGridLayout.cs" Link="WikiGridLayout.cs" />
   </ItemGroup>
 </Project>
