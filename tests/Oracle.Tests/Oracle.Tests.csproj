@@ -25,6 +25,8 @@
     <Compile Include="..\..\src\PerkSwapDecision.cs" Link="PerkSwapDecision.cs" />
     <!-- ClassPerkResolver is the pure class-track ordering/dedup core (no Unity/TFTV types). -->
     <Compile Include="..\..\src\ClassPerkResolver.cs" Link="ClassPerkResolver.cs" />
+    <!-- DrillWikiFormat is the pure drills ordering/requirement-wording core (no Unity/TFTV types). -->
+    <Compile Include="..\..\src\DrillWikiFormat.cs" Link="DrillWikiFormat.cs" />
     <!-- EventOutcomeData (POCO DTO) + EventOutcomePreview (pure formatter) are engine-free,
          so they link and unit-test under net8 exactly like PerkPoolResolver. -->
     <Compile Include="..\..\src\EventOutcomeData.cs" Link="EventOutcomeData.cs" />

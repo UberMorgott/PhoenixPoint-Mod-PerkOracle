@@ -6,6 +6,7 @@ using PhoenixPoint.Common.Entities;
 using PhoenixPoint.Common.Entities.Characters;
 using PhoenixPoint.Geoscape.Entities;
 using PhoenixPoint.Geoscape.Levels;
+using PhoenixPoint.Geoscape.Levels.Factions;
 using PhoenixPoint.Geoscape.View.ViewControllers;
 using PhoenixPoint.Geoscape.View.ViewControllers.Progression;
 using PhoenixPoint.Geoscape.View.ViewControllers.Roster;
@@ -38,6 +39,23 @@ namespace Morgott.Oracle
         private const string SectionClassFallback = "CLASS ABILITIES";
         private const string SectionRandomTerm = "ORACLE_WIKI_SECTION_RANDOM";
         private const string SectionRandomFallback = "RANDOM PERKS";
+
+        // Drills row (TFTV only — nothing below is ever reached without TFTV; see BuildDrillsRow).
+        private const string SectionDrillsTerm = "ORACLE_WIKI_SECTION_DRILLS";
+        private const string SectionDrillsFallback = "DRILLS";
+        private const string DrillAnyClassTerm = "ORACLE_DRILL_ANY_CLASS";
+        private const string DrillAnyClassFallback = "Any class";
+        private const string DrillRequirementsTerm = "ORACLE_DRILL_REQUIREMENTS";
+        private const string DrillRequirementsFallback = "Requirements";
+        private const string DrillNoRequirementsTerm = "ORACLE_DRILL_NO_REQUIREMENTS";
+        private const string DrillNoRequirementsFallback = "No requirements";
+        private const string DrillAvailableTerm = "ORACLE_DRILL_STATUS_AVAILABLE";
+        private const string DrillAvailableFallback = "Available";
+        private const string DrillTakenTerm = "ORACLE_DRILL_STATUS_TAKEN";
+        private const string DrillTakenFallback = "Already learned";
+        private const string DrillLockedTerm = "ORACLE_DRILL_STATUS_LOCKED";
+        private const string DrillLockedFallback = "Locked";
+        private const float DrillInfoWidth = 520f; // wrap width of the drill requirement flyout text
 
         // Class-wiki (3-row native-cell tab panel) layout.
         private const int MaxRowColumns = 10;   // wrap a row onto a new line past this many cells
@@ -354,6 +372,261 @@ namespace Morgott.Oracle
             }
 
             SelectTab(mainSpec); // default selected tab = the soldier's own main class
+
+            // Row 4 (TFTV only, class-independent -> built ONCE, outside the per-tab body).
+            BuildDrillsRow(panelGo.transform, character, template, cellSize, canvasRect, rootCanvas, panelRt);
+        }
+
+        /// <summary>
+        /// Row 4 (TFTV only): every drill TFTV registered, alphabetically, as read-only native cells with
+        /// the vanilla ability tooltip. Cell state uses the live soldier: bright = available or already
+        /// learned (learned also gets the highlight tint), grey = locked. Clicking a drill toggles a text
+        /// flyout with its static requirements (class+level, research, proficiency OR-groups) plus — when
+        /// locked — TFTV's OWN "why" lines (<see cref="TftvDrillsBridge.GetMissingRequirementDescriptions"/>).
+        /// <para>
+        /// HARD no-TFTV guarantee: the first line returns before ANY GameObject, label or log is produced,
+        /// so with TFTV absent the wiki is byte-for-byte the previous panel.
+        /// </para>
+        /// </summary>
+        private static void BuildDrillsRow(Transform parent, GeoCharacter viewer,
+            AbilityTrackSkillEntryElement template, float cellSize, RectTransform canvasRect,
+            Canvas rootCanvas, RectTransform panelRt)
+        {
+            if (!TftvDrillsBridge.DrillsAvailable)
+            {
+                return; // no TFTV -> no row, no label, no log
+            }
+            try
+            {
+                List<DrillRequirementInfo> drills = DrillWikiFormat.SortByName(
+                    TftvDrillsBridge.RequirementTable, info => AbilityName(info?.Drill));
+                if (drills.Count == 0)
+                {
+                    return;
+                }
+
+                GeoPhoenixFaction faction = null;
+                try
+                {
+                    GeoLevelController level = GameUtl.CurrentLevel()?.GetComponent<GeoLevelController>();
+                    faction = (UnityEngine.Object)(object)level != (UnityEngine.Object)null
+                        ? level.PhoenixFaction
+                        : null;
+                }
+                catch (Exception ex)
+                {
+                    OracleLog.Debug("[Oracle] drills row faction lookup failed: " + ex.Message);
+                }
+
+                BuildRowLabel(parent, Loc.Get(SectionDrillsTerm, SectionDrillsFallback));
+                GameObject grid = BuildRowGrid(parent, drills.Count, cellSize);
+
+                // One info flyout at a time (same toggle semantics as the random-slot flyout).
+                GameObject flyout = null;
+                DrillRequirementInfo flyoutInfo = null;
+
+                void ToggleInfo(DrillRequirementInfo info)
+                {
+                    try
+                    {
+                        bool wasOpen = (UnityEngine.Object)(object)flyout != (UnityEngine.Object)null;
+                        if (wasOpen)
+                        {
+                            flyout.transform.SetParent(null, false); // detach so layout updates this frame
+                            UnityEngine.Object.Destroy(flyout);
+                            flyout = null;
+                        }
+                        if (wasOpen && flyoutInfo == info)
+                        {
+                            flyoutInfo = null; // second click on the same drill -> just close
+                            LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
+                            return;
+                        }
+                        flyout = BuildDrillInfoFlyout(parent, DrillInfoText(info, faction, viewer));
+                        flyoutInfo = info;
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(panelRt);
+                    }
+                    catch (Exception ex)
+                    {
+                        OracleLog.Debug("[Oracle] PerkWikiPanel.ToggleInfo failed: " + ex.Message);
+                    }
+                }
+
+                foreach (DrillRequirementInfo info in drills)
+                {
+                    TacticalAbilityDef def = info.Drill;
+                    if ((UnityEngine.Object)(object)def == (UnityEngine.Object)null
+                        || (UnityEngine.Object)(object)def.ViewElementDef == (UnityEngine.Object)null)
+                    {
+                        continue;
+                    }
+                    bool taken = viewer != null && TftvDrillsBridge.CharacterHasDrill(viewer, def);
+                    bool unlocked = viewer != null && faction != null
+                        && TftvDrillsBridge.IsDrillUnlocked(faction, viewer, def);
+                    Sprite icon = def.ViewElementDef.SmallIcon != null
+                        ? def.ViewElementDef.SmallIcon
+                        : def.ViewElementDef.LargeIcon;
+                    GameObject cellGo = WikiIconFactory.MakeCell(grid.transform, template, icon, def,
+                        taken || unlocked || viewer == null, _tooltip, canvasRect, rootCanvas);
+                    if ((UnityEngine.Object)(object)cellGo == (UnityEngine.Object)null)
+                    {
+                        continue;
+                    }
+                    if (taken)
+                    {
+                        CellBackground.ApplyAlways(cellGo.GetComponent<AbilityTrackSkillEntryElement>());
+                    }
+                    var btn = cellGo.GetComponent<Button>();
+                    if ((UnityEngine.Object)(object)btn != (UnityEngine.Object)null)
+                    {
+                        DrillRequirementInfo captured = info;
+                        btn.onClick.AddListener(() => ToggleInfo(captured));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.BuildDrillsRow failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// The drill flyout body: name, live status (when a soldier context exists), the static
+        /// requirements, and TFTV's own missing-requirement lines when the drill is locked for them.
+        /// </summary>
+        private static string DrillInfoText(DrillRequirementInfo info, GeoPhoenixFaction faction, GeoCharacter viewer)
+        {
+            var lines = new List<string> { AbilityName(info.Drill) };
+
+            bool taken = viewer != null && TftvDrillsBridge.CharacterHasDrill(viewer, info.Drill);
+            bool unlocked = viewer != null && faction != null
+                && TftvDrillsBridge.IsDrillUnlocked(faction, viewer, info.Drill);
+            if (viewer != null)
+            {
+                lines.Add(taken
+                    ? Loc.Get(DrillTakenTerm, DrillTakenFallback)
+                    : unlocked
+                        ? Loc.Get(DrillAvailableTerm, DrillAvailableFallback)
+                        : Loc.Get(DrillLockedTerm, DrillLockedFallback));
+            }
+
+            var gates = new List<KeyValuePair<string, int>>();
+            foreach (DrillClassLevelInfo gate in info.ClassLevels)
+            {
+                string cls = (UnityEngine.Object)(object)gate.ClassTag != (UnityEngine.Object)null
+                    ? gate.ClassTag.className
+                    : null;
+                gates.Add(new KeyValuePair<string, int>(cls, gate.MinimumLevel));
+            }
+            var profGroups = new List<IReadOnlyList<string>>();
+            foreach (List<TacticalAbilityDef> group in info.ProficiencyGroups)
+            {
+                var names = new List<string>();
+                foreach (TacticalAbilityDef ability in group)
+                {
+                    names.Add(AbilityName(ability));
+                }
+                profGroups.Add(names);
+            }
+
+            var reqs = new List<string>();
+            string classLine = DrillWikiFormat.ClassLevelLine(gates, Loc.Get(DrillAnyClassTerm, DrillAnyClassFallback));
+            if (!string.IsNullOrEmpty(classLine))
+            {
+                reqs.Add(classLine);
+            }
+            if (info.RequiredResearchIds.Count > 0)
+            {
+                reqs.Add("Research: " + string.Join(", ", info.RequiredResearchIds.ToArray()));
+            }
+            string profLine = DrillWikiFormat.ProficiencyLine(profGroups);
+            if (!string.IsNullOrEmpty(profLine))
+            {
+                reqs.Add(profLine);
+            }
+
+            lines.Add(reqs.Count == 0
+                ? Loc.Get(DrillNoRequirementsTerm, DrillNoRequirementsFallback)
+                : Loc.Get(DrillRequirementsTerm, DrillRequirementsFallback) + ":");
+            foreach (string req in reqs)
+            {
+                lines.Add("  - " + req);
+            }
+
+            if (viewer != null && !taken && !unlocked)
+            {
+                // TFTV's own "why is this locked" wording — never re-worded here.
+                foreach (string missing in TftvDrillsBridge.GetMissingRequirementDescriptions(faction, viewer, info.Drill))
+                {
+                    lines.Add("  ! " + missing);
+                }
+            }
+            return string.Join("\n", lines.ToArray());
+        }
+
+        /// <summary>Localized ability display name, falling back to the def's object name.</summary>
+        private static string AbilityName(TacticalAbilityDef def)
+        {
+            if ((UnityEngine.Object)(object)def == (UnityEngine.Object)null)
+            {
+                return null;
+            }
+            try
+            {
+                var view = def.ViewElementDef;
+                if ((UnityEngine.Object)(object)view != (UnityEngine.Object)null && view.DisplayName1 != null)
+                {
+                    string s = Loc.Clean(view.DisplayName1.Localize());
+                    if (!string.IsNullOrEmpty(s))
+                    {
+                        return s;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.AbilityName failed: " + ex.Message);
+            }
+            return ((UnityEngine.Object)(object)def).name;
+        }
+
+        /// <summary>
+        /// Text counterpart of <see cref="BuildSlotFlyout"/>: the same inset shaded sub-panel, holding one
+        /// wrapped label instead of a cell grid.
+        /// </summary>
+        private static GameObject BuildDrillInfoFlyout(Transform parent, string text)
+        {
+            var holder = new GameObject("DrillInfoFlyout",
+                typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+            holder.transform.SetParent(parent, false);
+            var img = holder.GetComponent<Image>();
+            ((Graphic)img).color = new Color(0.03f, 0.10f, 0.15f, 0.95f);
+            img.raycastTarget = true; // eat clicks so they don't fall through to the backdrop
+            var vlg = holder.GetComponent<VerticalLayoutGroup>();
+            vlg.padding = new RectOffset(12, 12, 8, 8);
+            vlg.childAlignment = TextAnchor.UpperLeft;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.childForceExpandWidth = false;
+            vlg.childForceExpandHeight = false;
+            var fitter = holder.GetComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            var textGo = new GameObject("DrillInfoText",
+                typeof(RectTransform), typeof(CanvasRenderer), typeof(Text), typeof(LayoutElement));
+            textGo.transform.SetParent(holder.transform, false);
+            var label = textGo.GetComponent<Text>();
+            label.text = text;
+            label.font = GetTitleFont();
+            label.fontSize = 16;
+            ((Graphic)label).color = new Color(0.88f, 0.94f, 1f, 1f);
+            label.alignment = TextAnchor.UpperLeft;
+            label.horizontalOverflow = HorizontalWrapMode.Wrap;
+            label.verticalOverflow = VerticalWrapMode.Overflow;
+            label.raycastTarget = false;
+            textGo.GetComponent<LayoutElement>().preferredWidth = DrillInfoWidth;
+            return holder;
         }
 
         /// <summary>Create a row container with a wrapping fixed-column <see cref="GridLayoutGroup"/>.</summary>
