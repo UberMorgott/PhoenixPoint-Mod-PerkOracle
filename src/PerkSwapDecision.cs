@@ -86,16 +86,23 @@ namespace Morgott.Oracle
         public bool IsRevertToOriginal;
 
         /// <summary>
-        /// Fold TFTV's two nullable SAFETY answers into <see cref="RemovalBreaksAcquiredDrill"/>. A
+        /// Fold TFTV's nullable SAFETY answers into <see cref="RemovalBreaksAcquiredDrill"/>. A
         /// <c>null</c> means the bridge could NOT obtain the answer (member unresolved / TFTV threw), and
         /// an unknown safety answer must count exactly like "yes, this would break an acquired drill" —
         /// fail closed. Pure so the fail-closed rule is unit-tested engine-free.
+        /// <paramref name="targetDrillLosesProficiency"/> is TFTV's target-drill direction of the same
+        /// check (DrillsUnlock.TargetDrillLosesWeaponProficiencyRequirement:202): removing the current
+        /// perk would strip a proficiency the CHOSEN drill itself requires. It defaults to <c>false</c>
+        /// ("not applicable" — the chosen perk is not a drill), never to the unknown sentinel.
         /// </summary>
-        public static bool SafetyDenies(bool? currentIsAcquiredDrill, bool? removalBreaksAcquiredDrill)
+        public static bool SafetyDenies(bool? currentIsAcquiredDrill, bool? removalBreaksAcquiredDrill,
+            bool? targetDrillLosesProficiency = false)
         {
             return currentIsAcquiredDrill == null
                    || removalBreaksAcquiredDrill == null
-                   || removalBreaksAcquiredDrill == true;
+                   || removalBreaksAcquiredDrill == true
+                   || targetDrillLosesProficiency == null
+                   || targetDrillLosesProficiency == true;
         }
     }
 
@@ -214,6 +221,52 @@ namespace Morgott.Oracle
                 return 0;
             }
             return configuredCost;
+        }
+
+        /// <summary>
+        /// TFTV's own flat price for moving a drill onto an ALREADY-LEARNED ability
+        /// (<c>refs/TFTV-src TFTVDrills/DrillsUI.cs:9 — private const int SwapSpCost = 10</c>). Used only
+        /// as the fallback when that literal cannot be read out of the installed TFTV at runtime
+        /// (see <c>TftvDrillsBridge.DrillSwapSpCost</c>); the single place the number is written down.
+        /// </summary>
+        public const int TftvDrillSwapSpCostFallback = 10;
+
+        /// <summary>
+        /// Price of ONE swap, in skill points. A TFTV drill follows TFTV's OWN rule so PerkOracle never
+        /// charges more than taking the drill through TFTV's UI would
+        /// (<c>DrillSwapUI.cs:379 — baseAbilityLearned ? SwapSpCost : max(0, baseAbilityCost)</c>); any
+        /// other perk keeps the mod's configured cost. The free-swap master toggle
+        /// (<paramref name="costEnabled"/>) still zeroes both. Pure so the price rule is unit-tested
+        /// engine-free; the live inputs are gathered in <c>PerkSwapper.ResolveSwapCost</c>.
+        /// </summary>
+        /// <param name="chosenIsDrill">The clicked perk is one of TFTV's drills.</param>
+        /// <param name="currentAbilityLearned">The slot's current ability is already learned (a real replace).</param>
+        /// <param name="drillSwapSpCost">TFTV's flat replace price (its <c>SwapSpCost</c>).</param>
+        /// <param name="slotCost">The slot's normal purchase price (<c>Progression.GetAbilitySlotCost</c>).</param>
+        public static int SwapCost(bool chosenIsDrill, bool currentAbilityLearned, int drillSwapSpCost,
+            int slotCost, bool costEnabled, int configuredCost)
+        {
+            if (!costEnabled)
+            {
+                return 0;
+            }
+            if (!chosenIsDrill)
+            {
+                return EffectiveCost(true, configuredCost);
+            }
+            int cost = currentAbilityLearned ? drillSwapSpCost : slotCost;
+            return cost > 0 ? cost : 0;
+        }
+
+        /// <summary>
+        /// Whether a wiki candidate cell must render in the dim "not a choice" look: the perk the slot
+        /// already holds, or any candidate whose verdict is not <see cref="PerkSwapVerdict.Allow"/>
+        /// (already owned / drill locked / re-swap blocked …). Such a cell is also made inert at the
+        /// click site, so bright == clickable is an invariant of the grid.
+        /// </summary>
+        public static bool DimsCell(bool isCurrent, PerkSwapVerdict verdict)
+        {
+            return isCurrent || verdict != PerkSwapVerdict.Allow;
         }
 
         private static bool Contains<T>(IReadOnlyCollection<T> owned, T value, IEqualityComparer<T> comparer)

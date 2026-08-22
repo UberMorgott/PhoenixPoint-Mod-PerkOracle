@@ -107,7 +107,7 @@ namespace Morgott.Oracle
         public static GameObject MakeNative(Transform parent, TacticalAbilityDef def,
             AbilityTrackSkillEntryElement template, AbilityTrackSlot slot,
             GeoRosterAbilityDetailTooltip tooltip, RectTransform canvasRect, Canvas rootCanvas,
-            PerkSwapContext swapContext, bool isCurrent = false, bool isOriginal = false)
+            PerkSwapContext swapContext, bool isCurrent = false, bool isOriginal = false, bool dim = false)
         {
             if ((UnityEngine.Object)(object)parent == (UnityEngine.Object)null || def == null
                 || (UnityEngine.Object)(object)template == (UnityEngine.Object)null || slot == null
@@ -165,11 +165,13 @@ namespace Morgott.Oracle
                 }
 
                 // Slot state -> native look, applied ONCE:
-                //  - CURRENT: the game's own dim "unavailable" arm (isAvailable:true) — the same one
-                //    MakeCell's !bright uses; this is what the slot already holds, so it is not a choice.
-                //  - everything else: isLocked:F, isAvailable:F, isBuyable:F, isLearnable:T -> KnownSkill
-                //    -> PrimaryUIColor (the bright "owned/known" look).
-                SetState(cell, dim: isCurrent);
+                //  - DIM (the game's own "unavailable" arm, isAvailable:true — the same one MakeCell's
+                //    !bright uses): the perk the slot already holds, or any candidate the swap gate would
+                //    refuse (already owned, drill locked, re-swap blocked). Such a cell is also handed a
+                //    null swap context by the caller, so bright == clickable holds for the whole grid.
+                //  - BRIGHT: isLocked:F, isAvailable:F, isBuyable:F, isLearnable:T -> KnownSkill
+                //    -> PrimaryUIColor (the "owned/known" look).
+                SetState(cell, dim: dim || isCurrent);
 
                 // Disable the native (text) tooltip; we provide the rich framed tooltip ourselves.
                 cell.SetTooltip(null);

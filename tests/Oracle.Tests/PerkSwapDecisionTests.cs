@@ -258,5 +258,108 @@ namespace Morgott.Oracle.Tests
         {
             Assert.Equal(0, PerkSwapDecision.EffectiveCost(true, 0));
         }
+
+        // ---- fail-closed on the TARGET-drill direction of the proficiency check ---------------------
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData(true)]
+        public void SafetyDenies_TargetDrillLosesProficiency_UnknownOrBreaking_Denies(bool? targetLoses)
+        {
+            // Both slot-side answers are known-safe; only TFTV's target-drill answer objects (or is
+            // unavailable) — an unknown must count exactly like "yes, it breaks".
+            Assert.True(DrillSwapContext.SafetyDenies(false, false, targetLoses));
+        }
+
+        [Fact]
+        public void SafetyDenies_TargetDrillKeepsProficiency_Allows()
+        {
+            Assert.False(DrillSwapContext.SafetyDenies(false, false, false));
+        }
+
+        [Fact]
+        public void SafetyDenies_TargetDrillArgumentDefaultsToNotApplicable()
+        {
+            // The chosen perk is not a drill => the target-drill check does not apply, and the default
+            // must be the SAFE value (false), never the unknown sentinel.
+            Assert.False(DrillSwapContext.SafetyDenies(false, false));
+        }
+
+        // ---- swap price: TFTV parity for drills, configured cost for everything else ----------------
+
+        [Fact]
+        public void SwapCost_VanillaPerk_UsesConfiguredCost()
+        {
+            Assert.Equal(50, PerkSwapDecision.SwapCost(
+                chosenIsDrill: false, currentAbilityLearned: true,
+                drillSwapSpCost: 10, slotCost: 7, costEnabled: true, configuredCost: 50));
+        }
+
+        [Fact]
+        public void SwapCost_DrillOverLearnedAbility_UsesTftvFlatPrice()
+        {
+            // TFTV's own rule (DrillSwapUI.cs:379): replacing a LEARNED ability costs the flat SwapSpCost,
+            // never PerkOracle's (higher) configured price.
+            Assert.Equal(10, PerkSwapDecision.SwapCost(
+                chosenIsDrill: true, currentAbilityLearned: true,
+                drillSwapSpCost: 10, slotCost: 7, costEnabled: true, configuredCost: 50));
+        }
+
+        [Fact]
+        public void SwapCost_DrillOverUnboughtSlot_UsesSlotCost()
+        {
+            Assert.Equal(7, PerkSwapDecision.SwapCost(
+                chosenIsDrill: true, currentAbilityLearned: false,
+                drillSwapSpCost: 10, slotCost: 7, costEnabled: true, configuredCost: 50));
+        }
+
+        [Fact]
+        public void SwapCost_NegativeSlotCost_ClampsToFree()
+        {
+            Assert.Equal(0, PerkSwapDecision.SwapCost(
+                chosenIsDrill: true, currentAbilityLearned: false,
+                drillSwapSpCost: 10, slotCost: -3, costEnabled: true, configuredCost: 50));
+        }
+
+        [Fact]
+        public void SwapCost_FreeSwapToggleOff_ZeroesBothPaths()
+        {
+            Assert.Equal(0, PerkSwapDecision.SwapCost(true, true, 10, 7, costEnabled: false, configuredCost: 50));
+            Assert.Equal(0, PerkSwapDecision.SwapCost(false, true, 10, 7, costEnabled: false, configuredCost: 50));
+        }
+
+        [Fact]
+        public void SwapCost_DrillPriceIgnoresConfiguredCostEntirely()
+        {
+            // A rebalanced TFTV SwapSpCost follows automatically; PerkOracle's own number never leaks in.
+            Assert.Equal(3, PerkSwapDecision.SwapCost(true, true, 3, 7, true, 999));
+        }
+
+        // ---- denied candidates must LOOK denied ------------------------------------------------------
+
+        [Fact]
+        public void DimsCell_AllowedCandidate_StaysBright()
+        {
+            Assert.False(PerkSwapDecision.DimsCell(isCurrent: false, verdict: PerkSwapVerdict.Allow));
+        }
+
+        [Fact]
+        public void DimsCell_CurrentPerk_Dims()
+        {
+            Assert.True(PerkSwapDecision.DimsCell(isCurrent: true, verdict: PerkSwapVerdict.Allow));
+        }
+
+        [Theory]
+        [InlineData(PerkSwapVerdict.DenyAlreadyOwned)]
+        [InlineData(PerkSwapVerdict.DenyDrillLocked)]
+        [InlineData(PerkSwapVerdict.DenyDrillReSwapBlocked)]
+        [InlineData(PerkSwapVerdict.DenyDrillBreaksAcquired)]
+        [InlineData(PerkSwapVerdict.DenyNotLearned)]
+        [InlineData(PerkSwapVerdict.DenySameAsCurrent)]
+        [InlineData(PerkSwapVerdict.DenyInvalidInput)]
+        public void DimsCell_AnyDeniedVerdict_Dims(PerkSwapVerdict verdict)
+        {
+            Assert.True(PerkSwapDecision.DimsCell(isCurrent: false, verdict: verdict));
+        }
     }
 }

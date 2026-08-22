@@ -34,6 +34,15 @@ namespace Morgott.Oracle
         {
             try
             {
+                // 0) Our confirm popup owns the top of the geoscape state stack (OpenModal forceOnTop,
+                //    GeoscapeView.cs:868-875), so it already eats the cancel; stand down so a stray
+                //    delivery here cannot close the wiki out from under the open modal.
+                if (SwapConfirmModal.Pending)
+                {
+                    __result = true;
+                    return false; // consume: neither close the wiki nor let vanilla back leave the screen
+                }
+
                 // 1) Already open -> close + consume, keep the screen.
                 if (PerkWikiPanel.IsOpen)
                 {

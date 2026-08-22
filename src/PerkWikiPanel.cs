@@ -1324,18 +1324,31 @@ namespace Morgott.Oracle
             TacticalAbilityDef currentDef = slot != null ? slot.Ability : null;
             TacticalAbilityDef originalDef = swapContext != null ? swapContext.OriginalDef : null;
 
+            // Verdicts for the WHOLE grid, gathered once (owned set, scheduled scan, drill safety answers)
+            // instead of per cell. A candidate the gate would refuse must LOOK refused: it renders in the
+            // dim "not a choice" state and is handed a null swap context, so its click is explicitly inert
+            // instead of silently eaten. Null on a view-only wiki -> every cell renders as before.
+            PerkSwapper.GridVerdicts verdicts = (OracleMain.AllowPerkSwap && swapContext != null)
+                ? PerkSwapper.GridVerdicts.Build(swapContext)
+                : null;
+
             foreach (TacticalAbilityDef def in defs)
             {
+                bool isCurrent = ReferenceEquals(def, currentDef);
+                PerkSwapVerdict verdict = verdicts != null ? verdicts.Evaluate(def) : PerkSwapVerdict.Allow;
+                bool allowed = verdict == PerkSwapVerdict.Allow;
                 if (useNative)
                 {
                     WikiIconFactory.MakeNative(contentGo.transform, def, template, slot,
-                        _tooltip, canvasRect, rootCanvas, swapContext,
-                        isCurrent: ReferenceEquals(def, currentDef),
-                        isOriginal: ReferenceEquals(def, originalDef));
+                        _tooltip, canvasRect, rootCanvas, allowed ? swapContext : null,
+                        isCurrent: isCurrent,
+                        isOriginal: ReferenceEquals(def, originalDef),
+                        dim: PerkSwapDecision.DimsCell(isCurrent, verdict));
                 }
                 else
                 {
-                    WikiIconFactory.Make(contentGo.transform, def, _tooltip, canvasRect, rootCanvas, swapContext);
+                    WikiIconFactory.Make(contentGo.transform, def, _tooltip, canvasRect, rootCanvas,
+                        allowed ? swapContext : null);
                 }
             }
         }

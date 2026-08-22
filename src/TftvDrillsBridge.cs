@@ -57,6 +57,10 @@ namespace Morgott.Oracle
         private static MethodInfo _wouldBreakProficiency;
         private static MethodInfo _missingRequirements;
         private static MethodInfo _tryGetResearchName;      // cosmetic: research id -> display name
+        private static MethodInfo _targetDrillLoses;        // target-drill direction of the proficiency check
+        private static MethodInfo _setStaminaToZero;        // TFTVCommonMethods.SetStaminaToZero(GeoCharacter)
+        private static FieldInfo _staminaPenaltyOption;     // TFTVNewGameOptions.StaminaPenaltyFromInjurySetting
+        private static int _drillSwapSpCost = PerkSwapDecision.TftvDrillSwapSpCostFallback;
 
         private static List<DrillRequirementInfo> _requirements;
 
@@ -189,6 +193,80 @@ namespace Morgott.Oracle
             }
         }
 
+        /// <summary>
+        /// Target-drill direction of the proficiency check (<c>DrillsUnlock.cs:202</c>): true when
+        /// removing <paramref name="abilityToRemove"/> would strip a weapon proficiency the CHOSEN drill
+        /// itself requires — the one guard PerkOracle had no equivalent of. Same SAFETY convention as
+        /// <see cref="WouldBreakWeaponProficiencyRequirement"/>: <c>null</c> when the answer could not be
+        /// obtained, so callers fail CLOSED.
+        /// </summary>
+        public static bool? TargetDrillLosesWeaponProficiencyRequirement(GeoCharacter soldier,
+            TacticalAbilityDef targetDrill, TacticalAbilityDef abilityToRemove, out string blockingDrill)
+        {
+            blockingDrill = null;
+            EnsureResolved();
+            if (_targetDrillLoses == null)
+            {
+                return null;
+            }
+            try
+            {
+                object[] args = { soldier, targetDrill, abilityToRemove, null };
+                bool result = (bool)_targetDrillLoses.Invoke(null, args);
+                blockingDrill = args[3] as string;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] TargetDrillLosesWeaponProficiencyRequirement failed: " + ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// TFTV's flat "replace a learned ability with a drill" price (<c>DrillsUI.SwapSpCost</c>, a
+        /// private const read out of the INSTALLED TFTV so a rebalance there follows automatically).
+        /// Falls back to <see cref="PerkSwapDecision.TftvDrillSwapSpCostFallback"/> when unreadable.
+        /// </summary>
+        public static int DrillSwapSpCost
+        {
+            get
+            {
+                EnsureResolved();
+                return _drillSwapSpCost;
+            }
+        }
+
+        /// <summary>
+        /// TFTV's "stamina drain after injury" campaign option
+        /// (<c>TFTVNewGameOptions.StaminaPenaltyFromInjurySetting</c>), read LIVE. False without TFTV.
+        /// </summary>
+        public static bool StaminaPenaltyEnabled
+        {
+            get
+            {
+                EnsureResolved();
+                try
+                {
+                    return _staminaPenaltyOption?.GetValue(null) as bool? ?? false;
+                }
+                catch (Exception ex)
+                {
+                    OracleLog.Debug("[Oracle] StaminaPenaltyFromInjurySetting read failed: " + ex.Message);
+                    return false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Apply TFTV's own post-swap stamina penalty (<c>TFTVCommonMethods.SetStaminaToZero</c>,
+        /// DrillsUI.Helpers.cs:344-348). No-op without TFTV or when the member is unresolved.
+        /// </summary>
+        public static void SetStaminaToZero(GeoCharacter soldier)
+        {
+            Invoke(_setStaminaToZero, new object[] { soldier });
+        }
+
         /// <summary>TFTV's ready-made "why is this locked" lines; empty when unavailable.</summary>
         public static List<string> GetMissingRequirementDescriptions(GeoPhoenixFaction faction, GeoCharacter viewer, TacticalAbilityDef ability)
         {
@@ -249,6 +327,25 @@ namespace Morgott.Oracle
                 // availability gate; a miss just falls back to printing the raw research id.
                 _tryGetResearchName = AccessTools.Method(tUnlock, "TryGetResearchName",
                     new[] { typeof(string) });
+                _targetDrillLoses = AccessTools.Method(tUnlock, "TargetDrillLosesWeaponProficiencyRequirement",
+                    new[]
+                    {
+                        typeof(GeoCharacter), typeof(TacticalAbilityDef), typeof(TacticalAbilityDef),
+                        typeof(string).MakeByRefType(),
+                    });
+
+                // Cost + stamina parity with TFTV's own drill swap. Cosmetic-adjacent, NOT part of the
+                // availability gate: an older TFTV without them keeps working (flat fallback price, no
+                // stamina penalty) instead of silently disabling every drill gate.
+                ReadDrillSwapSpCost();
+                Type tOptions = AccessTools.TypeByName("TFTV.TFTVNewGameOptions");
+                Type tCommon = AccessTools.TypeByName("TFTV.TFTVCommonMethods");
+                _staminaPenaltyOption = tOptions != null
+                    ? AccessTools.Field(tOptions, "StaminaPenaltyFromInjurySetting")
+                    : null;
+                _setStaminaToZero = tCommon != null
+                    ? AccessTools.Method(tCommon, "SetStaminaToZero", new[] { typeof(GeoCharacter) })
+                    : null;
 
                 // Availability requires the drill list AND every member a GATE depends on. Gating on
                 // the field alone would leave DrillsAvailable true while the accessors silently return
@@ -257,12 +354,35 @@ namespace Morgott.Oracle
                              & ReportMissing("IsDrillUnlocked", _isDrillUnlocked)
                              & ReportMissing("CharacterHasDrill", _characterHasDrill)
                              & ReportMissing("WouldBreakWeaponProficiencyRequirement", _wouldBreakProficiency)
+                             & ReportMissing("TargetDrillLosesWeaponProficiencyRequirement", _targetDrillLoses)
                              & ReportMissing("GetAvailableDrills", _getAvailableDrills);
             }
             catch (Exception ex)
             {
                 _available = false;
                 OracleLog.Debug("[Oracle] TFTV drills bridge unavailable: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Read TFTV's <c>DrillsUI.SwapSpCost</c> literal. It is a private const, so the value lives in
+        /// metadata and <see cref="FieldInfo.GetRawConstantValue"/> reads it without an instance. Any miss
+        /// leaves the fallback in place.
+        /// </summary>
+        private static void ReadDrillSwapSpCost()
+        {
+            try
+            {
+                Type tUi = AccessTools.TypeByName("TFTV.TFTVDrills.DrillsUI");
+                FieldInfo f = tUi != null ? AccessTools.Field(tUi, "SwapSpCost") : null;
+                if (f != null && f.IsLiteral && f.GetRawConstantValue() is int cost && cost >= 0)
+                {
+                    _drillSwapSpCost = cost;
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] DrillsUI.SwapSpCost read failed, using fallback: " + ex.Message);
             }
         }
 

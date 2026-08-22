@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using PhoenixPoint.Common.Entities.Characters;
@@ -77,11 +78,10 @@ namespace Morgott.Oracle
                 AbilityTrackSlot slot = ctx.Slot;
                 TacticalAbilityDef oldDef = slot.Ability; // step 1
 
-                // Decision gate (learned? same? already-owned?). Owned set = progression.Abilities.
-                IReadOnlyList<TacticalAbilityDef> owned = progression.Abilities;
-                PerkSwapVerdict verdict = PerkSwapDecision.Evaluate(
-                    chosenDef, oldDef, owned, null, ScheduledPerks(progression, slot),
-                    BuildDrillContext(ctx.Character, oldDef, chosenDef, IsRevertToOriginal(ctx, chosenDef)));
+                // Decision gate (learned? same? already-owned? drills?). Same evaluator the wiki grid uses
+                // to decide which cells render clickable, so a bright cell and an accepted click can never
+                // disagree.
+                PerkSwapVerdict verdict = GridVerdicts.Build(ctx).Evaluate(chosenDef);
                 if (verdict != PerkSwapVerdict.Allow)
                 {
                     if (verdict == PerkSwapVerdict.DenyAlreadyOwned)
@@ -110,8 +110,7 @@ namespace Morgott.Oracle
                 // module displays its private _currentSkillPoints copy, which already reflects pending
                 // un-committed stat purchases — that is the number the user sees. The click site pre-checks
                 // this too (to show a message); this guard also protects any direct caller.
-                int swapCost = PerkSwapDecision.EffectiveCost(
-                    OracleMain.PerkSwapCostsResources, OracleMain.PerkSwapSkillPointCost);
+                int swapCost = ResolveSwapCost(ctx, chosenDef);
                 if (swapCost > 0)
                 {
                     int available = GetAvailableSkillPoints(progression, ctx.Module);
@@ -223,6 +222,11 @@ namespace Morgott.Oracle
                 // repaint the SP counter. Done last so a mid-swap failure/rollback never charges the player.
                 ChargeSwapCost(progression, ctx.Module, swapCost);
 
+                // TFTV parity: taking a DRILL over an already-learned ability drains the soldier's stamina
+                // when TFTV's "stamina penalty from injury" campaign option is on
+                // (DrillsUI.Helpers.cs:344-348). Drill takes only, TFTV-present only, option read live.
+                ApplyDrillStaminaPenalty(ctx, chosenDef);
+
                 // Remember what this slot originally held so the player can put it back. First write wins
                 // (a second swap still reverts to the true default) and the entry clears itself once the
                 // slot is restored — see OriginalPerkStore. Vanilla-safe: no TFTV involved.
@@ -286,73 +290,6 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Collect the TFTV drill facts for one swap, or null when TFTV is absent (then
-        /// <see cref="PerkSwapDecision.Evaluate{T}"/> skips its drill step entirely and the gate is
-        /// exactly the pre-drills one). Everything comes from <see cref="TftvDrillsBridge"/>, which is
-        /// itself no-op/false without TFTV; guarded so a bridge hiccup degrades to "no drill context"
-        /// rather than blocking a vanilla swap.
-        /// </summary>
-        private static DrillSwapContext BuildDrillContext(GeoCharacter character, TacticalAbilityDef oldDef,
-            TacticalAbilityDef chosenDef, bool isRevertToOriginal)
-        {
-            // Outside the try on purpose: TFTV-absent must stay a plain "no drill context" (vanilla
-            // behaviour), never the fail-closed deny the catch below returns.
-            if (!TftvDrillsBridge.DrillsAvailable)
-            {
-                return null;
-            }
-            try
-            {
-                List<TacticalAbilityDef> drills = TftvDrillsBridge.AllDrills;
-                bool chosenIsDrill = drills.Contains(chosenDef);
-                bool currentIsDrill = drills.Contains(oldDef);
-                GeoPhoenixFaction faction = character?.Faction?.GeoLevel?.PhoenixFaction;
-
-                // The two SAFETY answers are nullable: null means the bridge could not obtain them
-                // (member unresolved / TFTV threw). Fail CLOSED — an unknown safety answer is treated
-                // exactly like "yes, this swap would break an acquired drill", so one exception inside
-                // TFTV can never let a dangerous swap through.
-                bool? currentIsAcquired = currentIsDrill
-                    ? TftvDrillsBridge.CharacterHasDrill(character, oldDef)
-                    : false;
-                bool? breaksAcquired = TftvDrillsBridge.WouldBreakWeaponProficiencyRequirement(
-                    character, oldDef, out List<string> blockingDrills);
-                bool unknown = currentIsAcquired == null || breaksAcquired == null;
-                bool denies = DrillSwapContext.SafetyDenies(currentIsAcquired, breaksAcquired);
-
-                var info = new DrillSwapContext
-                {
-                    ChosenIsDrill = chosenIsDrill,
-                    ChosenDrillUnlocked = chosenIsDrill
-                        && TftvDrillsBridge.IsDrillUnlocked(faction, character, chosenDef),
-                    CurrentIsAcquiredDrill = currentIsAcquired ?? true,
-                    RemovalBreaksAcquiredDrill = denies,
-                    IgnoreDrillRequirements = OracleMain.IgnoreDrillRequirements,
-                    AllowDrillReSwap = OracleMain.AllowDrillReSwap,
-                    IsRevertToOriginal = isRevertToOriginal,
-                };
-                if (unknown)
-                {
-                    OracleLog.Debug("[Oracle] PerkSwap blocked: TFTV drill safety check unavailable for "
-                              + DefName(oldDef) + "; denying rather than risking an acquired drill.");
-                }
-                else if (info.RemovalBreaksAcquiredDrill)
-                {
-                    OracleLog.Debug("[Oracle] PerkSwap blocked: removing " + DefName(oldDef)
-                              + " would invalidate acquired drill(s): "
-                              + string.Join(", ", blockingDrills.ToArray()));
-                }
-                return info;
-            }
-            catch (Exception ex)
-            {
-                // Drills ARE loaded (checked above) but the context could not be built: fail closed.
-                OracleLog.Debug("[Oracle] PerkSwap drill context build failed, denying: " + ex.Message);
-                return new DrillSwapContext { RemovalBreaksAcquiredDrill = true };
-            }
-        }
-
-        /// <summary>
         /// True when the click puts the slot back to the ability it held before PerkOracle first changed
         /// it (<see cref="PerkSwapContext.OriginalDef"/>). Restoring the default must always be possible,
         /// so this lifts the acquired-drill re-swap gate — see <see cref="DrillSwapContext.IsRevertToOriginal"/>.
@@ -364,6 +301,205 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
+        /// Price of ONE swap in skill points, from the live inputs: a TFTV drill follows TFTV's own rule
+        /// (flat <c>DrillsUI.SwapSpCost</c> when replacing a learned ability, else the slot's normal
+        /// purchase price), anything else keeps the mod's configured cost. The rule itself is the pure
+        /// <see cref="PerkSwapDecision.SwapCost"/>. ONE function so the confirm modal, the hover tooltip
+        /// and the actual charge can never show three different numbers. Never throws.
+        /// </summary>
+        public static int ResolveSwapCost(PerkSwapContext ctx, TacticalAbilityDef chosenDef)
+        {
+            bool costEnabled = OracleMain.PerkSwapCostsResources;
+            int configured = OracleMain.PerkSwapSkillPointCost;
+            try
+            {
+                if (!costEnabled || ctx == null || (UnityEngine.Object)(object)chosenDef == (UnityEngine.Object)null
+                    || !TftvDrillsBridge.IsDrill(chosenDef))
+                {
+                    return PerkSwapDecision.SwapCost(false, false, 0, 0, costEnabled, configured);
+                }
+
+                CharacterProgression progression = ctx.Character?.Progression;
+                AbilityTrackSlot slot = ctx.Slot;
+                TacticalAbilityDef current = slot?.Ability;
+                bool learned = progression != null && current != null && progression.Abilities.Contains(current);
+                // GetAbilitySlotCost dereferences slot.Ability.CharacterProgressionData (CharacterProgression
+                // .cs:296) — only ask when it can answer, and only when it is the branch that applies.
+                int slotCost = 0;
+                if (!learned && progression != null
+                    && (UnityEngine.Object)(object)current?.CharacterProgressionData != (UnityEngine.Object)null)
+                {
+                    slotCost = progression.GetAbilitySlotCost(slot);
+                }
+                return PerkSwapDecision.SwapCost(true, learned, TftvDrillsBridge.DrillSwapSpCost, slotCost,
+                    costEnabled, configured);
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkSwap cost resolve failed, using configured cost: " + ex.Message);
+                return PerkSwapDecision.EffectiveCost(costEnabled, configured);
+            }
+        }
+
+        /// <summary>
+        /// TFTV parity for a committed DRILL take: zero the soldier's stamina when TFTV is present and its
+        /// <c>StaminaPenaltyFromInjurySetting</c> campaign option is on (DrillsUI.Helpers.cs:344-348).
+        /// Nothing happens for a vanilla perk, without TFTV, or with the option off. Guarded — a cosmetic
+        /// penalty must never fail a committed swap.
+        /// </summary>
+        private static void ApplyDrillStaminaPenalty(PerkSwapContext ctx, TacticalAbilityDef chosenDef)
+        {
+            try
+            {
+                if (!TftvDrillsBridge.IsDrill(chosenDef) || !TftvDrillsBridge.StaminaPenaltyEnabled)
+                {
+                    return;
+                }
+                TftvDrillsBridge.SetStaminaToZero(ctx.Character);
+                if ((UnityEngine.Object)(object)ctx.Module != (UnityEngine.Object)null)
+                {
+                    ctx.Module.SetStatusesPanel();
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkSwap drill stamina penalty failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Verdicts for a WHOLE wiki grid against one slot. Everything that does not depend on the clicked
+        /// candidate — the owned set, the scheduled-perk scan, the live drill list and TFTV's two
+        /// slot-side safety answers — is gathered ONCE here instead of per cell; <see cref="Evaluate"/>
+        /// then adds only the per-candidate facts. Used by the grid (to decide which cells render
+        /// clickable) and by <see cref="TrySwap"/> itself, so the look and the gate cannot drift apart.
+        /// </summary>
+        internal sealed class GridVerdicts
+        {
+            private readonly PerkSwapContext _ctx;
+            private readonly TacticalAbilityDef _currentDef;
+            private readonly IReadOnlyList<TacticalAbilityDef> _owned;
+            private readonly List<TacticalAbilityDef> _scheduled;
+            private readonly List<TacticalAbilityDef> _drills;    // null => TFTV absent, drill gates skipped
+            private readonly GeoPhoenixFaction _faction;
+            private readonly bool _drillContextFailed;            // build threw => fail closed
+            private readonly bool? _currentIsAcquiredDrill;
+            private readonly bool? _removalBreaksAcquiredDrill;
+
+            private GridVerdicts(PerkSwapContext ctx)
+            {
+                _ctx = ctx;
+                _currentDef = ctx?.Slot?.Ability;
+                _owned = ctx?.Character?.Progression?.Abilities;
+                _scheduled = ScheduledPerks(ctx?.Character?.Progression, ctx?.Slot);
+
+                // Outside the try on purpose: TFTV-absent must stay a plain "no drill context" (vanilla
+                // behaviour), never the fail-closed deny the catch below produces.
+                if (!TftvDrillsBridge.DrillsAvailable)
+                {
+                    return;
+                }
+                try
+                {
+                    _drills = TftvDrillsBridge.AllDrills;
+                    _faction = ctx?.Character?.Faction?.GeoLevel?.PhoenixFaction;
+
+                    // The SAFETY answers are nullable: null means the bridge could not obtain them
+                    // (member unresolved / TFTV threw). Fail CLOSED — an unknown safety answer counts
+                    // exactly like "yes, this swap would break an acquired drill", so one exception
+                    // inside TFTV can never let a dangerous swap through.
+                    _currentIsAcquiredDrill = _drills.Contains(_currentDef)
+                        ? TftvDrillsBridge.CharacterHasDrill(ctx.Character, _currentDef)
+                        : false;
+                    _removalBreaksAcquiredDrill = TftvDrillsBridge.WouldBreakWeaponProficiencyRequirement(
+                        ctx.Character, _currentDef, out List<string> blockingDrills);
+                    if (_currentIsAcquiredDrill == null || _removalBreaksAcquiredDrill == null)
+                    {
+                        OracleLog.Debug("[Oracle] PerkSwap blocked: TFTV drill safety check unavailable for "
+                                  + DefName(_currentDef) + "; denying rather than risking an acquired drill.");
+                    }
+                    else if (_removalBreaksAcquiredDrill == true)
+                    {
+                        OracleLog.Debug("[Oracle] PerkSwap blocked: removing " + DefName(_currentDef)
+                                  + " would invalidate acquired drill(s): "
+                                  + string.Join(", ", blockingDrills.ToArray()));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    OracleLog.Debug("[Oracle] PerkSwap drill context build failed, denying: " + ex.Message);
+                    _drillContextFailed = true;
+                }
+            }
+
+            /// <summary>Gather the slot-side facts once. Never returns null and never throws.</summary>
+            public static GridVerdicts Build(PerkSwapContext ctx)
+            {
+                return new GridVerdicts(ctx);
+            }
+
+            /// <summary>Verdict for one candidate. <see cref="PerkSwapVerdict.DenyInvalidInput"/> on bad inputs.</summary>
+            public PerkSwapVerdict Evaluate(TacticalAbilityDef chosen)
+            {
+                if (_ctx == null || !_ctx.IsUsable || _owned == null)
+                {
+                    return PerkSwapVerdict.DenyInvalidInput;
+                }
+                return PerkSwapDecision.Evaluate(chosen, _currentDef, _owned, null, _scheduled,
+                    BuildDrillContext(chosen));
+            }
+
+            /// <summary>Per-candidate drill facts on top of the cached slot-side ones; null without TFTV.</summary>
+            private DrillSwapContext BuildDrillContext(TacticalAbilityDef chosen)
+            {
+                if (_drillContextFailed)
+                {
+                    return new DrillSwapContext { RemovalBreaksAcquiredDrill = true };
+                }
+                if (_drills == null)
+                {
+                    return null;
+                }
+                try
+                {
+                    bool chosenIsDrill = _drills.Contains(chosen);
+                    // TFTV's target-drill direction of the proficiency guard (DrillsUnlock.cs:202): only
+                    // meaningful when the CHOSEN perk is a drill; same fail-closed nullable convention.
+                    bool? targetLoses = false;
+                    if (chosenIsDrill)
+                    {
+                        targetLoses = TftvDrillsBridge.TargetDrillLosesWeaponProficiencyRequirement(
+                            _ctx.Character, chosen, _currentDef, out string targetBlocker);
+                        if (targetLoses != false)
+                        {
+                            OracleLog.Debug("[Oracle] PerkSwap blocked: removing " + DefName(_currentDef)
+                                      + " would strip a proficiency " + DefName(chosen) + " needs"
+                                      + (targetBlocker != null ? " (" + targetBlocker + ")" : " (check unavailable)")
+                                      + ".");
+                        }
+                    }
+                    return new DrillSwapContext
+                    {
+                        ChosenIsDrill = chosenIsDrill,
+                        ChosenDrillUnlocked = chosenIsDrill
+                            && TftvDrillsBridge.IsDrillUnlocked(_faction, _ctx.Character, chosen),
+                        CurrentIsAcquiredDrill = _currentIsAcquiredDrill ?? true,
+                        RemovalBreaksAcquiredDrill = DrillSwapContext.SafetyDenies(
+                            _currentIsAcquiredDrill, _removalBreaksAcquiredDrill, targetLoses),
+                        IgnoreDrillRequirements = OracleMain.IgnoreDrillRequirements,
+                        AllowDrillReSwap = OracleMain.AllowDrillReSwap,
+                        IsRevertToOriginal = IsRevertToOriginal(_ctx, chosen),
+                    };
+                }
+                catch (Exception ex)
+                {
+                    OracleLog.Debug("[Oracle] PerkSwap drill candidate check failed, denying: " + ex.Message);
+                    return new DrillSwapContext { RemovalBreaksAcquiredDrill = true };
+                }
+            }
+        }
+
+        /// <summary>
         /// Every perk baked into the soldier's tracks (all slots, including future, not-yet-unlocked
         /// ones), EXCEPT the slot being swapped so re-swapping the same slot stays allowed. Feeds the
         /// duplicate gate: without it a perk scheduled at a later level can be swapped into an early
@@ -372,6 +508,10 @@ namespace Morgott.Oracle
         /// </summary>
         private static List<TacticalAbilityDef> ScheduledPerks(CharacterProgression progression, AbilityTrackSlot skip)
         {
+            if (progression == null)
+            {
+                return null;
+            }
             try
             {
                 var scheduled = new List<TacticalAbilityDef>();

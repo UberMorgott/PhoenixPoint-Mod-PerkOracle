@@ -101,8 +101,7 @@ namespace Morgott.Oracle
                 // localized notice (TrySwap would otherwise abort silently) and leave the wiki open. Reads
                 // the same shadow-aware figure the module displays (PerkSwapper.GetAvailableSkillPoints), so
                 // the message can never disagree with the on-screen SP counter.
-                int spCost = PerkSwapDecision.EffectiveCost(
-                    OracleMain.PerkSwapCostsResources, OracleMain.PerkSwapSkillPointCost);
+                int spCost = PerkSwapper.ResolveSwapCost(SwapContext, Def);
                 if (spCost > 0)
                 {
                     var prog = SwapContext.Character?.Progression;
@@ -125,14 +124,38 @@ namespace Morgott.Oracle
                     tip.Hide(); // drop the hover tooltip before the grid is torn down/rebuilt
                 }
 
-                if (PerkSwapper.TrySwap(SwapContext, Def))
+                // Confirmation step (vanilla modal, drills and normal perks alike). It shows exactly the
+                // price resolved above; on cancel nothing happens and the wiki stays open. If the modal
+                // cannot be shown the swap runs immediately, i.e. the pre-confirmation behaviour.
+                PerkSwapContext ctx = SwapContext;
+                TacticalAbilityDef def = Def;
+                if (!SwapConfirmModal.TryShow(ctx, def, spCost, () => Apply(ctx, def)))
+                {
+                    Apply(ctx, def);
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] WikiAbilityTooltipTrigger.OnPointerClick failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Run the swap and close the wiki on success. Static + argument-driven so it survives being
+        /// invoked from the modal callback, by which time this component may already be gone.
+        /// </summary>
+        private static void Apply(PerkSwapContext ctx, TacticalAbilityDef def)
+        {
+            try
+            {
+                if (PerkSwapper.TrySwap(ctx, def))
                 {
                     PerkWikiPanel.Close();
                 }
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] WikiAbilityTooltipTrigger.OnPointerClick failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] WikiAbilityTooltipTrigger.Apply failed: " + ex.Message);
             }
         }
 
@@ -175,7 +198,7 @@ namespace Morgott.Oracle
                 // (swap on + a target slot). cost <= 0 hides the row (view-only wiki, or free swaps). Pass
                 // ViewElementDef explicitly because Show() dereferences `view` for title/description/icon.
                 int shownCost = (OracleMain.AllowPerkSwap && SwapContext != null)
-                    ? PerkSwapDecision.EffectiveCost(OracleMain.PerkSwapCostsResources, OracleMain.PerkSwapSkillPointCost)
+                    ? PerkSwapper.ResolveSwapCost(SwapContext, Def)
                     : 0;
                 tip.Show(Def, Def.ViewElementDef, false, shownCost);
 
