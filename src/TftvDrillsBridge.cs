@@ -113,6 +113,28 @@ namespace Morgott.Oracle
                    ?? new List<TacticalAbilityDef>();
         }
 
+        /// <summary>
+        /// True when <paramref name="ability"/> is one of TFTV's drills. Reference-matched against the
+        /// LIVE <c>DrillsDefs.Drills</c> list, so drills TFTV adds/renames/removes are picked up with no
+        /// code change and nothing is hardcoded. False when TFTV is absent.
+        /// </summary>
+        public static bool IsDrill(TacticalAbilityDef ability)
+        {
+            if (ability == null || !DrillsAvailable)
+            {
+                return false;
+            }
+            List<TacticalAbilityDef> drills = AllDrills;
+            for (int i = 0; i < drills.Count; i++)
+            {
+                if ((object)drills[i] == (object)ability)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         /// <summary>TFTV's own unlock check for one drill; false when unavailable.</summary>
         public static bool IsDrillUnlocked(GeoPhoenixFaction faction, GeoCharacter viewer, TacticalAbilityDef ability)
         {

@@ -69,5 +69,32 @@ namespace Morgott.Oracle
             // Under TFTV the personal track mixes fixed and rolled slots; ask the config.
             return (isSlotRandom != null && isSlotRandom(level0)) ? PerkKind.Rolled : PerkKind.Fixed;
         }
+
+        /// <summary>
+        /// Shared right-click gate: may PerkOracle open its swap wiki for this cell (and therefore
+        /// swallow the vanilla cancel)? <see cref="Classify"/> alone is NOT enough — the instant a slot
+        /// holds something outside its rolled pool (a TFTV drill, or any out-of-pool perk the wiki itself
+        /// wrote there) it classifies as Fixed, the cell stops being interceptable and the slot becomes
+        /// permanently un-editable while vanilla cancel closes the screen.
+        ///
+        /// Eligible = a PRESENT Personal cell that is either still Rolled, OR has a baseline recorded in
+        /// <c>OriginalPerkStore</c> (PerkOracle or the wiki already observed/changed this slot, so there is
+        /// something to go back to), OR currently holds a TFTV drill (taken live from
+        /// <c>TftvDrillsBridge</c>, so TFTV content changes need no code change).
+        /// Class rows, empty cells and untouched Fixed slots stay vanilla; with TFTV absent nothing new
+        /// becomes eligible (no drills, and a no-TFTV Personal cell is Rolled already).
+        /// </summary>
+        public static bool IsSwapEligible(
+            AbilityTrackSource source,
+            PerkKind kind,
+            bool hasStoreBaseline,
+            bool abilityIsDrill)
+        {
+            if (source != AbilityTrackSource.Personal || kind == PerkKind.Unknown)
+            {
+                return false;
+            }
+            return kind == PerkKind.Rolled || hasStoreBaseline || abilityIsDrill;
+        }
     }
 }

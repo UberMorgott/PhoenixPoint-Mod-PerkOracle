@@ -137,6 +137,24 @@ namespace Morgott.Oracle
             }
         }
 
+        /// <summary>
+        /// True when this slot has a recorded baseline, i.e. PerkOracle or its wiki has already observed
+        /// or changed it. READ-ONLY on purpose: unlike <see cref="ObserveSlot"/> it never writes, so the
+        /// right-click eligibility gate cannot baseline a slot just by hovering it. Never throws.
+        /// </summary>
+        public static bool HasBaseline(int characterId, int level0, string trackKey)
+        {
+            try
+            {
+                return level0 >= 0 && HasBaseline(EnsureLoaded(), BuildKey(characterId, level0, trackKey));
+            }
+            catch (Exception ex)
+            {
+                Warn("[Oracle] OriginalPerkStore.HasBaseline failed: " + ex.Message);
+                return false;
+            }
+        }
+
         private static Dictionary<string, string> EnsureLoaded()
         {
             return _map ?? (_map = Load(FilePath));
@@ -227,6 +245,17 @@ namespace Morgott.Oracle
 
             map[cKey] = newName;
             return false;
+        }
+
+        /// <summary>
+        /// True when <paramref name="map"/> carries an original for <paramref name="key"/>. Says only
+        /// "this slot is tracked", NOT "a revert is offerable" — that is <see cref="GetOriginal"/>.
+        /// </summary>
+        public static bool HasBaseline(IDictionary<string, string> map, string key)
+        {
+            return map != null && !string.IsNullOrEmpty(key)
+                   && map.TryGetValue(OriginalPrefix + key, out string original)
+                   && !string.IsNullOrEmpty(original);
         }
 
         /// <summary>

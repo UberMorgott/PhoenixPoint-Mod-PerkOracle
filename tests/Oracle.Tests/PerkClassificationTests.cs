@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using PhoenixPoint.Common.Entities.Characters;
 using Morgott.Oracle;
 using Xunit;
@@ -138,6 +139,79 @@ namespace Morgott.Oracle.Tests
                 AbilityTrackSource.Personal, 0, abilityPresent: true,
                 bridgeAvailable: true, isSlotRandom: _ => true, abilityIsRolledPoolMember: false);
             Assert.Equal(PerkKind.Fixed, kind);
+        }
+
+        // ---- right-click swap eligibility -------------------------------------------------------
+
+        [Fact]
+        public void SwapEligible_RolledCell_IsEligible()
+        {
+            Assert.True(PerkClassification.IsSwapEligible(
+                AbilityTrackSource.Personal, PerkKind.Rolled,
+                hasStoreBaseline: false, abilityIsDrill: false));
+        }
+
+        [Fact]
+        public void SwapEligible_FixedCellWithStoreBaseline_IsEligible()
+        {
+            // The regression: once the wiki swaps a slot to something outside its rolled pool the cell
+            // classifies Fixed, but the store baseline proves PerkOracle owns the slot -> keep it editable.
+            var map = new Dictionary<string, string>(StringComparer.Ordinal);
+            string key = OriginalPerkStore.BuildKey(7, 3, "Personal");
+            OriginalPerkStore.Record(map, key, "RolledPerk", "TftvDrill");
+            Assert.True(OriginalPerkStore.HasBaseline(map, key));
+
+            Assert.True(PerkClassification.IsSwapEligible(
+                AbilityTrackSource.Personal, PerkKind.Fixed,
+                hasStoreBaseline: OriginalPerkStore.HasBaseline(map, key), abilityIsDrill: false));
+        }
+
+        [Fact]
+        public void SwapEligible_FixedCellHoldingDrill_IsEligible()
+        {
+            // Slot swapped to a drill by TFTV's own DrillSwapUI: no baseline of ours, drill signal carries it.
+            Assert.True(PerkClassification.IsSwapEligible(
+                AbilityTrackSource.Personal, PerkKind.Fixed,
+                hasStoreBaseline: false, abilityIsDrill: true));
+        }
+
+        [Fact]
+        public void SwapEligible_UntouchedFixedCell_IsNotEligible()
+        {
+            // No baseline, no drill (drills unavailable reports false) -> vanilla cancel must pass through.
+            var map = new Dictionary<string, string>(StringComparer.Ordinal);
+            Assert.False(OriginalPerkStore.HasBaseline(map, OriginalPerkStore.BuildKey(7, 3, "Personal")));
+
+            Assert.False(PerkClassification.IsSwapEligible(
+                AbilityTrackSource.Personal, PerkKind.Fixed,
+                hasStoreBaseline: false, abilityIsDrill: false));
+        }
+
+        [Theory]
+        // Never eligible: class rows (whatever the extra signals say) and empty cells.
+        [InlineData(AbilityTrackSource.PrimaryClass, PerkKind.Fixed, true, true)]
+        [InlineData(AbilityTrackSource.SecondaryClass, PerkKind.Rolled, true, true)]
+        [InlineData(AbilityTrackSource.Personal, PerkKind.Unknown, true, true)]
+        public void SwapEligible_NonPersonalOrEmpty_IsNotEligible(
+            AbilityTrackSource source, PerkKind kind, bool hasStoreBaseline, bool abilityIsDrill)
+        {
+            Assert.False(PerkClassification.IsSwapEligible(source, kind, hasStoreBaseline, abilityIsDrill));
+        }
+
+        [Fact]
+        public void SwapEligible_BaselineClearedOnRevert_FallsBackToClassification()
+        {
+            // Swapping back to the original drops the entry; the slot is Rolled again, so it stays
+            // eligible through the classification half rather than the baseline half.
+            var map = new Dictionary<string, string>(StringComparer.Ordinal);
+            string key = OriginalPerkStore.BuildKey(7, 3, "Personal");
+            OriginalPerkStore.Record(map, key, "RolledPerk", "TftvDrill");
+            OriginalPerkStore.Record(map, key, "TftvDrill", "RolledPerk");
+            Assert.False(OriginalPerkStore.HasBaseline(map, key));
+
+            Assert.True(PerkClassification.IsSwapEligible(
+                AbilityTrackSource.Personal, PerkKind.Rolled,
+                hasStoreBaseline: false, abilityIsDrill: false));
         }
     }
 }

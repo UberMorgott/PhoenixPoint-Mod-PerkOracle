@@ -18,7 +18,7 @@ namespace Morgott.Oracle
     /// Prefix on UIModuleCharacterProgression.OnCancelInputHandler (the "back"/cancel seam, fired for
     /// both RMB and Esc on the soldier screen). Intercepts cancel to drive the perk wiki:
     ///   1. wiki open  -> close it and consume the cancel (screen stays open);
-    ///   2. else, pointer over a rolled Personal cell -> open the wiki for that cell and consume;
+    ///   2. else, pointer over a swap-eligible Personal cell -> open the wiki for that cell and consume;
     ///   3. else        -> let the original run (normal back / vanilla popup close).
     /// Consuming = set __result = true and skip the original, mirroring the vanilla popup-close path.
     /// Everything is wrapped so a failure never blocks the normal back action.
@@ -45,20 +45,21 @@ namespace Morgott.Oracle
                 // Resolve the shown soldier once; used by the Mutoid gate and the swap context below.
                 var character = CharacterField?.GetValue(__instance) as GeoCharacter;
 
-                // Resolve the class name once up front: the rolled-cell gate now needs it to resolve
+                // Resolve the class name once up front: the eligibility gate needs it to resolve
                 // the slot's rolled pool (the poolMember half), and the wiki pool below reuses it.
                 string className = GetClassName(__instance);
 
                 // RISK (verify in-game): the Cancel action maps to BOTH RMB and Esc, so we cannot
                 // rely on GetMouseButtonDown(1) being true here (RMB may already be consumed by input
-                // routing). We therefore key off "pointer over a rolled cell" instead: if the user is
-                // hovering a rolled Personal cell when cancel fires we treat it as an inspect request.
-                // Consequence: Esc while hovering a rolled cell opens the wiki (Esc again closes it),
+                // routing). We therefore key off "pointer over a swap-eligible cell" instead: if the user
+                // is hovering one when cancel fires we treat it as an inspect request.
+                // Consequence: Esc while hovering such a cell opens the wiki (Esc again closes it),
                 // which the design accepts. Cancel anywhere else falls through to the normal back.
-                AbilityTrackSkillEntryElement cell = FindRolledCellUnderPointer(className, out int level0);
+                AbilityTrackSkillEntryElement cell =
+                    FindSwapEligibleCellUnderPointer(className, character, out int level0);
                 if (cell == null)
                 {
-                    return true; // not over a rolled cell -> normal back
+                    return true; // not over an eligible cell -> normal back
                 }
 
                 // The pool itself stays exactly what it always was (ResolveForSlot is memoized per
@@ -197,12 +198,13 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Raycast the UI at the current mouse position and return the first rolled Personal
+        /// Raycast the UI at the current mouse position and return the first swap-eligible Personal
         /// AbilityTrackSkillEntryElement under the pointer (with its 0-based slot index in
         /// <paramref name="level0"/>), or null (level0 = -1). <paramref name="className"/> feeds the
-        /// rolled-pool gate's poolMember half.
+        /// rolled-pool gate's poolMember half; <paramref name="character"/> the store-baseline half.
         /// </summary>
-        private static AbilityTrackSkillEntryElement FindRolledCellUnderPointer(string className, out int level0)
+        private static AbilityTrackSkillEntryElement FindSwapEligibleCellUnderPointer(
+            string className, GeoCharacter character, out int level0)
         {
             level0 = -1;
             EventSystem es = EventSystem.current;
@@ -222,7 +224,7 @@ namespace Morgott.Oracle
                     continue;
                 }
                 var cell = hit.gameObject.GetComponentInParent<AbilityTrackSkillEntryElement>();
-                if (cell != null && IsRolled(cell, className, out level0))
+                if (cell != null && IsSwapEligible(cell, className, character, out level0))
                 {
                     return cell;
                 }
@@ -248,11 +250,13 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Reuse the highlight classifier: a rolled cell is a Personal slot classed Rolled. Outputs
-        /// the resolved 0-based slot index so callers need not recompute it. <paramref name="className"/>
-        /// feeds the rolled-pool gate's poolMember half.
+        /// Whether the wiki may take this cell's right-click (see
+        /// <see cref="PerkClassification.IsSwapEligible"/>). Outputs the resolved 0-based slot index so
+        /// callers need not recompute it. <paramref name="className"/> feeds the rolled-pool gate's
+        /// poolMember half; <paramref name="character"/> the store-baseline half.
         /// </summary>
-        private static bool IsRolled(AbilityTrackSkillEntryElement cell, string className, out int level0)
+        private static bool IsSwapEligible(AbilityTrackSkillEntryElement cell, string className,
+            GeoCharacter character, out int level0)
         {
             level0 = -1;
             if (cell.TrackSource != AbilityTrackSource.Personal)
@@ -276,7 +280,35 @@ namespace Morgott.Oracle
                 TftvConfigBridge.Available,
                 TftvConfigBridge.IsSlotRandom,
                 abilityIsRolledPoolMember: isPoolMember);
-            return kind == PerkKind.Rolled;
+            // A slot the wiki already touched (or one holding a TFTV drill) is no longer a pool member and
+            // classifies Fixed — without these two extra signals it would fall through to the vanilla
+            // cancel, closing the screen and leaving the slot permanently un-editable.
+            return PerkClassification.IsSwapEligible(
+                AbilityTrackSource.Personal,
+                kind,
+                HasStoreBaseline(character, cell.TrackSlot, level0),
+                TftvDrillsBridge.IsDrill(cell.AbilityDef));
+        }
+
+        /// <summary>
+        /// Read-only "PerkOracle already observed/changed this slot" probe. Never writes (so hovering a
+        /// cell cannot baseline it) and never throws; any failure just reports false.
+        /// </summary>
+        private static bool HasStoreBaseline(GeoCharacter character, AbilityTrackSlot slot, int level0)
+        {
+            try
+            {
+                if (character == null || slot == null)
+                {
+                    return false;
+                }
+                return OriginalPerkStore.HasBaseline((int)character.Id, level0, PerkSwapper.TrackKey(slot));
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] perk wiki: store-baseline probe failed: " + ex.Message);
+                return false;
+            }
         }
 
         /// <summary>Soldier class name (e.g. "Assault"), or null if it cannot be resolved cleanly.</summary>
