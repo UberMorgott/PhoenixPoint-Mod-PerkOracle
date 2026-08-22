@@ -52,6 +52,20 @@ namespace Morgott.Oracle
         // Lazily loaded on first use, kept in memory, written through on every change.
         private static Dictionary<string, string> _map;
 
+        /// <summary>
+        /// Set when the document on disk could not be understood. The store then runs from an EMPTY
+        /// in-memory map but NEVER writes, so an unreadable file is quarantined for inspection instead
+        /// of being silently replaced with a fresh empty one (which would erase the player's history).
+        /// </summary>
+        private static bool _readOnly;
+
+        /// <summary>Drop the in-memory cache so the next call re-reads <see cref="FilePath"/>.</summary>
+        public static void Reset()
+        {
+            _map = null;
+            _readOnly = false;
+        }
+
         private static void Warn(string message)
         {
             Action<string> sink = Log;
@@ -81,7 +95,10 @@ namespace Morgott.Oracle
                 }
                 Dictionary<string, string> map = EnsureLoaded();
                 Record(map, BuildKey(characterId, level0, trackKey), originalDefName, newDefName);
-                Save(FilePath, map);
+                if (!_readOnly)
+                {
+                    Save(FilePath, map);
+                }
             }
             catch (Exception ex)
             {
@@ -104,7 +121,7 @@ namespace Morgott.Oracle
                     return;
                 }
                 Dictionary<string, string> map = EnsureLoaded();
-                if (Observe(map, BuildKey(characterId, level0, trackKey), currentDefName))
+                if (Observe(map, BuildKey(characterId, level0, trackKey), currentDefName) && !_readOnly)
                 {
                     Save(FilePath, map);
                 }
@@ -157,7 +174,11 @@ namespace Morgott.Oracle
 
         private static Dictionary<string, string> EnsureLoaded()
         {
-            return _map ?? (_map = Load(FilePath));
+            if (_map == null)
+            {
+                _map = Load(FilePath, out _readOnly);
+            }
+            return _map;
         }
 
         // ---- pure core (unit-tested) ----------------------------------------------------------
@@ -198,15 +219,32 @@ namespace Morgott.Oracle
                 return true;
             }
 
-            if (string.Equals(original, currentName, StringComparison.Ordinal))
+            bool hasCurrent = map.TryGetValue(cKey, out string current) && !string.IsNullOrEmpty(current);
+            bool atBaseline = string.Equals(original, currentName, StringComparison.Ordinal);
+            bool unchanged = hasCurrent && string.Equals(current, currentName, StringComparison.Ordinal);
+
+            if (atBaseline)
             {
-                map.Remove(oKey);       // back at the baseline -> forget the slot
+                // Forget the slot ONLY when a transition was actually recorded and has now been undone.
+                // Simply LOOKING at an untouched slot again (original == current == what it holds) must
+                // be a no-op: dropping the entry there would throw away the true baseline, so a later
+                // TFTV rewrite would be mistaken for the default and HasBaseline would stop offering
+                // the right-click on an already-swapped slot.
+                if (unchanged)
+                {
+                    return false;
+                }
+                if (!hasCurrent)
+                {
+                    map[cKey] = currentName; // half-written legacy entry -> complete it, keep the baseline
+                    return true;
+                }
+                map.Remove(oKey);
                 map.Remove(cKey);
                 return true;
             }
 
-            if (map.TryGetValue(cKey, out string current)
-                && string.Equals(current, currentName, StringComparison.Ordinal))
+            if (unchanged)
             {
                 return false;           // already up to date
             }
@@ -285,26 +323,78 @@ namespace Morgott.Oracle
         /// <summary>Read the map from <paramref name="path"/>. Missing, unreadable or corrupt file =&gt; empty.</summary>
         public static Dictionary<string, string> Load(string path)
         {
+            return Load(path, out bool _);
+        }
+
+        /// <summary>
+        /// Read the map from <paramref name="path"/>, reporting in <paramref name="corrupt"/> whether the
+        /// document was there but could not be understood. A corrupt document is NOT a fresh empty store:
+        /// the caller must go read-only so the unreadable file is kept for the player instead of being
+        /// overwritten by the next observation. Recovery order: the live file, then the rotated
+        /// <c>.bak</c>; when the live file is missing entirely, an interrupted write's <c>.tmp</c> and the
+        /// <c>.bak</c> are tried before giving up. Never throws.
+        /// </summary>
+        public static Dictionary<string, string> Load(string path, out bool corrupt)
+        {
+            corrupt = false;
             try
             {
-                if (string.IsNullOrEmpty(path) || !File.Exists(path))
+                if (string.IsNullOrEmpty(path))
                 {
                     return NewMap();
                 }
-                return Parse(File.ReadAllText(path, Encoding.UTF8));
+                if (!File.Exists(path))
+                {
+                    // A crash between "write .tmp" and "swap it in" can leave the document only there.
+                    return Recover(path + ".tmp") ?? Recover(path + ".bak") ?? NewMap();
+                }
+                if (TryParse(File.ReadAllText(path, Encoding.UTF8), out Dictionary<string, string> map))
+                {
+                    return map;
+                }
+                Dictionary<string, string> fromBak = Recover(path + ".bak");
+                if (fromBak != null)
+                {
+                    Warn("[Oracle] OriginalPerkStore: '" + path
+                         + "' is corrupt; recovered the previous document from '" + path + ".bak'.");
+                    return fromBak;
+                }
+                corrupt = true;
+                Warn("[Oracle] OriginalPerkStore: '" + path + "' could not be parsed and no usable backup"
+                     + " exists. The file is left UNTOUCHED and swap history will not be written this"
+                     + " session — move or delete it to start a fresh store.");
+                return NewMap();
             }
             catch (Exception ex)
             {
+                corrupt = true;
                 Warn("[Oracle] OriginalPerkStore.Load failed: " + ex.Message);
                 return NewMap();
+            }
+        }
+
+        /// <summary>Parse <paramref name="path"/> if it exists and is valid, else null. Never throws.</summary>
+        private static Dictionary<string, string> Recover(string path)
+        {
+            try
+            {
+                return File.Exists(path)
+                       && TryParse(File.ReadAllText(path, Encoding.UTF8), out Dictionary<string, string> map)
+                    ? map
+                    : null;
+            }
+            catch
+            {
+                return null;
             }
         }
 
         /// <summary>
         /// Write the map to <paramref name="path"/>. A null path or any IO error is a silent no-op.
         /// Writes a sibling ".tmp" first and then swaps it in, so a crash mid-write can never leave a
-        /// TRUNCATED document behind — <see cref="Parse"/> reads a truncated document as an empty map,
-        /// which would silently wipe every slot's revert history.
+        /// TRUNCATED document behind, and keeps the document it replaced as a sibling ".bak" that
+        /// <see cref="Load(string,out bool)"/> falls back to. No path here ever deletes the only
+        /// known-good copy of the store.
         /// </summary>
         public static void Save(string path, IDictionary<string, string> map)
         {
@@ -315,6 +405,7 @@ namespace Morgott.Oracle
                     return;
                 }
                 string tmp = path + ".tmp";
+                string bak = path + ".bak";
                 File.WriteAllText(tmp, Serialize(map), Encoding.UTF8);
                 if (!File.Exists(path))
                 {
@@ -323,15 +414,32 @@ namespace Morgott.Oracle
                 }
                 try
                 {
-                    File.Replace(tmp, path, null); // atomic on NTFS
+                    File.Replace(tmp, path, bak); // atomic on NTFS, and rotates a real backup
                 }
                 catch (Exception ex)
                 {
-                    // Replace is unsupported on a few filesystems; the delete+move window is still far
-                    // smaller than truncating the live file.
+                    // Replace is unsupported on a few filesystems. Fall back to rename-aside + move, which
+                    // never deletes the only good copy: the live document survives as ".bak" until the new
+                    // one is proven in place, and is renamed straight back if the move fails.
                     Warn("[Oracle] OriginalPerkStore.Save atomic replace failed: " + ex.Message);
-                    File.Delete(path);
-                    File.Move(tmp, path);
+                    try
+                    {
+                        File.Delete(bak);
+                    }
+                    catch
+                    {
+                        // a stale backup we cannot remove is not a reason to lose the write
+                    }
+                    File.Move(path, bak);
+                    try
+                    {
+                        File.Move(tmp, path);
+                    }
+                    catch
+                    {
+                        File.Move(bak, path); // roll back: the known-good document goes home
+                        throw;
+                    }
                 }
             }
             catch (Exception ex)
@@ -365,52 +473,125 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Parse the flat <c>{"k":"v",...}</c> document. Only OUR prefixed keys are kept, so anything
-        /// unexpected in the file is ignored rather than trusted. Never throws: garbage in =&gt; empty map.
+        /// Parse the flat <c>{"k":"v",...}</c> document, or an empty map when it is not valid. Kept for
+        /// callers that cannot act on the difference; anything that WRITES must use
+        /// <see cref="TryParse"/>, because "invalid" and "empty" mean opposite things on disk.
         /// </summary>
         public static Dictionary<string, string> Parse(string json)
         {
-            Dictionary<string, string> map = NewMap();
+            return TryParse(json, out Dictionary<string, string> map) ? map : NewMap();
+        }
+
+        /// <summary>
+        /// Strictly validate and read the flat <c>{"k":"v",...}</c> document: whitespace, then either
+        /// <c>{}</c> or comma-separated <c>"string" : "string"</c> pairs, then end of input. ANY
+        /// structural defect — a truncated tail, a trailing comma, a missing colon, a non-string value,
+        /// trailing junk — rejects the WHOLE document instead of returning the part that happened to
+        /// scan, which is what let a half-readable file overwrite a good one. Only OUR prefixed keys are
+        /// kept, so foreign-but-valid content reads as an empty (valid) store. Never throws.
+        /// </summary>
+        public static bool TryParse(string json, out Dictionary<string, string> map)
+        {
+            if (Scan(json, out Dictionary<string, string> parsed))
+            {
+                map = parsed;
+                return true;
+            }
+            map = NewMap(); // a rejected document yields NOTHING, never the part that happened to scan
+            return false;
+        }
+
+        private static bool Scan(string json, out Dictionary<string, string> map)
+        {
+            map = NewMap();
             try
             {
-                if (string.IsNullOrEmpty(json))
+                if (json == null)
                 {
-                    return map;
+                    return false;
                 }
-                string trimmed = json.Trim();
-                if (trimmed.Length < 2 || trimmed[0] != '{' || trimmed[trimmed.Length - 1] != '}')
+                int i = 0;
+                SkipWhite(json, ref i);
+                if (i >= json.Length)
                 {
-                    return map; // not our document at all
+                    return true; // an empty file is an empty store, not a corrupt one
+                }
+                if (json[i++] != '{')
+                {
+                    return false;
                 }
 
-                // The document has string keys and string values only, so the quoted tokens alternate
-                // key, value, key, value... Reading them pairwise beats dragging in a JSON parser.
-                int i = 1;
-                while (true)
+                SkipWhite(json, ref i);
+                if (i < json.Length && json[i] == '}')
                 {
-                    string key = NextString(trimmed, ref i);
-                    if (key == null)
+                    i++;
+                }
+                else
+                {
+                    while (true)
                     {
-                        break;
-                    }
-                    string value = NextString(trimmed, ref i);
-                    if (value == null)
-                    {
-                        break;
-                    }
-                    if (key.StartsWith(OriginalPrefix, StringComparison.Ordinal)
-                        || key.StartsWith(CurrentPrefix, StringComparison.Ordinal))
-                    {
-                        map[key] = value;
+                        string key = ReadString(json, ref i);
+                        if (key == null)
+                        {
+                            return false;
+                        }
+                        SkipWhite(json, ref i);
+                        if (i >= json.Length || json[i++] != ':')
+                        {
+                            return false;
+                        }
+                        SkipWhite(json, ref i);
+                        string value = ReadString(json, ref i);
+                        if (value == null)
+                        {
+                            return false;
+                        }
+                        if (key.StartsWith(OriginalPrefix, StringComparison.Ordinal)
+                            || key.StartsWith(CurrentPrefix, StringComparison.Ordinal))
+                        {
+                            map[key] = value;
+                        }
+                        SkipWhite(json, ref i);
+                        if (i >= json.Length)
+                        {
+                            return false; // truncated: no closing brace
+                        }
+                        if (json[i] == ',')
+                        {
+                            i++;
+                            SkipWhite(json, ref i);
+                            continue;
+                        }
+                        if (json[i] == '}')
+                        {
+                            i++;
+                            break;
+                        }
+                        return false;
                     }
                 }
+
+                SkipWhite(json, ref i);
+                if (i != json.Length)
+                {
+                    return false; // trailing junk after the document
+                }
+                return true;
             }
             catch (Exception ex)
             {
-                Warn("[Oracle] OriginalPerkStore.Parse failed: " + ex.Message);
-                return NewMap();
+                Warn("[Oracle] OriginalPerkStore.TryParse failed: " + ex.Message);
+                map = NewMap();
+                return false;
             }
-            return map;
+        }
+
+        private static void SkipWhite(string s, ref int i)
+        {
+            while (i < s.Length && char.IsWhiteSpace(s[i]))
+            {
+                i++;
+            }
         }
 
         private static Dictionary<string, string> NewMap()
@@ -418,14 +599,14 @@ namespace Morgott.Oracle
             return new Dictionary<string, string>(StringComparer.Ordinal);
         }
 
-        /// <summary>Next double-quoted token from <paramref name="i"/> on, unescaped; null at end of input.</summary>
-        private static string NextString(string s, ref int i)
+        /// <summary>
+        /// The double-quoted token that MUST start at <paramref name="i"/>, unescaped; null when there is
+        /// no opening quote there or the token is unterminated. Strict about position on purpose — the
+        /// old "scan forward to the next quote" behaviour is what made malformed documents look parseable.
+        /// </summary>
+        private static string ReadString(string s, ref int i)
         {
-            while (i < s.Length && s[i] != '"')
-            {
-                i++;
-            }
-            if (i >= s.Length)
+            if (i >= s.Length || s[i] != '"')
             {
                 return null;
             }

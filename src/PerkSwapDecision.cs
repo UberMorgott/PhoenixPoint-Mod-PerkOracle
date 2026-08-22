@@ -49,6 +49,14 @@ namespace Morgott.Oracle
         /// <see cref="DrillSwapContext.IgnoreDrillRequirements"/>.
         /// </summary>
         DenyDrillLocked,
+
+        /// <summary>
+        /// The chosen perk is a TFTV drill but TFTV's own swap price (<c>DrillsUI.SwapSpCost</c>) could
+        /// NOT be read while TFTV is present, so the swap has no defensible price. Charging an invented
+        /// number is worse than refusing, so drill swaps are denied until the price resolves. Never set
+        /// when the cost toggle is off (a free swap needs no price) or when TFTV is absent.
+        /// </summary>
+        DenyDrillPriceUnresolved,
     }
 
     /// <summary>
@@ -84,6 +92,25 @@ namespace Morgott.Oracle
         /// acquired-drill proficiency guard still apply.
         /// </summary>
         public bool IsRevertToOriginal;
+
+        /// <summary>
+        /// TFTV is present but its <c>DrillsUI.SwapSpCost</c> literal could not be read, so a drill swap
+        /// would have to invent a price. Denies drill swaps (see
+        /// <see cref="PerkSwapVerdict.DenyDrillPriceUnresolved"/>). Only ever set while the cost toggle
+        /// is on; a free-swap campaign needs no price and is unaffected.
+        /// </summary>
+        public bool DrillPriceUnresolved;
+
+        /// <summary>
+        /// The context to use when the drill subsystem could NOT be interrogated at all (TFTV present but
+        /// its contract did not resolve, a safety member threw, or the drill list read failed). Every
+        /// drill gate is unknown, so the hard proficiency guard is asserted and the swap is denied. ONE
+        /// factory so every fail-closed site produces the identical context.
+        /// </summary>
+        public static DrillSwapContext Denied()
+        {
+            return new DrillSwapContext { RemovalBreaksAcquiredDrill = true };
+        }
 
         /// <summary>
         /// Fold TFTV's nullable SAFETY answers into <see cref="RemovalBreaksAcquiredDrill"/>. A
@@ -203,6 +230,14 @@ namespace Morgott.Oracle
                 if (drills.ChosenIsDrill && !drills.ChosenDrillUnlocked && !drills.IgnoreDrillRequirements)
                 {
                     return PerkSwapVerdict.DenyDrillLocked;
+                }
+
+                // 4d) TFTV is present but its own drill price could not be read. Inventing a number would
+                //     silently over- or under-charge the player, so refuse the drill swap instead. No
+                //     option lifts it; turning the cost toggle off clears the flag at the source.
+                if (drills.ChosenIsDrill && drills.DrillPriceUnresolved)
+                {
+                    return PerkSwapVerdict.DenyDrillPriceUnresolved;
                 }
             }
 

@@ -357,9 +357,104 @@ namespace Morgott.Oracle.Tests
         [InlineData(PerkSwapVerdict.DenyNotLearned)]
         [InlineData(PerkSwapVerdict.DenySameAsCurrent)]
         [InlineData(PerkSwapVerdict.DenyInvalidInput)]
+        [InlineData(PerkSwapVerdict.DenyDrillPriceUnresolved)]
         public void DimsCell_AnyDeniedVerdict_Dims(PerkSwapVerdict verdict)
         {
             Assert.True(PerkSwapDecision.DimsCell(isCurrent: false, verdict: verdict));
+        }
+
+        // ---- fail-closed contexts: TFTV present but un-interrogable --------------------------------
+
+        [Fact]
+        public void FaultedDrillContract_Denies()
+        {
+            // TFTV's drills ARE installed but its contract did not resolve (member renamed / signature
+            // changed). Nothing about the soldier's drills can be verified, so the swap must be denied —
+            // reading a fault as "TFTV absent" was the fail-open this context exists to close.
+            var verdict = PerkSwapDecision.Evaluate("B", "A", Owned(), drills: DrillSwapContext.Denied());
+            Assert.Equal(PerkSwapVerdict.DenyDrillBreaksAcquired, verdict);
+        }
+
+        [Fact]
+        public void UnknownDrillList_Denies()
+        {
+            // A FAILED read of TFTV's drill list must not degrade into a valid empty list: an empty
+            // snapshot would make the acquired-drill checks trivially pass. Same fail-closed context.
+            var verdict = PerkSwapDecision.Evaluate("B", "A", Owned(), drills: DrillSwapContext.Denied());
+            Assert.Equal(PerkSwapVerdict.DenyDrillBreaksAcquired, verdict);
+        }
+
+        [Fact]
+        public void FaultedContext_DeniesEvenTheRevertToOriginal()
+        {
+            // The revert-to-original escape hatch lifts the re-swap gate, never the hard safety guard.
+            DrillSwapContext denied = DrillSwapContext.Denied();
+            denied.IsRevertToOriginal = true;
+            denied.AllowDrillReSwap = true;
+            denied.IgnoreDrillRequirements = true;
+            Assert.Equal(PerkSwapVerdict.DenyDrillBreaksAcquired,
+                PerkSwapDecision.Evaluate("B", "A", Owned(), drills: denied));
+        }
+
+        // ---- unresolved drill price ----------------------------------------------------------------
+
+        [Fact]
+        public void DrillPriceUnresolved_DeniesTheDrillSwap()
+        {
+            // TFTV present, drill unlocked, nothing unsafe — but its SwapSpCost could not be read, so
+            // there is no defensible price. Refuse rather than charge an invented number.
+            var ctx = new DrillSwapContext
+            {
+                ChosenIsDrill = true,
+                ChosenDrillUnlocked = true,
+                DrillPriceUnresolved = true,
+            };
+            Assert.Equal(PerkSwapVerdict.DenyDrillPriceUnresolved,
+                PerkSwapDecision.Evaluate("B", "A", Owned(), drills: ctx));
+        }
+
+        [Fact]
+        public void DrillPriceUnresolved_DoesNotBlockAVanillaPerk()
+        {
+            // The drill price is irrelevant to a non-drill swap; it keeps the mod's configured cost.
+            var ctx = new DrillSwapContext { ChosenIsDrill = false, DrillPriceUnresolved = true };
+            Assert.Equal(PerkSwapVerdict.Allow, PerkSwapDecision.Evaluate("B", "A", Owned(), drills: ctx));
+        }
+
+        [Fact]
+        public void DrillPriceResolved_AllowsTheDrillSwap()
+        {
+            var ctx = new DrillSwapContext
+            {
+                ChosenIsDrill = true,
+                ChosenDrillUnlocked = true,
+                DrillPriceUnresolved = false,
+            };
+            Assert.Equal(PerkSwapVerdict.Allow, PerkSwapDecision.Evaluate("B", "A", Owned(), drills: ctx));
+        }
+
+        [Fact]
+        public void DrillPriceUnresolved_IsCheckedAfterTheSafetyGuard()
+        {
+            // Ordering matters for the log/UI wording: an unsafe swap reports the SAFETY reason, not the
+            // price one, even when both apply.
+            var ctx = new DrillSwapContext
+            {
+                ChosenIsDrill = true,
+                ChosenDrillUnlocked = true,
+                RemovalBreaksAcquiredDrill = true,
+                DrillPriceUnresolved = true,
+            };
+            Assert.Equal(PerkSwapVerdict.DenyDrillBreaksAcquired,
+                PerkSwapDecision.Evaluate("B", "A", Owned(), drills: ctx));
+        }
+
+        [Fact]
+        public void TftvAbsent_IsUnaffectedByTheNewGates()
+        {
+            // A null drill context (TFTV genuinely absent) must still behave exactly as before drills
+            // existed: no fault deny, no price deny, no drill gate at all.
+            Assert.Equal(PerkSwapVerdict.Allow, PerkSwapDecision.Evaluate("B", "A", Owned(), drills: null));
         }
     }
 }

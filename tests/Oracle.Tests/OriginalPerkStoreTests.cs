@@ -89,6 +89,29 @@ namespace Morgott.Oracle.Tests
         }
 
         [Fact]
+        public void Observe_RepeatedOnAnUnchangedSlot_KeepsTheBaseline()
+        {
+            // Looking at the same untouched slot twice must not be read as "restored to default":
+            // dropping the entry here would let a LATER change (e.g. TFTV) become the new "original".
+            var map = NewMap();
+            OriginalPerkStore.Observe(map, Key, "Alpha");
+            Assert.False(OriginalPerkStore.Observe(map, Key, "Alpha"));
+            Assert.True(OriginalPerkStore.HasBaseline(map, Key));
+
+            OriginalPerkStore.Observe(map, Key, "TftvDrill");
+            Assert.Equal("Alpha", OriginalPerkStore.GetOriginal(map, Key, "TftvDrill"));
+        }
+
+        [Fact]
+        public void Observe_ClearsOnlyAfterARealTransition()
+        {
+            var map = NewMap();
+            OriginalPerkStore.Record(map, Key, "Alpha", "Beta");   // a swap actually happened
+            Assert.True(OriginalPerkStore.Observe(map, Key, "Alpha")); // ...and was undone
+            Assert.Empty(map);
+        }
+
+        [Fact]
         public void Observe_DoesNotOverwriteASwapRecordedBaseline()
         {
             var map = NewMap();
@@ -242,6 +265,114 @@ namespace Morgott.Oracle.Tests
             {
                 File.Delete(path);
                 File.Delete(path + ".tmp");
+                File.Delete(path + ".bak");
+            }
+        }
+
+        [Theory]
+        [InlineData("{\"o:42#3#Personal\":\"Alpha\",")]      // truncated after a comma
+        [InlineData("{\"o:42#3#Personal\":\"Alpha\"")]         // truncated, no closing brace
+        [InlineData("{\"o:42#3#Personal\":\"Alp")]             // truncated mid-value
+        [InlineData("{\"o:42#3#Personal\" \"Alpha\"}")]        // missing colon
+        [InlineData("{\"o:42#3#Personal\":\"Alpha\",}")]       // trailing comma
+        [InlineData("{\"o:42#3#Personal\":7}")]                // non-string value
+        [InlineData("{\"o:42#3#Personal\":\"Alpha\"} junk")]   // trailing junk
+        public void TryParse_RejectsPartialOrMalformedDocuments(string text)
+        {
+            Assert.False(OriginalPerkStore.TryParse(text, out Dictionary<string, string> map));
+            Assert.Empty(map);
+            Assert.Empty(OriginalPerkStore.Parse(text));
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData("{}")]
+        [InlineData(" { \"o:42#3#Personal\" : \"Alpha\" , \"c:42#3#Personal\" : \"Beta\" } ")]
+        public void TryParse_AcceptsWellFormedDocuments(string text)
+        {
+            Assert.True(OriginalPerkStore.TryParse(text, out Dictionary<string, string> _));
+        }
+
+        [Fact]
+        public void CorruptStore_IsQuarantined_AndNeverOverwritten()
+        {
+            string path = Path.Combine(Path.GetTempPath(), "oracle-quarantine-" + Path.GetRandomFileName());
+            const string corrupt = "{\"o:42#3#Personal\":\"Alpha\",\"c:42#3#Pers";
+            try
+            {
+                File.WriteAllText(path, corrupt, Encoding.UTF8);
+
+                Assert.Empty(OriginalPerkStore.Load(path, out bool flagged));
+                Assert.True(flagged);
+
+                // ...and the live API must not write over it, on either the swap or the observe path.
+                OriginalPerkStore.FilePath = path;
+                OriginalPerkStore.Reset();
+                OriginalPerkStore.ObserveSlot(42, 3, "Personal", "Alpha");
+                OriginalPerkStore.RecordSwap(42, 3, "Personal", "Alpha", "Beta");
+                Assert.Equal(corrupt, File.ReadAllText(path, Encoding.UTF8));
+                Assert.False(File.Exists(path + ".tmp"));
+            }
+            finally
+            {
+                OriginalPerkStore.FilePath = null;
+                OriginalPerkStore.Reset();
+                File.Delete(path);
+                File.Delete(path + ".tmp");
+            }
+        }
+
+        [Fact]
+        public void Save_KeepsTheReplacedDocumentAsARecoverableBackup()
+        {
+            string path = Path.Combine(Path.GetTempPath(), "oracle-bak-" + Path.GetRandomFileName());
+            try
+            {
+                var map = NewMap();
+                OriginalPerkStore.Record(map, Key, "Alpha", "Beta");
+                OriginalPerkStore.Save(path, map);
+
+                OriginalPerkStore.Record(map, Key, "Beta", "Gamma");
+                OriginalPerkStore.Save(path, map);
+
+                // The good copy is never deleted before the replacement lands: it survives as ".bak"...
+                Assert.True(File.Exists(path + ".bak"));
+                Assert.Equal("Alpha",
+                    OriginalPerkStore.GetOriginal(OriginalPerkStore.Load(path + ".bak"), Key, "Beta"));
+
+                // ...and a corrupt live file is recovered from it instead of being reported as empty.
+                File.WriteAllText(path, "{\"o:42#3#Pers", Encoding.UTF8);
+                Assert.Equal("Alpha", OriginalPerkStore.GetOriginal(
+                    OriginalPerkStore.Load(path, out bool flagged), Key, "Beta"));
+                Assert.False(flagged);
+            }
+            finally
+            {
+                File.Delete(path);
+                File.Delete(path + ".tmp");
+                File.Delete(path + ".bak");
+            }
+        }
+
+        [Fact]
+        public void Load_RecoversFromAnInterruptedWrite_WhenTheLiveFileIsGone()
+        {
+            string path = Path.Combine(Path.GetTempPath(), "oracle-recover-" + Path.GetRandomFileName());
+            try
+            {
+                var map = NewMap();
+                OriginalPerkStore.Record(map, Key, "Alpha", "Beta");
+                File.WriteAllText(path + ".tmp", OriginalPerkStore.Serialize(map), Encoding.UTF8);
+
+                Assert.Equal("Alpha",
+                    OriginalPerkStore.GetOriginal(OriginalPerkStore.Load(path, out bool flagged), Key, "Beta"));
+                Assert.False(flagged);
+            }
+            finally
+            {
+                File.Delete(path);
+                File.Delete(path + ".tmp");
             }
         }
 
@@ -270,6 +401,7 @@ namespace Morgott.Oracle.Tests
             {
                 File.Delete(path);
                 File.Delete(path + ".tmp");
+                File.Delete(path + ".bak");
             }
         }
     }

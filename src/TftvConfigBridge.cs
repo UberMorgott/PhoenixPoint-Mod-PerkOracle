@@ -8,6 +8,8 @@ using Base.Defs;
 using HarmonyLib;
 using PhoenixPoint.Common.Core;
 using PhoenixPoint.Common.Entities;
+using PhoenixPoint.Common.Entities.Characters;
+using PhoenixPoint.Geoscape.Entities;
 using PhoenixPoint.Geoscape.Events;
 using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Tactical.Entities.Abilities;
@@ -257,6 +259,62 @@ namespace Morgott.Oracle
             }
         }
 
+        // TFTV's own faction row keys, read as literals out of PRMBetterClasses.FactionKeys (they are
+        // `public const string`, so the value lives in metadata and GetRawConstantValue reads it with no
+        // instance). Resolved once, lazily, on first fixed-perk lookup. A miss keeps the value TFTV
+        // shipped when this was written — that is the only case where the string is compiled in.
+        private static bool _factionKeysResolved;
+        private static string _factionKeyPhoenix = "Phoenix";
+        private static string _factionKeyAll = "All Factions";
+
+        private static string FactionKeyPhoenix
+        {
+            get
+            {
+                EnsureFactionKeys();
+                return _factionKeyPhoenix;
+            }
+        }
+
+        private static string FactionKeyAll
+        {
+            get
+            {
+                EnsureFactionKeys();
+                return _factionKeyAll;
+            }
+        }
+
+        private static void EnsureFactionKeys()
+        {
+            if (_factionKeysResolved)
+            {
+                return;
+            }
+            _factionKeysResolved = true;
+            try
+            {
+                Type t = AccessTools.TypeByName("PRMBetterClasses.FactionKeys");
+                if (t == null)
+                {
+                    return;
+                }
+                _factionKeyPhoenix = ReadConstString(t, "PX") ?? _factionKeyPhoenix;
+                _factionKeyAll = ReadConstString(t, "All") ?? _factionKeyAll;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] FactionKeys read failed, using the shipped keys: " + ex.Message);
+            }
+        }
+
+        /// <summary>Read a <c>public const string</c> literal off a type; null on any miss.</summary>
+        private static string ReadConstString(Type type, string name)
+        {
+            FieldInfo f = AccessTools.Field(type, name);
+            return f != null && f.IsLiteral ? f.GetRawConstantValue() as string : null;
+        }
+
         /// <summary>Deep-copy a reflected Dictionary&lt;string, List&lt;string&gt;&gt; into our own typed map.</summary>
         private static Dictionary<string, List<string>> CopyStringListDict(IDictionary src)
         {
@@ -289,15 +347,41 @@ namespace Morgott.Oracle
 
         /// <summary>
         /// Personal-track slot count: TFTV's <c>OrderOfPersonalPerks.Length</c> when the bridge is up,
-        /// else vanilla's 7 (CharacterProgression builds the personal track with
-        /// <c>LevelProgressionDef.MaxLevel</c> slots = the 7-entry XP table).
+        /// else read LIVE off <paramref name="viewer"/> — first the soldier's OWN personal track
+        /// (<c>AbilityTrackSource.Personal</c>, so a track any mod resized is followed), then the def that
+        /// built it (<c>LevelProgressionDef.MaxLevel</c>, the exact argument vanilla passes as
+        /// <c>CreatePersonalAbilityTrack(trackLength, ...)</c> — CharacterProgression.cs:106). No slot
+        /// count is compiled in: an unreadable soldier returns 0 and the caller renders no slot row,
+        /// rather than inventing a row length.
         /// </summary>
-        public static int PersonalSlotCount
+        public static int PersonalSlotCount(GeoCharacter viewer)
         {
-            get
+            EnsureInitialized();
+            if (_available && _order != null)
             {
-                EnsureInitialized();
-                return _available && _order != null ? _order.Length : 7;
+                return _order.Length;
+            }
+            try
+            {
+                CharacterProgression progression = viewer?.Progression;
+                if (progression == null)
+                {
+                    return 0;
+                }
+                foreach (AbilityTrack track in progression.AbilityTracks)
+                {
+                    if (track != null && track.Source == AbilityTrackSource.Personal
+                        && track.AbilitiesByLevel != null && track.AbilitiesByLevel.Length > 0)
+                    {
+                        return track.AbilitiesByLevel.Length;
+                    }
+                }
+                return progression.LevelProgression?.Def?.MaxLevel ?? 0;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] personal slot count read failed, omitting the slot row: " + ex.Message);
+                return 0;
             }
         }
 
@@ -330,13 +414,15 @@ namespace Morgott.Oracle
                 return false;
             }
 
-            // FactionKeys.PX = "Phoenix", FactionKeys.All = "All Factions" (TFTV src ConfigHelpers.cs:233).
+            // Keys come from TFTV's OWN constants (PRMBetterClasses.FactionKeys.PX / .All,
+            // ConfigHelpers.cs:233-243), read out of the INSTALLED assembly — reproducing the literals
+            // here would make every fixed perk silently vanish the day TFTV renames one.
             string name = null;
-            if (byFaction.TryGetValue("Phoenix", out Dictionary<string, string> px) && px != null)
+            if (byFaction.TryGetValue(FactionKeyPhoenix, out Dictionary<string, string> px) && px != null)
             {
                 px.TryGetValue(className, out name);
             }
-            if (name == null && byFaction.TryGetValue("All Factions", out Dictionary<string, string> all) && all != null)
+            if (name == null && byFaction.TryGetValue(FactionKeyAll, out Dictionary<string, string> all) && all != null)
             {
                 all.TryGetValue(className, out name);
             }

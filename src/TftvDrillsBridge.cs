@@ -37,6 +37,31 @@ namespace Morgott.Oracle
     }
 
     /// <summary>
+    /// Health of the TFTV drills contract, as three DISTINCT states — the difference decides whether the
+    /// drill safety gates may be skipped, so they must never be collapsed into one bool.
+    /// </summary>
+    public enum TftvDrillsState
+    {
+        /// <summary>
+        /// TFTV's drills feature is not installed at all (neither <c>DrillsDefs</c> nor <c>DrillsUnlock</c>
+        /// exists). There are no drills to protect, so the drill gates are skipped and behaviour is
+        /// exactly the pre-drills, vanilla one.
+        /// </summary>
+        Absent,
+
+        /// <summary>Every member the gates depend on resolved; the gates run for real.</summary>
+        Ready,
+
+        /// <summary>
+        /// TFTV's drills ARE installed but the contract did not resolve (a member was renamed / its
+        /// signature changed) or a safety call/read has since failed. The gates cannot be evaluated, so
+        /// every swap is DENIED. Sticky for the rest of the session: a safety answer that failed once is
+        /// not trusted again.
+        /// </summary>
+        Faulted,
+    }
+
+    /// <summary>
     /// Reflection bridge into TFTV's Drills system (<c>TFTV.TFTVDrills.DrillsDefs</c> /
     /// <c>DrillsUnlock</c>, both <c>internal</c>). Resolves once, lazily, caches the members and
     /// the converted requirement table, and degrades gracefully: with TFTV absent — or with its
@@ -46,7 +71,13 @@ namespace Morgott.Oracle
     public static class TftvDrillsBridge
     {
         private static bool _resolved;
-        private static bool _available;
+        private static TftvDrillsState _state = TftvDrillsState.Absent;
+
+        /// <summary>
+        /// Per-member circuit breaker: a member that has already faulted is logged ONCE and never logged
+        /// again, so the grid/hover/reopen path (which rebuilds contexts constantly) cannot spam the log.
+        /// </summary>
+        private static readonly HashSet<string> Faulted = new HashSet<string>(StringComparer.Ordinal);
 
         private static FieldInfo _drillsField;                 // DrillsDefs.Drills : List<TacticalAbilityDef>
         private static FieldInfo _conditionsField;             // DrillsUnlock.DrillUnlockConditions (private static)
@@ -61,36 +92,73 @@ namespace Morgott.Oracle
         private static MethodInfo _setStaminaToZero;        // TFTVCommonMethods.SetStaminaToZero(GeoCharacter)
         private static FieldInfo _staminaPenaltyOption;     // TFTVNewGameOptions.StaminaPenaltyFromInjurySetting
         private static int _drillSwapSpCost = PerkSwapDecision.TftvDrillSwapSpCostFallback;
+        private static bool _drillSwapSpCostResolved;
 
         private static List<DrillRequirementInfo> _requirements;
 
-        /// <summary>True when TFTV's drills types resolved and the drill list is non-empty.</summary>
+        /// <summary>
+        /// Health of the drills contract. <see cref="TftvDrillsState.Absent"/> is the ONLY state in which
+        /// the drill safety gates may be skipped; <see cref="TftvDrillsState.Faulted"/> must deny.
+        /// </summary>
+        public static TftvDrillsState State
+        {
+            get
+            {
+                EnsureResolved();
+                return _state;
+            }
+        }
+
+        /// <summary>
+        /// True when the contract is <see cref="TftvDrillsState.Ready"/> and TFTV actually registered
+        /// drills. COSMETIC USE ONLY (is-this-a-drill styling, flyouts, pricing): it reads a fault as
+        /// "no drills", which is fine for presentation and fatal for a safety gate — those must branch on
+        /// <see cref="State"/> instead.
+        /// </summary>
         public static bool DrillsAvailable
         {
             get
             {
                 EnsureResolved();
-                return _available && AllDrills.Count > 0;
+                return _state == TftvDrillsState.Ready && (AllDrillsOrNull()?.Count ?? 0) > 0;
             }
         }
 
-        /// <summary>TFTV's full drill list (<c>DrillsDefs.Drills</c>); empty when unavailable.</summary>
-        public static List<TacticalAbilityDef> AllDrills
+        /// <summary>
+        /// TFTV's full drill list (<c>DrillsDefs.Drills</c>), or <c>null</c> when the read did NOT succeed
+        /// (member unresolved, TFTV threw, or the field held something else). Distinct from an empty list,
+        /// which is a successful read of "TFTV registered no drills" — collapsing the two would turn a
+        /// failed read into a safe-looking empty snapshot and silently bypass every drill gate. A failed
+        /// read is a SAFETY fault: it faults the bridge for the rest of the session.
+        /// </summary>
+        public static List<TacticalAbilityDef> AllDrillsOrNull()
         {
-            get
+            EnsureResolved();
+            if (_drillsField == null)
             {
-                EnsureResolved();
-                try
+                return null;
+            }
+            try
+            {
+                var drills = _drillsField.GetValue(null) as List<TacticalAbilityDef>;
+                if (drills == null)
                 {
-                    return _drillsField?.GetValue(null) as List<TacticalAbilityDef> ?? new List<TacticalAbilityDef>();
+                    Fault("DrillsDefs.Drills", "field did not hold a List<TacticalAbilityDef>");
                 }
-                catch (Exception ex)
-                {
-                    OracleLog.Debug("[Oracle] drills list read failed: " + ex.Message);
-                    return new List<TacticalAbilityDef>();
-                }
+                return drills;
+            }
+            catch (Exception ex)
+            {
+                Fault("DrillsDefs.Drills", ex.Message);
+                return null;
             }
         }
+
+        /// <summary>
+        /// TFTV's full drill list, empty when unavailable. COSMETIC USE ONLY — it cannot tell a failed
+        /// read from "no drills". Anything that gates a swap must use <see cref="AllDrillsOrNull"/>.
+        /// </summary>
+        public static List<TacticalAbilityDef> AllDrills => AllDrillsOrNull() ?? new List<TacticalAbilityDef>();
 
         /// <summary>
         /// Static requirement table: one entry per drill, converted to PerkOracle's own DTOs.
@@ -142,7 +210,7 @@ namespace Morgott.Oracle
         /// <summary>TFTV's own unlock check for one drill; false when unavailable.</summary>
         public static bool IsDrillUnlocked(GeoPhoenixFaction faction, GeoCharacter viewer, TacticalAbilityDef ability)
         {
-            return Invoke(_isDrillUnlocked, new object[] { faction, viewer, ability }) as bool? ?? false;
+            return Invoke(_isDrillUnlocked, new object[] { faction, viewer, ability }, safety: true) as bool? ?? false;
         }
 
         /// <summary>
@@ -152,7 +220,7 @@ namespace Morgott.Oracle
         /// </summary>
         public static bool? CharacterHasDrill(GeoCharacter soldier, TacticalAbilityDef drill)
         {
-            return Invoke(_characterHasDrill, new object[] { soldier, drill }) as bool?;
+            return Invoke(_characterHasDrill, new object[] { soldier, drill }, safety: true) as bool?;
         }
 
         /// <summary>True if the base has a working training facility; false when unavailable.</summary>
@@ -188,7 +256,7 @@ namespace Morgott.Oracle
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] WouldBreakWeaponProficiencyRequirement failed: " + ex.Message);
+                Fault("WouldBreakWeaponProficiencyRequirement", ex.Message);
                 return null;
             }
         }
@@ -218,7 +286,7 @@ namespace Morgott.Oracle
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] TargetDrillLosesWeaponProficiencyRequirement failed: " + ex.Message);
+                Fault("TargetDrillLosesWeaponProficiencyRequirement", ex.Message);
                 return null;
             }
         }
@@ -246,13 +314,23 @@ namespace Morgott.Oracle
             get
             {
                 EnsureResolved();
+                if (_staminaPenaltyOption == null || Faulted.Contains("StaminaPenaltyFromInjurySetting"))
+                {
+                    return false;
+                }
                 try
                 {
-                    return _staminaPenaltyOption?.GetValue(null) as bool? ?? false;
+                    return _staminaPenaltyOption.GetValue(null) as bool? ?? false;
                 }
                 catch (Exception ex)
                 {
-                    OracleLog.Debug("[Oracle] StaminaPenaltyFromInjurySetting read failed: " + ex.Message);
+                    // Cosmetic: the option is read on every committed drill take, so log once and stop
+                    // reading it rather than repeating the same failure for the rest of the session.
+                    if (Faulted.Add("StaminaPenaltyFromInjurySetting"))
+                    {
+                        OracleLog.Debug("[Oracle] StaminaPenaltyFromInjurySetting read failed: " + ex.Message
+                                  + " (logged once; treated as off).");
+                    }
                     return false;
                 }
             }
@@ -298,9 +376,23 @@ namespace Morgott.Oracle
             {
                 Type tDefs = AccessTools.TypeByName("TFTV.TFTVDrills.DrillsDefs");
                 Type tUnlock = AccessTools.TypeByName("TFTV.TFTVDrills.DrillsUnlock");
+
+                // PRESENCE is decided by the TYPES existing, INDEPENDENTLY of whether their members
+                // resolve. Neither type present => TFTV's drills feature is not installed, there are no
+                // drills to protect, and the gates are correctly skipped (vanilla behaviour). Present but
+                // unresolvable is a FAULT, not an absence — that distinction is the whole point of the
+                // three states, and collapsing it is what let a renamed member disable every safety gate.
+                if (tDefs == null && tUnlock == null)
+                {
+                    _state = TftvDrillsState.Absent;
+                    OracleLog.Debug("[Oracle] TFTV drills absent: TFTVDrills types not found (drill gates skipped).");
+                    return;
+                }
                 if (tDefs == null || tUnlock == null)
                 {
-                    OracleLog.Debug("[Oracle] TFTV drills bridge unavailable: TFTVDrills types not found.");
+                    _state = TftvDrillsState.Faulted;
+                    OracleLog.Debug("[Oracle] TFTV drills FAULTED: only one of DrillsDefs/DrillsUnlock exists;"
+                              + " denying every swap rather than guessing.");
                     return;
                 }
 
@@ -350,17 +442,49 @@ namespace Morgott.Oracle
                 // Availability requires the drill list AND every member a GATE depends on. Gating on
                 // the field alone would leave DrillsAvailable true while the accessors silently return
                 // false — which disables the acquired-drill gate and the hard proficiency guard.
-                _available = ReportMissing("DrillsDefs.Drills", _drillsField)
-                             & ReportMissing("IsDrillUnlocked", _isDrillUnlocked)
-                             & ReportMissing("CharacterHasDrill", _characterHasDrill)
-                             & ReportMissing("WouldBreakWeaponProficiencyRequirement", _wouldBreakProficiency)
-                             & ReportMissing("TargetDrillLosesWeaponProficiencyRequirement", _targetDrillLoses)
-                             & ReportMissing("GetAvailableDrills", _getAvailableDrills);
+                bool complete = ReportMissing("DrillsDefs.Drills", _drillsField)
+                                & ReportMissing("IsDrillUnlocked", _isDrillUnlocked)
+                                & ReportMissing("CharacterHasDrill", _characterHasDrill)
+                                & ReportMissing("WouldBreakWeaponProficiencyRequirement", _wouldBreakProficiency)
+                                & ReportMissing("TargetDrillLosesWeaponProficiencyRequirement", _targetDrillLoses)
+                                & ReportMissing("GetAvailableDrills", _getAvailableDrills);
+
+                // TFTV's drills ARE installed (types found above), so an incomplete contract is a FAULT.
+                // It must NOT read as "TFTV absent": that skipped every drill gate — the exact fail-open
+                // the availability check was added to prevent.
+                _state = complete ? TftvDrillsState.Ready : TftvDrillsState.Faulted;
+                if (!complete)
+                {
+                    OracleLog.Debug("[Oracle] TFTV drills FAULTED: contract incomplete (see the member(s)"
+                              + " logged above); denying every swap for this session.");
+                }
             }
             catch (Exception ex)
             {
-                _available = false;
-                OracleLog.Debug("[Oracle] TFTV drills bridge unavailable: " + ex.Message);
+                // The types were found (we only get here past the presence check), so a throw during
+                // resolution is a fault, never an absence.
+                _state = TftvDrillsState.Faulted;
+                OracleLog.Debug("[Oracle] TFTV drills FAULTED during resolution: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Record a SAFETY-relevant failure: log it exactly once per member (circuit breaker — the grid /
+        /// hover / reopen path re-asks constantly and would otherwise flood the log) and fault the bridge
+        /// for the rest of the session. A safety answer that failed once is never trusted again, so every
+        /// later swap fails CLOSED without re-invoking the broken member.
+        /// </summary>
+        private static void Fault(string member, string detail)
+        {
+            bool first = Faulted.Add(member);
+            if (_state != TftvDrillsState.Absent)
+            {
+                _state = TftvDrillsState.Faulted;
+            }
+            if (first)
+            {
+                OracleLog.Debug("[Oracle] TFTV drills FAULTED on " + member + ": " + detail
+                          + " (logged once; drill swaps now fail closed for this session).");
             }
         }
 
@@ -378,11 +502,30 @@ namespace Morgott.Oracle
                 if (f != null && f.IsLiteral && f.GetRawConstantValue() is int cost && cost >= 0)
                 {
                     _drillSwapSpCost = cost;
+                    _drillSwapSpCostResolved = true;
+                    return;
                 }
+                OracleLog.Debug("[Oracle] DrillsUI.SwapSpCost not readable; drill swaps will be denied"
+                          + " while the cost toggle is on rather than charging an invented price.");
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] DrillsUI.SwapSpCost read failed, using fallback: " + ex.Message);
+                OracleLog.Debug("[Oracle] DrillsUI.SwapSpCost read failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// True when <see cref="DrillSwapSpCost"/> is TFTV's OWN number rather than the compiled-in
+        /// fallback. With TFTV present and the cost toggle on, an unresolved price denies drill swaps
+        /// (<see cref="PerkSwapVerdict.DenyDrillPriceUnresolved"/>): inventing a price would silently
+        /// over- or under-charge the player.
+        /// </summary>
+        public static bool DrillSwapSpCostResolved
+        {
+            get
+            {
+                EnsureResolved();
+                return _drillSwapSpCostResolved;
             }
         }
 
@@ -408,22 +551,22 @@ namespace Morgott.Oracle
             {
                 return researchId;
             }
-            try
-            {
-                return _tryGetResearchName.Invoke(null, new object[] { researchId }) as string ?? researchId;
-            }
-            catch (Exception ex)
-            {
-                OracleLog.Debug("[Oracle] TryGetResearchName failed: " + ex.Message);
-                return researchId;
-            }
+            // Cosmetic and called once per requirement line: route it through the circuit breaker so a
+            // broken TFTV member is logged once, not once per rendered row.
+            return Invoke(_tryGetResearchName, new object[] { researchId }) as string ?? researchId;
         }
 
-        /// <summary>Invoke a resolved static method, or return null (resolving first if needed).</summary>
-        private static object Invoke(MethodInfo method, object[] args)
+        /// <summary>
+        /// Invoke a resolved static method, or return null (resolving first if needed). A member that has
+        /// already faulted is NOT re-invoked — the circuit breaker short-circuits it, which both stops the
+        /// per-call log spam and keeps a broken safety answer permanently unknown (fail closed).
+        /// <paramref name="safety"/> marks the calls a swap decision depends on; a cosmetic call
+        /// (research names, requirement wording, stamina) logs once and leaves the state alone.
+        /// </summary>
+        private static object Invoke(MethodInfo method, object[] args, bool safety = false)
         {
             EnsureResolved();
-            if (method == null)
+            if (method == null || Faulted.Contains(method.Name))
             {
                 return null;
             }
@@ -433,7 +576,15 @@ namespace Morgott.Oracle
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] TFTV drills call " + method.Name + " failed: " + ex.Message);
+                if (safety)
+                {
+                    Fault(method.Name, ex.Message);
+                }
+                else if (Faulted.Add(method.Name))
+                {
+                    OracleLog.Debug("[Oracle] TFTV drills call " + method.Name + " failed: " + ex.Message
+                              + " (cosmetic; logged once, not called again this session).");
+                }
                 return null;
             }
         }

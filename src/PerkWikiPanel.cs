@@ -286,15 +286,18 @@ namespace Morgott.Oracle
             // Native dual-class cell inputs: the primary row's cell at SecondSpecializationLevel-1 is
             // ALWAYS overridden with the dual-class "+" visuals (HumanAbilityTrackContainer.SetDualSpec:40/67)
             // for every human soldier, hiding whatever def sits in that track slot. Read level + icon LIVE
-            // from the same sources the native screen uses; vanilla default level 4 (LevelProgressionDef.cs:30).
-            int dualLevel0 = 3;
+            // from the same sources the native screen uses. -1 means "no cell is the dual-class cell": if
+            // the level cannot be read we omit the overlay rather than guess an index, because a guessed
+            // index would blank a REAL perk cell (and hide the dual cell) whenever it is wrong.
+            int dualLevel0 = -1;
             try
             {
                 dualLevel0 = character.LevelProgression.Def.SecondSpecializationLevel - 1;
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] SecondSpecializationLevel read failed, using 4: " + ex.Message);
+                OracleLog.Debug("[Oracle] SecondSpecializationLevel read failed; omitting the dual-class"
+                          + " overlay rather than guessing its slot: " + ex.Message);
             }
             Sprite dualIcon = null;
             try
@@ -876,7 +879,7 @@ namespace Morgott.Oracle
         {
             try
             {
-                int slots = TftvConfigBridge.PersonalSlotCount;
+                int slots = TftvConfigBridge.PersonalSlotCount(viewer);
                 if (slots <= 0)
                 {
                     return;

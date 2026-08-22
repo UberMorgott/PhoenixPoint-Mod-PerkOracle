@@ -99,6 +99,12 @@ namespace Morgott.Oracle
                         OracleLog.Debug("[Oracle] PerkSwap skipped: drill " + DefName(chosenDef)
                                   + " is locked for this soldier.");
                     }
+                    else if (verdict == PerkSwapVerdict.DenyDrillPriceUnresolved)
+                    {
+                        OracleLog.Debug("[Oracle] PerkSwap skipped: TFTV is present but its drill swap price"
+                                  + " could not be read; refusing to charge an invented price for "
+                                  + DefName(chosenDef) + ".");
+                    }
                     // DenyDrillBreaksAcquired already logged the blocking drills in BuildDrillContext.
                     // Not-learned / same-as-current / invalid: silent no-op per design.
                     return false;
@@ -120,6 +126,26 @@ namespace Morgott.Oracle
                                   + available + " < " + swapCost + ").");
                         return false;
                     }
+                    // The charge is a THREE-store transaction (see ChargeSwapCost). If any store is
+                    // unreachable the charge cannot be applied coherently and the player would get a
+                    // partial charge or a free swap, so deny BEFORE touching the soldier.
+                    if (!CanChargeSwapCost(ctx.Module))
+                    {
+                        OracleLog.Debug("[Oracle] PerkSwap aborted: skill points cannot be charged"
+                                  + " coherently (SP shadow field unresolved); refusing a free swap.");
+                        return false;
+                    }
+                }
+
+                // Resolve the stat-recompute target BEFORE mutating. The swap removes from _abilities
+                // directly, which fires no OnAbilityRemoved, so this recompute is part of the CORE
+                // mutation, not cosmetic: without it a swapped-out passive keeps its bonus applied. If it
+                // cannot even be resolved, abort now rather than commit a swap we cannot finish.
+                if (UpdateStatsMethod == null)
+                {
+                    OracleLog.Debug("[Oracle] PerkSwap aborted: GeoCharacter.UpdateStats(bool) unresolved;"
+                              + " a swap could not recompute stats (nothing mutated).");
+                    return false;
                 }
 
                 // Re-read the slot immediately before mutating: TFTV's own drill apply writes
@@ -150,10 +176,42 @@ namespace Morgott.Oracle
                     return false;
                 }
 
-                // Track what we've changed so the catch below can restore prior state on a partial failure.
-                bool oldRemoved = true;   // we just removed oldDef from _abilities
+                // Snapshot the list state we are about to change, rather than inferring it from whether a
+                // call RETURNED. CharacterProgression.AddAbility does `_abilities.Add(ability);
+                // OnAbilityAdded?.Invoke(ability);` (CharacterProgression.cs:158-159), so a throwing
+                // subscriber leaves the ability ADDED on a call that never returned — a "did it mutate?"
+                // flag would then skip the rollback and the soldier would silently keep an extra learned
+                // ability. Counting occurrences also survives pre-existing duplicates: rollback restores
+                // the original count instead of blindly removing every copy.
+                int chosenCountBefore = CountOf(abilities, chosenDef);
                 bool slotChanged = false; // slot.Ability re-pointed
-                bool chosenAdded = false; // chosenDef learned (added to _abilities)
+
+                void Rollback()
+                {
+                    try
+                    {
+                        // Trim only what WE added, down to the pre-swap occurrence count.
+                        while (CountOf(abilities, chosenDef) > chosenCountBefore && abilities.Remove(chosenDef))
+                        {
+                        }
+                        if (slotChanged)
+                        {
+                            slot.Ability = oldDef;
+                        }
+                        if (!abilities.Contains(oldDef))
+                        {
+                            abilities.Add(oldDef);
+                        }
+                        // The restored ability set must drive the stats again, or the soldier keeps the
+                        // half-swapped bonuses of a swap that was rolled back.
+                        UpdateStatsMethod.Invoke(ctx.Character, new object[] { false });
+                    }
+                    catch (Exception rollbackEx)
+                    {
+                        OracleLog.Debug("[Oracle] PerkSwap rollback failed: " + rollbackEx.Message);
+                    }
+                }
+
                 try
                 {
                     // step 3: point the slot at the chosen def.
@@ -162,65 +220,46 @@ namespace Morgott.Oracle
 
                     // step 4: learn the new def (public; adds to _abilities + fires OnAbilityAdded).
                     progression.AddAbility(chosenDef);
-                    chosenAdded = true;
 
                     // step 4b: force a full stat recompute. The raw _abilities.Remove fires no recompute, and
                     // AddAbility only recomputes when the NEW def is a passive/proficiency (GeoCharacter
                     // OnAbilityAdded). Swapping a passive/proficiency OUT for a non-passive would otherwise
-                    // leave the old perk's bonus applied. GeoCharacter.UpdateStats(bool) (GeoCharacter.cs:1057)
+                    // leave the old perk's bonus applied. GeoCharacter.UpdateStats(bool) (GeoCharacter.cs:1185)
                     // rebuilds stats from Abilities, fixing both the removed-passive and added-passive sides.
-                    try
-                    {
-                        Traverse.Create(ctx.Character).Method("UpdateStats", new[] { typeof(bool) }).GetValue(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Data swap already committed; only the recompute failed. Log and carry on.
-                        OracleLog.Debug("[Oracle] PerkSwap stat recompute (UpdateStats) failed: " + ex.Message);
-                    }
-
-                    // step 5: repaint the progression grid via reflection (private SetAbilityTracks).
-                    try
-                    {
-                        Traverse.Create(ctx.Module).Method("SetAbilityTracks").GetValue();
-                    }
-                    catch (Exception ex)
-                    {
-                        // The data swap already succeeded; only the immediate repaint failed. Log and carry on
-                        // (the grid refreshes on the next natural redraw).
-                        OracleLog.Debug("[Oracle] PerkSwap repaint (SetAbilityTracks) failed: " + ex.Message);
-                    }
+                    // NOT guarded: it is part of the core mutation, so a failure must roll the swap back
+                    // rather than leave a committed swap with stale stats and still charge for it.
+                    UpdateStatsMethod.Invoke(ctx.Character, new object[] { false });
                 }
                 catch (Exception ex)
                 {
-                    // A core mutation (slot re-point or AddAbility) threw: roll back so the soldier is never
-                    // left with a slot whose def is not in _abilities. Best-effort; restore in reverse order.
-                    try
-                    {
-                        if (chosenAdded)
-                        {
-                            abilities.Remove(chosenDef);
-                        }
-                        if (slotChanged)
-                        {
-                            slot.Ability = oldDef;
-                        }
-                        if (oldRemoved && !abilities.Contains(oldDef))
-                        {
-                            abilities.Add(oldDef);
-                        }
-                    }
-                    catch (Exception rollbackEx)
-                    {
-                        OracleLog.Debug("[Oracle] PerkSwap rollback failed: " + rollbackEx.Message);
-                    }
+                    // A core mutation (slot re-point / AddAbility / stat recompute) threw: roll back so the
+                    // soldier is never left with a slot whose def is not in _abilities, or with stats that
+                    // do not match the ability set.
+                    Rollback();
                     OracleLog.Debug("[Oracle] PerkSwap failed mid-sequence, rolled back: " + ex.Message);
                     return false;
                 }
 
-                // Swap fully committed: spend the skill points (affordability was verified above) and
-                // repaint the SP counter. Done last so a mid-swap failure/rollback never charges the player.
-                ChargeSwapCost(progression, ctx.Module, swapCost);
+                // Swap data committed: spend the skill points as ONE verified transaction. A charge that
+                // cannot be applied coherently rolls the whole swap back — a free or half-paid swap is
+                // worse than no swap. Affordability and reachability were both verified above.
+                if (!ChargeSwapCost(progression, ctx.Module, swapCost))
+                {
+                    Rollback();
+                    OracleLog.Debug("[Oracle] PerkSwap rolled back: skill-point charge could not be applied.");
+                    return false;
+                }
+
+                // step 5: repaint the progression grid via reflection (private SetAbilityTracks). Cosmetic
+                // and after the commit point: the grid refreshes on the next natural redraw anyway.
+                try
+                {
+                    Traverse.Create(ctx.Module).Method("SetAbilityTracks").GetValue();
+                }
+                catch (Exception ex)
+                {
+                    OracleLog.Debug("[Oracle] PerkSwap repaint (SetAbilityTracks) failed: " + ex.Message);
+                }
 
                 // TFTV parity: taking a DRILL over an already-learned ability drains the soldier's stamina
                 // when TFTV's "stamina penalty from injury" campaign option is on
@@ -393,15 +432,31 @@ namespace Morgott.Oracle
                 _owned = ctx?.Character?.Progression?.Abilities;
                 _scheduled = ScheduledPerks(ctx?.Character?.Progression, ctx?.Slot);
 
-                // Outside the try on purpose: TFTV-absent must stay a plain "no drill context" (vanilla
-                // behaviour), never the fail-closed deny the catch below produces.
-                if (!TftvDrillsBridge.DrillsAvailable)
+                // Outside the try on purpose: TFTV-ABSENT must stay a plain "no drill context" (vanilla
+                // behaviour), never the fail-closed deny the catch below produces. FAULTED is the exact
+                // opposite: TFTV's drills exist but its contract did not resolve, so nothing can be
+                // verified and every swap must be denied. Reading a fault as an absence is the fail-open
+                // this gate exists to prevent.
+                TftvDrillsState state = TftvDrillsBridge.State;
+                if (state == TftvDrillsState.Absent)
                 {
+                    return;
+                }
+                if (state == TftvDrillsState.Faulted)
+                {
+                    _drillContextFailed = true;
                     return;
                 }
                 try
                 {
-                    _drills = TftvDrillsBridge.AllDrills;
+                    // Tri-state read: null is "could not read", NOT "no drills". An unreadable list makes
+                    // the acquired-drill snapshot unknown, so deny instead of trusting an empty snapshot.
+                    _drills = TftvDrillsBridge.AllDrillsOrNull();
+                    if (_drills == null)
+                    {
+                        _drillContextFailed = true;
+                        return;
+                    }
                     _faction = ctx?.Character?.Faction?.GeoLevel?.PhoenixFaction;
 
                     // The SAFETY answers are nullable: null means the bridge could not obtain them
@@ -454,7 +509,7 @@ namespace Morgott.Oracle
             {
                 if (_drillContextFailed)
                 {
-                    return new DrillSwapContext { RemovalBreaksAcquiredDrill = true };
+                    return DrillSwapContext.Denied();
                 }
                 if (_drills == null)
                 {
@@ -489,12 +544,17 @@ namespace Morgott.Oracle
                         IgnoreDrillRequirements = OracleMain.IgnoreDrillRequirements,
                         AllowDrillReSwap = OracleMain.AllowDrillReSwap,
                         IsRevertToOriginal = IsRevertToOriginal(_ctx, chosen),
+                        // TFTV is present but its own swap price could not be read: refuse the drill swap
+                        // rather than charge the compiled-in guess. Only while the cost toggle is on — a
+                        // free swap needs no price and stays available.
+                        DrillPriceUnresolved = OracleMain.PerkSwapCostsResources
+                                               && !TftvDrillsBridge.DrillSwapSpCostResolved,
                     };
                 }
                 catch (Exception ex)
                 {
                     OracleLog.Debug("[Oracle] PerkSwap drill candidate check failed, denying: " + ex.Message);
-                    return new DrillSwapContext { RemovalBreaksAcquiredDrill = true };
+                    return DrillSwapContext.Denied();
                 }
             }
         }
@@ -556,6 +616,43 @@ namespace Morgott.Oracle
             AccessTools.Field(typeof(UIModuleCharacterProgression), "_startingSkillPoints");
 
         /// <summary>
+        /// <c>GeoCharacter.UpdateStats(bool)</c> (private, GeoCharacter.cs:1185), resolved ONCE at type
+        /// load so a swap can verify its stat-recompute target before mutating anything. Null (a game
+        /// update renamed it) aborts the swap up front instead of committing one that cannot recompute.
+        /// </summary>
+        private static readonly MethodInfo UpdateStatsMethod =
+            AccessTools.Method(typeof(GeoCharacter), "UpdateStats", new[] { typeof(bool) });
+
+        /// <summary>Occurrences of <paramref name="def"/> in <paramref name="list"/> (reference identity).</summary>
+        private static int CountOf(List<TacticalAbilityDef> list, TacticalAbilityDef def)
+        {
+            int n = 0;
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (ReferenceEquals(list[i], def))
+                {
+                    n++;
+                }
+            }
+            return n;
+        }
+
+        /// <summary>
+        /// True when a non-zero SP charge can be applied to EVERY store it must touch. With the module
+        /// open that means both private shadows as well as the persisted field: writing only some of them
+        /// desyncs the display from the save and lets a later native CommitStatChanges refund the swap.
+        /// Checked BEFORE any soldier mutation so an uncharageable swap is denied, never given away free.
+        /// </summary>
+        private static bool CanChargeSwapCost(UIModuleCharacterProgression module)
+        {
+            if ((UnityEngine.Object)(object)module == (UnityEngine.Object)null)
+            {
+                return true; // module closed: the persisted field is the only store.
+            }
+            return CurrentSkillPointsField != null && StartingSkillPointsField != null;
+        }
+
+        /// <summary>
         /// The SP figure the USER currently sees: the open module's private _currentSkillPoints shadow
         /// (which already reflects pending, un-committed stat purchases), falling back to the persisted
         /// <c>Progression.SkillPoints</c> when the module/shadow is unavailable. Used by both the click-site
@@ -591,26 +688,58 @@ namespace Morgott.Oracle
         /// repaint always runs. Called only after a fully-committed swap with affordability verified.
         /// Guarded: a hiccup is logged, never thrown.
         /// </summary>
-        private static void ChargeSwapCost(CharacterProgression progression, UIModuleCharacterProgression module, int cost)
+        private static bool ChargeSwapCost(CharacterProgression progression, UIModuleCharacterProgression module, int cost)
         {
             if (cost <= 0)
             {
-                return;
+                return true;
             }
             bool moduleOpen = (UnityEngine.Object)(object)module != (UnityEngine.Object)null;
-            if (moduleOpen)
-            {
-                AddToShadow(module, CurrentSkillPointsField, -cost);
-                AddToShadow(module, StartingSkillPointsField, -cost);
-            }
+
+            // Snapshot every store first, so any failure can put ALL of them back. A partially applied
+            // charge is the desync that lets a later native commit refund (or double-charge) the swap.
+            int persistedBefore;
+            int currentBefore = 0;
+            int startingBefore = 0;
             try
             {
-                progression.SkillPoints -= cost;
+                persistedBefore = progression.SkillPoints;
+                if (moduleOpen)
+                {
+                    currentBefore = (int)CurrentSkillPointsField.GetValue(module);
+                    startingBefore = (int)StartingSkillPointsField.GetValue(module);
+                }
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] PerkSwap SP persisted charge failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] PerkSwap SP snapshot failed, not charging: " + ex.Message);
+                return false;
             }
+
+            try
+            {
+                if (moduleOpen)
+                {
+                    CurrentSkillPointsField.SetValue(module, currentBefore - cost);
+                    StartingSkillPointsField.SetValue(module, startingBefore - cost);
+                }
+                progression.SkillPoints = persistedBefore - cost;
+
+                // Verify: a silently-swallowed or clamped write would otherwise pass as a charge.
+                if (progression.SkillPoints != persistedBefore - cost
+                    || (moduleOpen && ((int)CurrentSkillPointsField.GetValue(module) != currentBefore - cost
+                                       || (int)StartingSkillPointsField.GetValue(module) != startingBefore - cost)))
+                {
+                    throw new Exception("post-charge verification mismatch");
+                }
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkSwap SP charge failed, restoring: " + ex.Message);
+                RestoreSkillPoints(progression, module, moduleOpen, persistedBefore, currentBefore, startingBefore);
+                return false;
+            }
+
             if (moduleOpen)
             {
                 try
@@ -619,26 +748,29 @@ namespace Morgott.Oracle
                 }
                 catch (Exception ex)
                 {
+                    // Cosmetic only, and the charge is already verified — never undo a good charge for it.
                     OracleLog.Debug("[Oracle] PerkSwap SP repaint failed: " + ex.Message);
                 }
             }
+            return true;
         }
 
-        /// <summary>Guarded in-place add on a private int shadow field; a miss/failure is logged, never thrown.</summary>
-        private static void AddToShadow(UIModuleCharacterProgression module, FieldInfo field, int delta)
+        /// <summary>Put all three skill-point stores back to their snapshot; best-effort, never throws.</summary>
+        private static void RestoreSkillPoints(CharacterProgression progression, UIModuleCharacterProgression module,
+            bool moduleOpen, int persisted, int current, int starting)
         {
             try
             {
-                if (field == null)
+                progression.SkillPoints = persisted;
+                if (moduleOpen)
                 {
-                    OracleLog.Debug("[Oracle] PerkSwap SP shadow field missing; charging persisted only.");
-                    return;
+                    CurrentSkillPointsField.SetValue(module, current);
+                    StartingSkillPointsField.SetValue(module, starting);
                 }
-                field.SetValue(module, (int)field.GetValue(module) + delta);
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] PerkSwap SP shadow write failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] PerkSwap SP restore failed: " + ex.Message);
             }
         }
 
