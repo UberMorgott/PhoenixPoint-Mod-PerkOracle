@@ -1,51 +1,58 @@
-[h1]Oracle[/h1]
-[b]Doradca w grze dla Phoenix Point. Pokazuje informacje, które gra zwykle ukrywa, dokładnie tam, gdzie podejmujesz decyzje, w formie podpowiedzi przy najechaniu kursorem. Działa samodzielnie na grze podstawowej, w pełni zgodny z TFTV.[/b]
+[b]Oracle to doradca i wiki w grze dla Phoenix Point. Pokazuje ukryte informacje dokładnie tam, gdzie zapadają decyzje, a po włączeniu pozwala zmieniać wylosowane perki osobiste.[/b]
 
 [hr][/hr]
 
-[h1]Aktualizujesz z PerkOracle? Przeczytaj najpierw[/h1]
+[h1]Informacje i podglądy[/h1]
 [list]
-[*][b]Mod został przemianowany z „PerkOracle" na „Oracle"[/b] (ta sama strona Steam, ten sam przedmiot, ta sama subskrypcja). Ponieważ zmienił się jego wewnętrzny identyfikator, po aktualizacji może być konieczne jednorazowe otwarcie menu [b]Mody[/b] w grze i ponowne włączenie modów. Nic nie ginie; to jednorazowe odświeżenie aktywacji.
-[*][b]Własne badanie moda w grze resetuje się jeden raz.[/b] Opcjonalne odblokowanie „wymiany perków" po tej aktualizacji ponownie pokaże się jako jeszcze niezbadane. Aby je odzyskać, zbadaj je ponownie w grze albo po prostu wyłącz tę funkcję w ustawieniach moda (jest opcjonalna). [b]Twoje zasoby, perki i żołnierze nie są naruszane[/b]. Resetuje się jedynie własna flaga badania moda, ten jeden raz. Przyszłe aktualizacje już tego nie zrobią.
+[*][b]Wgląd w perki:[/b] wyróżnia sloty wylosowanych perków osobistych i pokazuje pełną pulę, z której losuje się dany slot.
+[*][b]Wiki klas:[/b] kliknij umiejętność klasową, aby zobaczyć cały układ perków danej klasy, także dla klas dodanych przez inne mody.
+[*][b]Skutki wydarzeń:[/b] podgląd tego, co daje każdy wybór, z nagrodami przeliczonymi na twoje ustawienia trudności.
+[*][b]Wybór podklasy:[/b] podgląd perków i zdolności podklasy przed zatwierdzeniem.
+[*][b]Zysk z demontażu:[/b] podpowiedzi przedmiotów pokazują surowce faktycznie odzyskiwane przy demontażu.
 [/list]
 
-[h1]Co robi[/h1]
-Oracle ma cztery pomocniki.
+[h1]Wymiana perków[/h1]
+[i]Opcjonalna i domyślnie wyłączona. Oracle nie zmienia żadnych perków, dopóki nie włączysz tej funkcji i nie potwierdzisz wymiany.[/i]
 [list]
-[*][b]Wgląd w perki.[/b] Na ekranie postępu umiejętności losowe („wylosowane") perki osobiste są wyróżnione, dzięki czemu od razu widać, co pochodzi z losowania, a co ze stałej ścieżki klasy. Otwórz wyskakujące okno wiki perków, aby zobaczyć każdy perk, który mógł trafić do danego slotu, z natywnymi ikonami i podpowiedziami gry. Opcjonalna, zależna od badania wymiana perków pozwala zamienić wyuczony perk na inny już istniejący. Możesz też otworzyć wiki klas z wyuczonej umiejętności klasowej, aby przejrzeć ścieżkę zdolności i sloty perków każdej klasy.
-[*][b]Podgląd wyboru w wydarzeniu.[/b] Najedź kursorem na opcję odpowiedzi w wydarzeniu eksploracyjnym na geoskali, a podpowiedź pokaże skutek tego wyboru [i]zanim[/i] go dokonasz: zasoby, reputację, kondycję i punkty życia żołnierzy, przedmioty, odkryte lokacje i więcej. Wartości odpowiadają temu, co gra faktycznie przyzna, łącznie z modyfikatorami TFTV, a etykiety korzystają z natywnych, przetłumaczonych tekstów gry.
-[*][b]Podgląd podklasy.[/b] Gdy przy awansie wybierasz drugą klasę żołnierza, kliknięcie podklasy najpierw pokazuje wszystkie jej perki i zdolności wprost w oknie potwierdzenia, z natywnymi ikonami i podpowiedziami gry, dzięki czemu widzisz, co otrzymasz, zanim zatwierdzisz. Niezbadane podklasy są wyświetlane jako wyszarzone i można je obejrzeć w ten sam sposób.
-[*][b]Zysk z demontażu.[/b] Podpowiedzi przedmiotów (ekwipunek, geoskala, taktyka, mutacje) pokazują natywny wiersz „DISMANTLE" z surowcami odzyskiwanymi przy demontażu, zgodnie z proporcjonalnym zwrotem TFTV, gdy TFTV jest zainstalowany.
+[*]Kliknij prawym przyciskiem slot wylosowanego perka osobistego, aby wybrać zamiennik.
+[*]Każda wymiana przechodzi przez okno potwierdzenia samej gry i pokazuje dokładny koszt w punktach umiejętności przed pobraniem.
+[*]W dowolnej chwili przywrócisz slotowi pierwotny perk: oryginał zapisywany jest osobno dla każdej kampanii w stanie gry i podróżuje razem z zapisem.
 [/list]
+
+[h1]Drille TFTV[/h1]
+Gdy zainstalowany jest Terror From The Void, wiki klas obejmuje również wszystkie drille.
+[list]
+[*]Sprawdź dla każdego drilla klasę, minimalny poziom, wymagane badanie i biegłość w broni.
+[*]Zobacz, czy drill jest dostępny, już wzięty czy zablokowany — wraz z powodem blokady.
+[*]Wstawiaj drille do slotów perków osobistych przez to samo potwierdzenie z podaną ceną.
+[/list]
+Dostępne są dwie opcje wyłącznie dla TFTV, obie [b]domyślnie wyłączone[/b]: pomijanie wymagań odblokowania drilli oraz zezwolenie na ponowną wymianę już posiadanych drilli.
 
 [h1]Zgodność[/h1]
 [list]
-[*][b]Samodzielnie.[/b] Działa z podstawową grą Phoenix Point samodzielnie, nic więcej nie jest wymagane.
-[*][b]Terror From The Void (TFTV).[/b] W pełni zgodny. Przy zainstalowanym TFTV odczytuje dane TFTV dla poszczególnych slotów i odwzorowuje matematykę nagród TFTV; w przeciwnym razie korzysta z danych gry podstawowej.
-[*][b]Mody dodające klasy.[/b] Działa razem z modami dodającymi klasy (nowe mody Oficera, dodatkowe klasy itp.).
+[*]Działa samodzielnie z Phoenix Point albo razem z Terror From The Void.
+[*]Obsługa drilli i proporcjonalny zwrot przy demontażu, właściwe dla TFTV, włączają się tylko wtedy, gdy TFTV jest obecny.
+[*]Działa z modami dodającymi klasy.
 [/list]
 
-[h1]Obsługiwane języki[/h1]
-English, 简体中文 (chiński uproszczony), Français, Deutsch, Italiano, Polski, Русский, Español. 8 języków.
+[h1]Języki[/h1]
+English, 简体中文, Français, Deutsch, Italiano, Polski, Русский, Español.
 
-[h1]Jak używać[/h1]
-[list=1]
-[*][b]Zasubskrybuj[/b] Oracle w Warsztacie. (Jeśli używasz TFTV, zainstaluj go również; Oracle ładuje się po nim.)
-[*]Uruchom Phoenix Point i [b]włącz Oracle[/b] w menedżerze modów w grze.
-[*]Otwórz ekran postępu umiejętności żołnierza i najedź kursorem na wylosowany perk, najedź na opcję odpowiedzi w wydarzeniu eksploracyjnym albo przy awansie kliknij podklasę na ekranie wyboru drugiej klasy, aby zobaczyć jej pełne perki i zdolności.
+[h1]Zgłaszanie błędów[/h1]
+[b]Prosimy zgłaszać błędy na GitHubie, a nie w komentarzach na Steam:[/b] [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues]śledzenie zgłoszeń[/url]
+
+Dołącz:
+[list]
+[*]Twój plik [b]Player.log[/b] z %USERPROFILE%\AppData\LocalLow\Snapshot Games Inc\Phoenix Point\Player.log
+[*]Pełną listę swoich modów
+[*]Co się stało i jakie kroki pozwalają to odtworzyć
 [/list]
 
-[h1]Zgłaszanie błędów / Wsparcie[/h1]
-[b]Prosimy NIE zgłaszać błędów w komentarzach na Steam.[/b] Zgłaszaj je na GitHub: [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues[/url]
-Przy zgłaszaniu dołącz wszystkie trzy:
-[list=1]
-[*]Twój plik [b]Player.log[/b], znajduje się w %USERPROFILE%\AppData\LocalLow\Snapshot Games Inc\Phoenix Point\Player.log
-[*][b]Pełną listę modów[/b], które masz zainstalowane.
-[*][b]Pełny opis[/b] błędu: co się stało i jak go odtworzyć krok po kroku.
+[h1]Kod źródłowy, lista zmian i autorzy[/h1]
+[list]
+[*][url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]Kod źródłowy[/url]
+[*][url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md]Lista zmian[/url]
 [/list]
+Stworzony przez [b]Morgotta[/b]. Działa z modyfikacją [b]TFTV[/b]. Phoenix Point © Snapshot Games.
 
-[h1]Kod źródłowy i autorzy[/h1]
-Kod źródłowy: [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
-Lista zmian: [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md]CHANGELOG.md[/url]
-Stworzony przez [b]Morgotta[/b]. Zgodny z modyfikacją [b]TFTV[/b] autorstwa Voland163 i współtwórców (opcjonalnie). Phoenix Point © Snapshot Games.
 Licencja: CC BY-NC 4.0 (Attribution-NonCommercial). © 2026 Morgott.

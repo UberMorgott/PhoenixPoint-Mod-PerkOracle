@@ -1,51 +1,58 @@
-[h1]Oracle[/h1]
-[b]一个 Phoenix Point 的游戏内顾问。它把游戏平时隐藏的信息，直接呈现在你做决策的地方，以悬停提示和提示框的形式显示。在原版游戏上可单独运行，并与 TFTV 完全兼容。[/b]
+[b]Oracle 是 Phoenix Point 的游戏内顾问与百科。它把游戏隐藏的信息呈现在你做决策的地方；如果开启相应功能，还能替换随机抽取的个人天赋。[/b]
 
 [hr][/hr]
 
-[h1]从 PerkOracle 升级而来？请先看这里[/h1]
+[h1]信息与预览[/h1]
 [list]
-[*][b]本模组已从「PerkOracle」更名为「Oracle」[/b]（同一个 Steam 页面、同一个物品、同一份订阅）。由于内部 id 发生变化，升级后你可能需要打开游戏内的 [b]Mods[/b] 菜单，重新启用一次你的模组。不会丢失任何东西，这只是一次性的激活刷新。
-[*][b]本模组自带的游戏内研究会重置一次。[/b]可选的「天赋替换」解锁在此次升级后会再次显示为尚未研究。要恢复它，可以在游戏内重新研究一次，或直接在模组设置中关闭该功能（它是可选的）。[b]你的资源、天赋和士兵都不会受到影响[/b]，仅本模组自身的研究标记会重置这一次。今后的升级不会再这样做。
+[*][b]天赋预知：[/b]高亮随机抽取的个人天赋槽位，并显示该槽位可能抽到的全部天赋。
+[*][b]职业百科：[/b]点击职业技能即可查看该职业完整的天赋布局，也包括其他模组添加的职业。
+[*][b]事件结果：[/b]预览每个事件选项会给予什么，奖励按你的难度设置换算。
+[*][b]副职业选择：[/b]在确定之前预览副职业的天赋与技能。
+[*][b]拆解回收：[/b]物品提示框显示拆解时实际返还的资源。
 [/list]
 
-[h1]功能介绍[/h1]
-Oracle 提供四个助手。
+[h1]天赋替换[/h1]
+[i]可选功能，默认关闭。除非你开启该功能并确认替换，Oracle 不会改动任何天赋。[/i]
 [list]
-[*][b]天赋预知。[/b]在能力进阶界面中，随机抽取的（「rolled」）个人天赋会被高亮，让你一眼分辨哪些来自随机抽取、哪些来自固定的职业线。打开天赋百科弹窗，即可看到某个槽位可能落入的每一个天赋，并带有游戏原生的图标与提示。还有一个可选、需研究解锁的天赋替换，可把已学会的天赋换成另一个已有天赋。另外，还可以从已学会的职业技能打开职业百科，浏览每个职业的能力线与天赋槽位。
-[*][b]事件选项预览。[/b]在地理景观探索事件中悬停某个回答选项，提示框会在你选择[i]之前[/i]显示该选项的结果：资源、声望、士兵耐力与生命值、物品、揭示的地点等等。数值与游戏实际给予的一致，包含 TFTV 的修正，标签则使用游戏自身的本地化文本。
-[*][b]副职业预览。[/b]在升级时为士兵选择第二职业的界面中，先点击某个副职业，确认框里就会用游戏自身的图标与提示，直接展示该副职业完整的天赋与技能，让你在确定之前先看清自己会得到什么。尚未研究的副职业会以灰显方式显示，也能用同样的方式预览。
-[*][b]拆解回收。[/b]物品提示框（装备、地理景观、战术、变异）会显示原生的「DISMANTLE」行，列出拆解该物品可回收的资源——安装 TFTV 时与 TFTV 的按比例拆解返还一致。
+[*]右键点击随机抽取的个人天赋槽位即可挑选替换项。
+[*]每次替换都通过游戏自身的确认框进行，并在扣费前显示确切的技能点价格。
+[*]随时可将槽位恢复为原本的天赋：原始天赋按战役记录在存档中，随存档一起保留。
 [/list]
+
+[h1]TFTV 演练（Drills）[/h1]
+安装 Terror From The Void 后，职业百科同样覆盖全部演练。
+[list]
+[*]查看每项演练的职业、最低等级、所需研究与武器熟练度。
+[*]了解演练是可用、已获得还是被锁定，并显示锁定的原因。
+[*]通过同一套带价格的确认流程，把演练放入个人天赋槽位。
+[/list]
+另有两个仅在 TFTV 下可用的选项，均[b]默认关闭[/b]：忽略演练的解锁条件，以及允许重复替换已获得的演练。
 
 [h1]兼容性[/h1]
 [list]
-[*][b]单独使用。[/b]可单独搭配原版 Phoenix Point 运行，无需其他任何东西。
-[*][b]Terror From The Void (TFTV)。[/b]完全兼容。安装了 TFTV 时，它会读取 TFTV 按槽位的数据并匹配 TFTV 的奖励算法；否则使用原版游戏的数据。
-[*][b]添加职业的模组。[/b]可与添加职业的模组共同使用（例如新的军官、额外职业等）。
+[*]可单独搭配 Phoenix Point 运行，也可与 Terror From The Void 一同使用。
+[*]TFTV 专属的演练支持与按比例拆解返还，仅在安装了 TFTV 时启用。
+[*]可与添加职业的模组共同使用。
 [/list]
 
-[h1]支持的语言[/h1]
-English、简体中文、Français、Deutsch、Italiano、Polski、Русский、Español。共 8 种语言。
+[h1]语言[/h1]
+English、简体中文、Français、Deutsch、Italiano、Polski、Русский、Español。
 
-[h1]使用方法[/h1]
-[list=1]
-[*]在创意工坊[b]订阅[/b] Oracle。（如果你使用 TFTV，也请一并安装；Oracle 会在它之后加载。）
-[*]启动 Phoenix Point，并在游戏内的模组管理器中[b]启用 Oracle[/b]。
-[*]打开某名士兵的能力进阶界面并悬停一个随机抽取的天赋，或在探索事件中悬停某个回答选项，又或在升级选择第二职业时点击某个副职业。
+[h1]问题反馈[/h1]
+[b]请到 GitHub 反馈 Bug，而不要在 Steam 评论中反馈：[/b][url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues]问题追踪[/url]
+
+请附上：
+[list]
+[*]你的 [b]Player.log[/b]，位于 %USERPROFILE%\AppData\LocalLow\Snapshot Games Inc\Phoenix Point\Player.log
+[*]你完整的模组列表
+[*]发生了什么，以及复现所需的步骤
 [/list]
 
-[h1]问题反馈 / 支持[/h1]
-[b]请不要在 Steam 评论中反馈 Bug。[/b]请到 GitHub 反馈：[url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues[/url]
-反馈时，请务必同时提供以下三项：
-[list=1]
-[*]你的 [b]Player.log[/b] 文件，位于 %USERPROFILE%\AppData\LocalLow\Snapshot Games Inc\Phoenix Point\Player.log
-[*]你已安装的[b]完整模组列表[/b]。
-[*]Bug 的[b]完整描述[/b]：发生了什么，以及逐步的复现方法。
+[h1]源代码、更新日志与致谢[/h1]
+[list]
+[*][url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]源代码[/url]
+[*][url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md]更新日志[/url]
 [/list]
+由 [b]Morgott[/b] 制作。兼容 [b]TFTV[/b] 大型改版。Phoenix Point © Snapshot Games。
 
-[h1]源代码与致谢[/h1]
-源代码：[url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
-更新日志：[url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md]CHANGELOG.md[/url]
-由 [b]Morgott[/b] 制作。兼容 Voland163 及贡献者制作的 [b]TFTV[/b] 大型改版（可选）。Phoenix Point © Snapshot Games。
 许可：CC BY-NC 4.0 (Attribution-NonCommercial). © 2026 Morgott.

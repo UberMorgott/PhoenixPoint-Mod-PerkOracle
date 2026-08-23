@@ -1,51 +1,58 @@
-[h1]Oracle[/h1]
-[b]Ein Ingame-Berater für Phoenix Point. Er bringt Informationen ans Licht, die das Spiel normalerweise verbirgt, genau dort, wo du Entscheidungen triffst, als Hinweise und Tooltips beim Überfahren mit der Maus. Eigenständig im Basisspiel, voll kompatibel mit TFTV.[/b]
+[b]Oracle ist ein Ingame-Berater und Wiki für Phoenix Point. Er zeigt verborgene Informationen genau dort, wo Entscheidungen fallen, und lässt dich auf Wunsch ausgewürfelte persönliche Perks austauschen.[/b]
 
 [hr][/hr]
 
-[h1]Du steigst von PerkOracle um? Lies das zuerst[/h1]
+[h1]Informationen und Vorschauen[/h1]
 [list]
-[*][b]Der Mod wurde von „PerkOracle“ in „Oracle“ umbenannt[/b] (gleiche Steam-Seite, gleiches Element, gleiches Abonnement). Da sich seine interne id geändert hat, musst du nach dem Update eventuell einmalig das Ingame-Menü [b]Mods[/b] öffnen und deine Mods erneut aktivieren. Es geht nichts verloren; das ist eine einmalige Aktivierungs-Auffrischung.
-[*][b]Die spielinterne Forschung des Mods wird einmalig zurückgesetzt.[/b] Die optionale Freischaltung „Perk-Tausch“ erscheint nach diesem Update wieder als nicht erforscht. Um sie zurückzubekommen, erforsche sie entweder erneut im Spiel oder schalte diese Funktion in den Mod-Einstellungen einfach aus (sie ist optional). [b]Deine Ressourcen, Perks und Soldaten bleiben unberührt[/b]. Nur das Forschungs-Flag des Mods wird dieses eine Mal zurückgesetzt. Künftige Updates tun das nicht mehr.
+[*][b]Perk-Voraussicht:[/b] hebt zufällig ausgewürfelte persönliche Perk-Slots hervor und zeigt den gesamten Pool, aus dem ein Slot ziehen kann.
+[*][b]Klassen-Wiki:[/b] klicke eine Klassenfähigkeit an, um die vollständige Perk-Struktur der Klasse zu sehen, auch bei Klassen aus anderen Mods.
+[*][b]Ereignis-Ergebnisse:[/b] Vorschau darauf, was jede Antwortoption gewährt, mit Belohnungen passend zu deinen Schwierigkeitseinstellungen.
+[*][b]Unterklassenwahl:[/b] Vorschau der Perks und Fähigkeiten einer Unterklasse, bevor du dich festlegst.
+[*][b]Zerlegungsertrag:[/b] Gegenstands-Tooltips zeigen die Ressourcen, die du beim Zerlegen tatsächlich zurückerhältst.
 [/list]
 
-[h1]Was es macht[/h1]
-Oracle hat vier Helfer.
+[h1]Perk-Tausch[/h1]
+[i]Optional und standardmäßig deaktiviert. Oracle verändert keine Perks, solange du diese Funktion nicht aktivierst und einen Tausch bestätigst.[/i]
 [list]
-[*][b]Perk-Voraussicht.[/b] Im Fähigkeiten-Fortschrittsbildschirm werden die zufälligen (ausgewürfelten) persönlichen Perks hervorgehoben, sodass du auf einen Blick erkennst, was aus dem Zufall stammt und was aus der festen Klassenspur. Öffne ein Perk-Wiki-Popup, um jeden Perk zu sehen, der in einem Slot hätte landen können, jeweils mit den eigenen Symbolen und Tooltips des Spiels. Ein optionaler, forschungsgesperrter Perk-Tausch erlaubt dir, einen gelernten Perk durch einen anderen vorhandenen zu ersetzen. Du kannst außerdem über eine gelernte Klassenfähigkeit ein Klassen-Wiki öffnen und die Fähigkeitsspur und Perk-Slots jeder Klasse durchsehen.
-[*][b]Vorschau von Ereignis-Entscheidungen.[/b] Bewege den Mauszeiger über eine Antwortoption in einem Geoscape-Erkundungsereignis, und ein Tooltip zeigt das Ergebnis dieser Wahl, [i]bevor[/i] du sie triffst: Ressourcen, Ruf, Soldaten-Ausdauer und Lebenspunkte, Gegenstände, aufgedeckte Orte und mehr. Die Werte entsprechen dem, was das Spiel tatsächlich gewährt, inklusive der Modifikatoren von TFTV, und die Bezeichnungen nutzen den eigenen lokalisierten Text des Spiels.
-[*][b]Unterklassen-Vorschau.[/b] Wenn du beim Stufenaufstieg die zweite Klasse eines Soldaten auswählst, zeigt dir ein Klick auf eine Unterklasse zuerst deren vollständige Perks und Fähigkeiten direkt im Bestätigungsfenster, jeweils mit den eigenen Symbolen und Tooltips des Spiels, sodass du vor der Entscheidung siehst, was du bekommst. Noch nicht erforschte Unterklassen werden ausgegraut dargestellt und lassen sich auf dieselbe Weise in der Vorschau ansehen.
-[*][b]Zerlegungsertrag.[/b] Gegenstands-Tooltips (Ausrüstung, Geoscape, Taktik, Mutation) zeigen eine native „DISMANTLE"-Zeile mit den Ressourcen, die du beim Zerlegen zurückerhältst, passend zur anteiligen Rückerstattung von TFTV, wenn TFTV installiert ist.
+[*]Rechtsklick auf einen ausgewürfelten persönlichen Perk-Slot, um einen Ersatz zu wählen.
+[*]Jeder Tausch läuft über das Bestätigungsfenster des Spiels und nennt den genauen Preis in Fähigkeitspunkten, bevor er abgebucht wird.
+[*]Setze einen Slot jederzeit auf seinen ursprünglichen Perk zurück; das Original wird pro Kampagne im Spielstand vermerkt und wandert mit ihm mit.
 [/list]
+
+[h1]TFTV-Drills[/h1]
+Ist Terror From The Void installiert, deckt das Klassen-Wiki auch sämtliche Drills ab.
+[list]
+[*]Sieh zu jedem Drill Klasse, Mindeststufe, erforderliche Forschung und Waffenkenntnis.
+[*]Erkenne, ob ein Drill verfügbar, bereits genommen oder gesperrt ist — samt Grund für die Sperre.
+[*]Setze Drills über denselben preistransparenten Bestätigungsablauf in persönliche Perk-Slots ein.
+[/list]
+Zwei Optionen nur für TFTV stehen bereit, beide [b]standardmäßig deaktiviert[/b]: Freischaltbedingungen für Drills ignorieren und bereits erworbene Drills erneut tauschen erlauben.
 
 [h1]Kompatibilität[/h1]
 [list]
-[*][b]Eigenständig.[/b] Funktioniert allein mit dem Basisspiel Phoenix Point, sonst ist nichts erforderlich.
-[*][b]Terror From The Void (TFTV).[/b] Voll kompatibel. Mit installiertem TFTV liest es die slotweisen Daten von TFTV und entspricht der Belohnungsrechnung von TFTV; andernfalls nutzt es die Daten des Basisspiels.
-[*][b]Klassen-hinzufügende Mods.[/b] Funktioniert zusammen mit Mods, die Klassen hinzufügen (neuer Offizier, Zusatzklassen und so weiter).
+[*]Funktioniert eigenständig mit Phoenix Point oder zusammen mit Terror From The Void.
+[*]Die TFTV-spezifische Drill-Unterstützung und die anteilige Zerlegungs-Rückerstattung greifen nur, wenn TFTV vorhanden ist.
+[*]Funktioniert mit Mods, die Klassen hinzufügen.
 [/list]
 
-[h1]Unterstützte Sprachen[/h1]
-English, 简体中文 (Vereinfachtes Chinesisch), Français, Deutsch, Italiano, Polski, Русский, Español. 8 Sprachen.
+[h1]Sprachen[/h1]
+English, 简体中文, Français, Deutsch, Italiano, Polski, Русский, Español.
 
-[h1]Verwendung[/h1]
-[list=1]
-[*][b]Abonniere[/b] Oracle im Workshop. (Wenn du TFTV nutzt, installiere es ebenfalls; Oracle lädt danach.)
-[*]Starte Phoenix Point und [b]aktiviere Oracle[/b] im Ingame-Mod-Manager.
-[*]Öffne den Fähigkeiten-Fortschrittsbildschirm eines Soldaten und fahre über einen ausgewürfelten Perk, fahre über eine Antwortoption in einem Erkundungsereignis, oder klicke beim Stufenaufstieg im Unterklassen-Auswahlbildschirm auf eine Unterklasse.
+[h1]Fehlerberichte[/h1]
+[b]Bitte melde Fehler auf GitHub statt in den Steam-Kommentaren:[/b] [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues]Issue-Tracker[/url]
+
+Bitte beilegen:
+[list]
+[*]Deine [b]Player.log[/b] aus %USERPROFILE%\AppData\LocalLow\Snapshot Games Inc\Phoenix Point\Player.log
+[*]Deine vollständige Mod-Liste
+[*]Was passiert ist und welche Schritte den Fehler reproduzieren
 [/list]
 
-[h1]Fehlerberichte / Support[/h1]
-[b]Bitte melde Fehler NICHT in den Steam-Kommentaren.[/b] Melde sie auf GitHub: [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues[/url]
-Füge bei der Meldung bitte alle drei bei:
-[list=1]
-[*]Deine [b]Player.log[/b]-Datei, zu finden unter %USERPROFILE%\AppData\LocalLow\Snapshot Games Inc\Phoenix Point\Player.log
-[*]Die [b]vollständige Liste der Mods[/b], die du installiert hast.
-[*]Eine [b]vollständige Beschreibung[/b] des Fehlers: was passiert ist und wie man ihn Schritt für Schritt reproduziert.
+[h1]Quellcode, Änderungsprotokoll und Mitwirkende[/h1]
+[list]
+[*][url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]Quellcode[/url]
+[*][url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md]Änderungsprotokoll[/url]
 [/list]
+Erstellt von [b]Morgott[/b]. Funktioniert mit dem [b]TFTV[/b]-Overhaul. Phoenix Point © Snapshot Games.
 
-[h1]Quellcode & Mitwirkende[/h1]
-Quellcode: [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle]github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle[/url]
-Änderungsprotokoll: [url=https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/blob/main/CHANGELOG.md]CHANGELOG.md[/url]
-Erstellt von [b]Morgott[/b]. Kompatibel mit dem [b]TFTV[/b]-Overhaul von Voland163 und Mitwirkenden (optional). Phoenix Point © Snapshot Games.
 Lizenz: CC BY-NC 4.0 (Attribution-NonCommercial). © 2026 Morgott.
