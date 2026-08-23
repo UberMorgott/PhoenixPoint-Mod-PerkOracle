@@ -293,7 +293,12 @@ namespace Morgott.Oracle
                     return;
                 }
 
-                string csv = File.ReadAllText(path, Encoding.UTF8);
+                // I2's CSV parser splits rows on '\n' ONLY and never strips a preceding '\r'
+                // (LocalizationReader.ParseCSVline:117-125). On a CRLF row the last column therefore
+                // keeps a trailing CR, and AddCSVtoken's closing-quote test (:144) then fails, so a
+                // quoted last cell also keeps its surrounding quotes. Normalize before importing —
+                // the file's line endings (and git's checkout normalization) must not matter.
+                string csv = File.ReadAllText(path, Encoding.UTF8).Replace("\r\n", "\n").Replace("\r", "\n");
                 if (!csv.EndsWith("\n"))
                 {
                     csv += "\n";
