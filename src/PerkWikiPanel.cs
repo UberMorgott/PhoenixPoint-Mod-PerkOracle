@@ -86,7 +86,45 @@ namespace Morgott.Oracle
         private static GameObject _tooltipLayer;
         private static GeoRosterAbilityDetailTooltip _tooltip;
 
+        // CanvasGroup used to blank the whole wiki while a native modal owns the screen (see
+        // SetModalBlocked). Added lazily, dropped with the panel in Close.
+        private static CanvasGroup _rootGroup;
+
         public static bool IsOpen => (UnityEngine.Object)(object)_root != (UnityEngine.Object)null;
+
+        /// <summary>
+        /// Hide/restore the whole wiki while a native modal (our swap confirmation) is up.
+        ///
+        /// The modal cannot be lifted above us: OpenModal's <c>forceOnTop</c> only pushes a VIEW STATE
+        /// (GeoscapeView.cs:871-874), and the popup is a shared vanilla object on the same canvas we
+        /// deliberately attach to as last sibling — so the only native-safe move is to stand down.
+        /// A confirmation is modal anyway: the surface behind it must be neither visible nor clickable.
+        ///
+        /// Uses a CanvasGroup, NOT SetActive/rebuild, so nothing in the panel is torn down: scroll
+        /// position, selected class tab and any open flyout are exactly as they were when the player
+        /// cancels. No-op when no wiki is open. Never throws.
+        /// </summary>
+        internal static void SetModalBlocked(bool blocked)
+        {
+            try
+            {
+                if ((UnityEngine.Object)(object)_root == (UnityEngine.Object)null)
+                {
+                    return;
+                }
+                if ((UnityEngine.Object)(object)_rootGroup == (UnityEngine.Object)null)
+                {
+                    _rootGroup = _root.GetComponent<CanvasGroup>() ?? _root.AddComponent<CanvasGroup>();
+                }
+                _rootGroup.alpha = blocked ? 0f : 1f;
+                _rootGroup.interactable = !blocked;
+                _rootGroup.blocksRaycasts = !blocked;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkWikiPanel.SetModalBlocked failed: " + ex.Message);
+            }
+        }
 
         /// <summary>
         /// Build and show the wiki for <paramref name="defs"/> parented to <paramref name="canvas"/>.
@@ -1230,6 +1268,7 @@ namespace Morgott.Oracle
                 UnityEngine.Object.Destroy(_root);
             }
             _root = null;
+            _rootGroup = null;
         }
 
         private static void BuildPanel(Transform parent, List<TacticalAbilityDef> defs, Canvas rootCanvas,

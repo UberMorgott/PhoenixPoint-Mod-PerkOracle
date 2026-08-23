@@ -32,7 +32,7 @@ namespace Morgott.Oracle
     /// </summary>
     internal static class SwapConfirmModal
     {
-        private static bool _pending;
+        private static readonly SwapConfirmState _state = new SwapConfirmState();
         private static TacticalAbilityDef _ability;   // the def OUR popup is showing
         private static int _cost;                     // SP we will actually charge
         private static UIModal _modal;                // captured once the popup is really on screen
@@ -52,40 +52,57 @@ namespace Morgott.Oracle
             get
             {
                 // (object) test = "we captured a modal"; the Unity test = "...and it has been destroyed".
-                if (_pending && (object)_modal != null
+                if (_state.Busy && (object)_modal != null
                     && ((UnityEngine.Object)_modal == (UnityEngine.Object)null || !_modal.IsShown()))
                 {
                     Clear();
                 }
-                return _pending;
+                return _state.Busy;
             }
         }
 
-        /// <summary>Forget the pending popup. Idempotent, never throws.</summary>
+        /// <summary>Forget the pending popup and give the wiki back. Idempotent, never throws.</summary>
         internal static void Clear()
         {
-            _pending = false;
+            _state.Reset();
+            Release();
+        }
+
+        /// <summary>Drop the per-request state and un-blank the wiki underneath. Never throws.</summary>
+        private static void Release()
+        {
             _ability = null;
             _modal = null;
+            PerkWikiPanel.SetModalBlocked(false);
         }
 
         /// <summary>
         /// Show the confirmation for replacing <paramref name="ctx"/>'s slot perk with
         /// <paramref name="chosen"/> at <paramref name="spCost"/> skill points, running
-        /// <paramref name="onConfirm"/> only if the player confirms. Returns FALSE when the modal could
-        /// not be shown (no geoscape view, or the binder's unconditional dereferences
-        /// — ConfirmBuyAbilityDataBind.cs:65/78-80 — would throw); the caller then swaps immediately,
-        /// exactly as before this step existed.
+        /// <paramref name="onConfirm"/> only if the player confirms.
+        ///
+        /// Returns <see cref="SwapShowOutcome.CannotShow"/> when no popup is possible (no geoscape view,
+        /// or the binder's unconditional dereferences — ConfirmBuyAbilityDataBind.cs:65/78-80 — would
+        /// throw); only THEN may the caller swap immediately, exactly as before this step existed.
+        /// A click arriving while another popup is unanswered returns <see cref="SwapShowOutcome.Busy"/>
+        /// and is simply dropped: the pending popup is never replaced, and the immediate-swap fallback
+        /// must not run (that would swap without any confirmation).
         /// </summary>
-        public static bool TryShow(PerkSwapContext ctx, TacticalAbilityDef chosen, int spCost, Action onConfirm)
+        public static SwapShowOutcome TryShow(PerkSwapContext ctx, TacticalAbilityDef chosen, int spCost,
+            Action onConfirm)
         {
+            int token = 0;
             bool opened = false;
             try
             {
+                if (Pending)
+                {
+                    return SwapShowOutcome.Busy; // self-healing read; one popup at a time
+                }
                 if (ctx == null || ctx.Character?.Progression == null || ctx.Slot == null
                     || (UnityEngine.Object)(object)chosen == (UnityEngine.Object)null || onConfirm == null)
                 {
-                    return false;
+                    return SwapShowOutcome.CannotShow;
                 }
 
                 // The binder dereferences these with no null checks: Ability.CharacterProgressionData
@@ -98,13 +115,13 @@ namespace Morgott.Oracle
                     || (UnityEngine.Object)(object)ctx.Slot.Ability == (UnityEngine.Object)null
                     || (UnityEngine.Object)(object)chosen.CharacterProgressionData == (UnityEngine.Object)null)
                 {
-                    return false;
+                    return SwapShowOutcome.CannotShow;
                 }
 
                 GeoscapeView geoView = GameUtl.CurrentLevel()?.GetComponent<GeoLevelController>()?.View;
                 if ((UnityEngine.Object)(object)geoView == (UnityEngine.Object)null)
                 {
-                    return false;
+                    return SwapShowOutcome.CannotShow;
                 }
 
                 var data = new ConfirmBuyAbilityDataBind.Data
@@ -115,31 +132,57 @@ namespace Morgott.Oracle
                     CostType = ResourceType.None,
                 };
 
+                if (!_state.TryBegin(out token))
+                {
+                    return SwapShowOutcome.Busy;
+                }
                 _ability = chosen;
                 _cost = spCost > 0 ? spCost : 0;
                 _modal = null;
-                _pending = true;
+
+                // Z-ORDER. forceOnTop only pushes the modal onto the VIEW-STATE stack
+                // (GeoscapeView.cs:871-874 -> StateStack.SwitchToState); it assigns no canvas order, and
+                // our panel is a last-sibling child of the ROOT canvas (PerkWikiPanel.cs:131-136), so it
+                // would draw over the popup. Blank the wiki for the duration instead — a confirmation is
+                // modal, the surface behind it must not be visible or clickable. The panel keeps its
+                // hierarchy (CanvasGroup only), so scroll position and any open flyout survive a cancel.
+                PerkWikiPanel.SetModalBlocked(true);
+
                 geoView.OpenModal(ModalType.CharacterProgressionConfirmCharacter, res =>
                 {
-                    Clear();
+                    if (!_state.TryResolve(token))
+                    {
+                        return; // stale callback from an older request; it must not act on the new one
+                    }
+                    Release();
                     if (res == ModalResult.Confirm)
                     {
                         onConfirm();
                     }
                 }, data, 100, forceOnTop: true, replaceTop: false);
+
+                // OpenModal is synchronous (StateStack.cs:88 state.Enter -> UIStateGeoModal.EnterState:79
+                // -> UIModuleModal.Show -> UIModal.Show -> ModalShowHandler), so a request still sitting in
+                // Requested here never reached the screen. Resolve it now instead of leaving Pending stuck
+                // forever with no captured UIModal for the self-heal to probe, and let the caller fall back.
+                if (_state.Phase == SwapModalPhase.Requested && _state.TryResolve(token))
+                {
+                    Release();
+                    return SwapShowOutcome.CannotShow;
+                }
                 opened = true;
-                return true;
+                return SwapShowOutcome.Opened;
             }
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] SwapConfirmModal.TryShow failed: " + ex.Message);
-                return false;
+                return SwapShowOutcome.CannotShow;
             }
             finally
             {
-                if (!opened)
+                if (!opened && _state.TryResolve(token))
                 {
-                    Clear();
+                    Release();
                 }
             }
         }
@@ -147,11 +190,14 @@ namespace Morgott.Oracle
         /// <summary>
         /// True when <paramref name="modal"/> is the popup we opened, i.e. its data carries the very def
         /// we are pending on. Reference identity, so another mod's confirm-buy popup is never touched.
+        /// Gated on <see cref="SwapModalPhase.Requested"/>: only the ONE request still waiting for its
+        /// show handler can be relabelled, so a later request's price can never land on an older popup.
         /// </summary>
         private static bool Owns(UIModal modal, out int cost)
         {
             cost = _cost;
-            if (!_pending || modal == null || !(modal.Data is ConfirmBuyAbilityDataBind.Data data))
+            if (_state.Phase != SwapModalPhase.Requested || modal == null
+                || !(modal.Data is ConfirmBuyAbilityDataBind.Data data))
             {
                 return false;
             }
@@ -170,7 +216,7 @@ namespace Morgott.Oracle
             {
                 try
                 {
-                    if (!Owns(modal, out int cost))
+                    if (!Owns(modal, out int cost) || !_state.TryMarkShown(_state.Token))
                     {
                         return;
                     }
@@ -191,14 +237,22 @@ namespace Morgott.Oracle
 
         /// <summary>
         /// The popup went away (UIModal.Hide, reached from UIStateGeoModal.ExitState:120 on EVERY exit
-        /// path). Second, callback-independent clear of <see cref="Pending"/>.
+        /// path). Second, callback-independent resolve of the request.
+        ///
+        /// UIModal.Hide runs this twice per hide (the OnModalHide event at UIModal.cs:41 AND the
+        /// IModalHandler loop at :42-45), and the dialog callback usually resolved the request already —
+        /// so the resolve is token-gated and only accepts a popup we know reached the screen (Shown).
+        /// Every repeat is then a no-op instead of clearing whatever came after.
         /// </summary>
         [HarmonyPatch(typeof(ConfirmBuyAbilityDataBind), "ModalHideHandler")]
         internal static class HidePatch
         {
             private static void Postfix()
             {
-                Clear();
+                if (_state.Phase == SwapModalPhase.Shown && _state.TryResolve(_state.Token))
+                {
+                    Release();
+                }
             }
         }
     }

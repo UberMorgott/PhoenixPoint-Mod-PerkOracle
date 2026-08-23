@@ -43,5 +43,8 @@
     <!-- WikiGridLayout is the pure wiki grid sizing core (columns/rows/cell size for a live count in a
          given area; no Unity types), so it links and unit-tests under net8. -->
     <Compile Include="..\..\src\WikiGridLayout.cs" Link="WikiGridLayout.cs" />
+    <!-- SwapConfirmState is the pure confirm-popup lifecycle (phases + request token, no Unity types),
+         so the re-entrancy and stale-callback rules test under net8. -->
+    <Compile Include="..\..\src\SwapConfirmState.cs" Link="SwapConfirmState.cs" />
   </ItemGroup>
 </Project>

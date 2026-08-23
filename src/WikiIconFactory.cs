@@ -359,7 +359,14 @@ namespace Morgott.Oracle
             }
         }
 
-        /// <summary>Strip any cloned rolled-perk tint child (see <see cref="CellBackground"/>) from a clone.</summary>
+        /// <summary>
+        /// Neutralize any cloned rolled-perk tint child (see <see cref="CellBackground"/>) on a clone.
+        /// HIDE, never Destroy — for the same reason MakeNative documents above: Unity's Destroy is
+        /// deferred to end of frame, so a later <c>CellBackground.Apply/ApplyAlways</c> on the same cell
+        /// would find the doomed child (Transform.Find sees inactive children), re-activate it and then
+        /// watch it die anyway — which is exactly why the taken-drill and anonymized "?" cells lost their
+        /// wash while the swap grid's original-perk cell kept it. Hiding leaves one reusable child.
+        /// </summary>
         private static void RemoveRolledTint(GameObject cloneGo)
         {
             try
@@ -369,7 +376,7 @@ namespace Morgott.Oracle
                     if ((UnityEngine.Object)(object)t != (UnityEngine.Object)null
                         && ((Component)t).gameObject.name == CellBackground.ChildName)
                     {
-                        UnityEngine.Object.Destroy(((Component)t).gameObject);
+                        ((Component)t).gameObject.SetActive(false);
                     }
                 }
             }

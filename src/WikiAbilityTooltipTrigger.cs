@@ -126,11 +126,14 @@ namespace Morgott.Oracle
                 }
 
                 // Confirmation step (vanilla modal, drills and normal perks alike). It shows exactly the
-                // price resolved above; on cancel nothing happens and the wiki stays open. If the modal
-                // cannot be shown the swap runs immediately, i.e. the pre-confirmation behaviour.
+                // price resolved above; on cancel nothing happens and the wiki stays open. Only
+                // CannotShow falls back to the immediate swap (the pre-confirmation behaviour) — a Busy
+                // result means a popup is already waiting for an answer, and swapping on it would be a
+                // swap the player never confirmed.
                 PerkSwapContext ctx = SwapContext;
                 TacticalAbilityDef def = Def;
-                if (!SwapConfirmModal.TryShow(ctx, def, spCost, () => Apply(ctx, def)))
+                if (SwapConfirmModal.TryShow(ctx, def, spCost, () => Apply(ctx, def))
+                    == SwapShowOutcome.CannotShow)
                 {
                     Apply(ctx, def);
                 }
