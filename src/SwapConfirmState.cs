@@ -52,6 +52,7 @@ namespace Morgott.Oracle
     {
         private SwapModalPhase _phase = SwapModalPhase.Idle;
         private int _token;
+        private bool _confirmSpent = true;
 
         internal SwapModalPhase Phase => _phase;
 
@@ -74,6 +75,25 @@ namespace Morgott.Oracle
             }
             token = ++_token;
             _phase = SwapModalPhase.Requested;
+            _confirmSpent = false;
+            return true;
+        }
+
+        /// <summary>
+        /// Take the ONE confirm entitlement of <paramref name="token"/>'s request. Deliberately NOT
+        /// gated on the phase: the game hides the popup before it delivers the dialog result
+        /// (UIStateGeoModal.ExitState -> UIModal.Hide -> ModalHideHandler runs at :120, the
+        /// <c>_dialogHandler</c> only at :86), so by the time we learn the player pressed Confirm the
+        /// request is already back in Idle. Whichever path resolves the phase first, the confirm action
+        /// still runs — exactly once, and never for a stale or reset request.
+        /// </summary>
+        internal bool TryClaimConfirm(int token)
+        {
+            if (_confirmSpent || token == 0 || token != _token)
+            {
+                return false;
+            }
+            _confirmSpent = true;
             return true;
         }
 
@@ -106,6 +126,7 @@ namespace Morgott.Oracle
         internal void Reset()
         {
             _phase = SwapModalPhase.Idle;
+            _confirmSpent = true; // an abandoned request may never confirm afterwards
         }
     }
 }

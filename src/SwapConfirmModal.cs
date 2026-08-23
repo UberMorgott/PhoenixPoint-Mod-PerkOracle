@@ -150,12 +150,19 @@ namespace Morgott.Oracle
 
                 geoView.OpenModal(ModalType.CharacterProgressionConfirmCharacter, res =>
                 {
-                    if (!_state.TryResolve(token))
+                    if (token != _state.Token)
                     {
                         return; // stale callback from an older request; it must not act on the new one
                     }
-                    Release();
-                    if (res == ModalResult.Confirm)
+                    // The result usually arrives AFTER the hide (UIStateGeoModal.ExitState hides at :120
+                    // and only then invokes _dialogHandler at :86), so the phase is already Idle and
+                    // HidePatch has released. Resolve/release only if we got here first; the confirm
+                    // entitlement is separate and order-independent.
+                    if (_state.TryResolve(token))
+                    {
+                        Release();
+                    }
+                    if (res == ModalResult.Confirm && _state.TryClaimConfirm(token))
                     {
                         onConfirm();
                     }
@@ -180,9 +187,15 @@ namespace Morgott.Oracle
             }
             finally
             {
-                if (!opened && _state.TryResolve(token))
+                if (!opened)
                 {
-                    Release();
+                    // The caller falls back to the immediate swap on every non-Opened outcome, so burn
+                    // this request's confirm entitlement: a late callback must not swap a second time.
+                    _state.TryClaimConfirm(token);
+                    if (_state.TryResolve(token))
+                    {
+                        Release();
+                    }
                 }
             }
         }

@@ -156,6 +156,78 @@ namespace Morgott.Oracle.Tests
             Assert.True(state.TryBegin(out int _));
         }
 
+        // ---- confirm entitlement: hide and dialog result race, in EITHER order ----------------------
+
+        /// <summary>
+        /// The real game order: UIStateGeoModal.ExitState hides the modal (:120, our ModalHideHandler
+        /// postfix) BEFORE it invokes the dialog callback (:86). The hide resolves the phase, so the
+        /// callback's own resolve must fail — and the confirm must still run, exactly once.
+        /// </summary>
+        [Fact]
+        public void Confirm_WhenHideArrivesBeforeTheResultCallback_RunsExactlyOnce()
+        {
+            SwapConfirmState state = Shown(out int token);
+            int confirmed = 0;
+
+            Assert.True(state.TryResolve(token));           // hide handler, first pass
+            Assert.False(state.TryResolve(token));          // hide handler, second pass (no-op)
+
+            if (state.TryResolve(token)) { }                // result callback: refused, already Idle
+            if (state.TryClaimConfirm(token)) { confirmed++; }
+
+            Assert.Equal(1, confirmed);
+            Assert.Equal(SwapModalPhase.Idle, state.Phase);
+            Assert.False(state.TryClaimConfirm(token));     // a repeat callback cannot swap again
+            Assert.Equal(1, confirmed);
+        }
+
+        /// <summary>The other order (callback first, hide after): still exactly one confirm.</summary>
+        [Fact]
+        public void Confirm_WhenHideArrivesAfterTheResultCallback_RunsExactlyOnce()
+        {
+            SwapConfirmState state = Shown(out int token);
+            int confirmed = 0;
+
+            Assert.True(state.TryResolve(token));           // result callback wins the race
+            if (state.TryClaimConfirm(token)) { confirmed++; }
+
+            Assert.False(state.TryResolve(token));          // hide handler afterwards: harmless no-op
+            Assert.False(state.TryResolve(token));
+
+            Assert.Equal(1, confirmed);
+            Assert.Equal(SwapModalPhase.Idle, state.Phase);
+        }
+
+        [Fact]
+        public void ClaimConfirm_WithAStaleToken_IsRefused()
+        {
+            SwapConfirmState state = Shown(out int first);
+            Assert.True(state.TryResolve(first));
+            Assert.True(state.TryBegin(out int second));
+
+            Assert.False(state.TryClaimConfirm(first));     // old popup's callback fires late
+            Assert.True(state.TryClaimConfirm(second));     // the live request is untouched
+        }
+
+        [Fact]
+        public void ClaimConfirm_AfterReset_IsRefused()
+        {
+            SwapConfirmState state = Shown(out int token);
+
+            state.Reset();
+
+            Assert.False(state.TryClaimConfirm(token));
+        }
+
+        [Fact]
+        public void ClaimConfirm_BeforeAnyRequest_IsRefused()
+        {
+            var state = new SwapConfirmState();
+
+            Assert.False(state.TryClaimConfirm(0));
+            Assert.False(state.TryClaimConfirm(1));
+        }
+
         [Fact]
         public void Reset_FromAnyPhase_ReturnsToIdleAndStalesTheToken()
         {
