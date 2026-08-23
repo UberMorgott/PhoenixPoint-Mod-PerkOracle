@@ -4,6 +4,48 @@ All notable changes to Oracle are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-08-23
+
+### Added
+- **TFTV Drills in the class wiki.** The wiki now lists every drill TFTV offers with
+  its unlock requirements (class and minimum level, required research, weapon
+  proficiency), and marks each one as available, already taken or locked, with the
+  reason it is locked. Drills also show up as swap candidates for a personal perk slot.
+- **Revert a slot to its original perk.** Oracle remembers the ability a slot held the
+  first time it sees it and offers it back as a marked candidate. Reverting works even
+  for slots changed by TFTV's own drill UI. The history lives inside the savegame, so it
+  travels with save copies, rolls back with an older save, and is per-campaign.
+- **Swap confirmation dialog.** Every swap now asks first, in the game's own dialog,
+  showing the exact skill-point price that will be charged. Works with and without TFTV.
+- **Two optional TFTV-only settings** (both off by default): ignore drill unlock
+  requirements, and allow re-swapping drills you already have.
+
+### Changed
+- **Drills use TFTV's pricing**, not the mod's configured perk-swap price.
+- **Swap cost follows the game's economy**: soldier skill points first, the remainder
+  from the faction pool, the same way the game charges for abilities.
+- **The perk grid adapts to the number of candidates** instead of overflowing, and
+  unavailable candidates are greyed out and not clickable, so a bright icon always
+  means a usable choice.
+
+### Fixed
+- **Perk doubling** ([#1](https://github.com/UberMorgott/PhoenixPoint-Mod-PerkOracle/issues/1),
+  thanks to the reporter): a perk already scheduled for a later level could be swapped
+  into an early slot, granting it years early and killing the later slot.
+- A slot could become permanently unreachable by right-click after being swapped to
+  something outside its normal perk pool.
+- All perk icons changed color at once when a slot held a TFTV drill.
+- The confirmation dialog could be hidden behind the wiki panel, and clicking more perks
+  stacked more dialogs.
+- Compatibility with the current TFTV: the scrap-refund preview silently fell back to an
+  unprorated value.
+- Spanish text in the two new settings could show stray quote marks.
+
+## [1.6.1] - 2026-07-11
+
+### Fixed
+- **Event outcome tooltips** no longer show a missing-key sentinel in their outcome text.
+
 ## [1.6.0] - 2026-07-11
 
 ### Added
