@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
 using Morgott.Oracle;
 using Xunit;
 
@@ -8,8 +6,8 @@ namespace Morgott.Oracle.Tests
 {
     /// <summary>
     /// Unit tests for the pure swap-history core: key building, first-write-wins on the original,
-    /// clear-on-revert, the "current" staleness guard, and JSON/file tolerance. Def names are plain
-    /// strings here exactly as they are on disk, so nothing Unity/TFTV is involved.
+    /// clear-on-revert, the "current" staleness guard, and the snapshot/restore pair the savegame
+    /// round-trips through. Def names are plain strings, so nothing Unity/TFTV is involved.
     /// </summary>
     public class OriginalPerkStoreTests
     {
@@ -182,227 +180,51 @@ namespace Morgott.Oracle.Tests
             Assert.Null(OriginalPerkStore.GetOriginal(NewMap(), Key, null));
         }
 
-        [Fact]
-        public void SerializeParse_RoundTrips_IncludingAwkwardNames()
-        {
-            var map = NewMap();
-            OriginalPerkStore.Record(map, Key, "A\"quoted\\name", "Beta\nline");
-            Dictionary<string, string> back = OriginalPerkStore.Parse(OriginalPerkStore.Serialize(map));
-            Assert.Equal(map, back);
-            Assert.Equal("A\"quoted\\name", OriginalPerkStore.GetOriginal(back, Key, "Beta\nline"));
-        }
+        // ---- savegame round trip (what OracleGeoscapeMod hands to the game and gets back) -----------
 
-        [Theory]
-        [InlineData("")]
-        [InlineData("   ")]
-        [InlineData("not json at all")]
-        [InlineData("{\"o:42#3\"")]                 // truncated mid-document
-        [InlineData("{\"unrelated\":\"junk\"}")]    // valid JSON, none of our keys
-        public void CorruptOrForeignContent_ParsesToEmpty(string text)
+        [Fact]
+        public void SnapshotThenLoadFrom_RoundTripsTheLiveHistory()
         {
-            Assert.Empty(OriginalPerkStore.Parse(text));
+            OriginalPerkStore.Clear();
+            OriginalPerkStore.RecordSwap(42, 3, "Personal", "Alpha", "Beta");
+            Dictionary<string, string> saved = OriginalPerkStore.Snapshot();
+
+            OriginalPerkStore.Clear(); // geoscape start: a new campaign inherits nothing
+            Assert.False(OriginalPerkStore.HasBaseline(42, 3, "Personal"));
+
+            OriginalPerkStore.LoadFrom(saved);
+            Assert.True(OriginalPerkStore.HasBaseline(42, 3, "Personal"));
+            Assert.Equal("Alpha", OriginalPerkStore.GetOriginalDefName(42, 3, "Personal", "Beta"));
         }
 
         [Fact]
-        public void Load_MissingOrCorruptFile_StartsEmpty()
+        public void Snapshot_IsACopy_SoLaterSwapsDoNotMutateIt()
         {
-            Assert.Empty(OriginalPerkStore.Load(null));
-            Assert.Empty(OriginalPerkStore.Load(Path.Combine(Path.GetTempPath(), "oracle-no-such-file.json")));
+            OriginalPerkStore.Clear();
+            OriginalPerkStore.RecordSwap(42, 3, "Personal", "Alpha", "Beta");
+            Dictionary<string, string> saved = OriginalPerkStore.Snapshot();
 
-            string path = Path.Combine(Path.GetTempPath(), "oracle-corrupt-" + Path.GetRandomFileName());
-            try
-            {
-                File.WriteAllText(path, "\0\0 garbage {{{", Encoding.UTF8);
-                Assert.Empty(OriginalPerkStore.Load(path));
-            }
-            finally
-            {
-                File.Delete(path);
-            }
+            OriginalPerkStore.RecordSwap(42, 3, "Personal", "Beta", "Alpha"); // reverted -> entry dropped
+            Assert.Equal("Alpha", OriginalPerkStore.GetOriginal(saved, Key, "Beta"));
         }
 
         [Fact]
-        public void SaveThenLoad_RoundTripsThroughDisk()
+        public void LoadFrom_TakesOnlyOurOwnEntries_AndToleratesNull()
         {
-            string path = Path.Combine(Path.GetTempPath(), "oracle-store-" + Path.GetRandomFileName());
-            try
+            OriginalPerkStore.Clear();
+            OriginalPerkStore.LoadFrom(null); // must not throw
+            Assert.False(OriginalPerkStore.HasBaseline(42, 3, "Personal"));
+
+            OriginalPerkStore.LoadFrom(new Dictionary<string, string>
             {
-                var map = NewMap();
-                OriginalPerkStore.Record(map, Key, "Alpha", "Beta");
-                OriginalPerkStore.Save(path, map);
-                Assert.Equal("Alpha", OriginalPerkStore.GetOriginal(OriginalPerkStore.Load(path), Key, "Beta"));
-            }
-            finally
-            {
-                File.Delete(path);
-            }
-        }
-
-        [Fact]
-        public void Save_WithNoPath_IsSilentNoOp()
-        {
-            OriginalPerkStore.Save(null, NewMap()); // must not throw
-        }
-
-        [Fact]
-        public void Save_IsAtomic_LeavesNoTempFile_AndOverwritesCleanly()
-        {
-            string path = Path.Combine(Path.GetTempPath(), "oracle-atomic-" + Path.GetRandomFileName());
-            try
-            {
-                var first = NewMap();
-                OriginalPerkStore.Record(first, Key, "Alpha", "Beta");
-                OriginalPerkStore.Save(path, first);
-                Assert.False(File.Exists(path + ".tmp"));
-
-                // A second, SHORTER document must fully replace the first (no leftover tail).
-                var second = NewMap();
-                OriginalPerkStore.Save(path, second);
-                Assert.False(File.Exists(path + ".tmp"));
-                Assert.Empty(OriginalPerkStore.Load(path));
-            }
-            finally
-            {
-                File.Delete(path);
-                File.Delete(path + ".tmp");
-                File.Delete(path + ".bak");
-            }
-        }
-
-        [Theory]
-        [InlineData("{\"o:42#3#Personal\":\"Alpha\",")]      // truncated after a comma
-        [InlineData("{\"o:42#3#Personal\":\"Alpha\"")]         // truncated, no closing brace
-        [InlineData("{\"o:42#3#Personal\":\"Alp")]             // truncated mid-value
-        [InlineData("{\"o:42#3#Personal\" \"Alpha\"}")]        // missing colon
-        [InlineData("{\"o:42#3#Personal\":\"Alpha\",}")]       // trailing comma
-        [InlineData("{\"o:42#3#Personal\":7}")]                // non-string value
-        [InlineData("{\"o:42#3#Personal\":\"Alpha\"} junk")]   // trailing junk
-        public void TryParse_RejectsPartialOrMalformedDocuments(string text)
-        {
-            Assert.False(OriginalPerkStore.TryParse(text, out Dictionary<string, string> map));
-            Assert.Empty(map);
-            Assert.Empty(OriginalPerkStore.Parse(text));
-        }
-
-        [Theory]
-        [InlineData("")]
-        [InlineData("   ")]
-        [InlineData("{}")]
-        [InlineData(" { \"o:42#3#Personal\" : \"Alpha\" , \"c:42#3#Personal\" : \"Beta\" } ")]
-        public void TryParse_AcceptsWellFormedDocuments(string text)
-        {
-            Assert.True(OriginalPerkStore.TryParse(text, out Dictionary<string, string> _));
-        }
-
-        [Fact]
-        public void CorruptStore_IsQuarantined_AndNeverOverwritten()
-        {
-            string path = Path.Combine(Path.GetTempPath(), "oracle-quarantine-" + Path.GetRandomFileName());
-            const string corrupt = "{\"o:42#3#Personal\":\"Alpha\",\"c:42#3#Pers";
-            try
-            {
-                File.WriteAllText(path, corrupt, Encoding.UTF8);
-
-                Assert.Empty(OriginalPerkStore.Load(path, out bool flagged));
-                Assert.True(flagged);
-
-                // ...and the live API must not write over it, on either the swap or the observe path.
-                OriginalPerkStore.FilePath = path;
-                OriginalPerkStore.Reset();
-                OriginalPerkStore.ObserveSlot(42, 3, "Personal", "Alpha");
-                OriginalPerkStore.RecordSwap(42, 3, "Personal", "Alpha", "Beta");
-                Assert.Equal(corrupt, File.ReadAllText(path, Encoding.UTF8));
-                Assert.False(File.Exists(path + ".tmp"));
-            }
-            finally
-            {
-                OriginalPerkStore.FilePath = null;
-                OriginalPerkStore.Reset();
-                File.Delete(path);
-                File.Delete(path + ".tmp");
-            }
-        }
-
-        [Fact]
-        public void Save_KeepsTheReplacedDocumentAsARecoverableBackup()
-        {
-            string path = Path.Combine(Path.GetTempPath(), "oracle-bak-" + Path.GetRandomFileName());
-            try
-            {
-                var map = NewMap();
-                OriginalPerkStore.Record(map, Key, "Alpha", "Beta");
-                OriginalPerkStore.Save(path, map);
-
-                OriginalPerkStore.Record(map, Key, "Beta", "Gamma");
-                OriginalPerkStore.Save(path, map);
-
-                // The good copy is never deleted before the replacement lands: it survives as ".bak"...
-                Assert.True(File.Exists(path + ".bak"));
-                Assert.Equal("Alpha",
-                    OriginalPerkStore.GetOriginal(OriginalPerkStore.Load(path + ".bak"), Key, "Beta"));
-
-                // ...and a corrupt live file is recovered from it instead of being reported as empty.
-                File.WriteAllText(path, "{\"o:42#3#Pers", Encoding.UTF8);
-                Assert.Equal("Alpha", OriginalPerkStore.GetOriginal(
-                    OriginalPerkStore.Load(path, out bool flagged), Key, "Beta"));
-                Assert.False(flagged);
-            }
-            finally
-            {
-                File.Delete(path);
-                File.Delete(path + ".tmp");
-                File.Delete(path + ".bak");
-            }
-        }
-
-        [Fact]
-        public void Load_RecoversFromAnInterruptedWrite_WhenTheLiveFileIsGone()
-        {
-            string path = Path.Combine(Path.GetTempPath(), "oracle-recover-" + Path.GetRandomFileName());
-            try
-            {
-                var map = NewMap();
-                OriginalPerkStore.Record(map, Key, "Alpha", "Beta");
-                File.WriteAllText(path + ".tmp", OriginalPerkStore.Serialize(map), Encoding.UTF8);
-
-                Assert.Equal("Alpha",
-                    OriginalPerkStore.GetOriginal(OriginalPerkStore.Load(path, out bool flagged), Key, "Beta"));
-                Assert.False(flagged);
-            }
-            finally
-            {
-                File.Delete(path);
-                File.Delete(path + ".tmp");
-            }
-        }
-
-        [Fact]
-        public void Save_SurvivesALeftoverTempFileFromAnInterruptedWrite()
-        {
-            string path = Path.Combine(Path.GetTempPath(), "oracle-atomic2-" + Path.GetRandomFileName());
-            try
-            {
-                var map = NewMap();
-                OriginalPerkStore.Record(map, Key, "Alpha", "Beta");
-                OriginalPerkStore.Save(path, map);
-
-                // Simulate a crash mid-write: the truncated content sits in the ".tmp", never in the
-                // live file, so the previous good document is still readable...
-                File.WriteAllText(path + ".tmp", "{\"o:42#3#Pers", Encoding.UTF8);
-                Assert.Equal("Alpha", OriginalPerkStore.GetOriginal(OriginalPerkStore.Load(path), Key, "Beta"));
-
-                // ...and the next save overwrites that stale temp rather than failing.
-                OriginalPerkStore.Record(map, Key, "Beta", "Gamma");
-                OriginalPerkStore.Save(path, map);
-                Assert.Equal("Alpha", OriginalPerkStore.GetOriginal(OriginalPerkStore.Load(path), Key, "Gamma"));
-                Assert.False(File.Exists(path + ".tmp"));
-            }
-            finally
-            {
-                File.Delete(path);
-                File.Delete(path + ".tmp");
-                File.Delete(path + ".bak");
-            }
+                { "o:" + Key, "Alpha" },
+                { "c:" + Key, "Beta" },
+                { "unrelated", "junk" },
+                { "o:9#9#Personal", "" },
+            });
+            Assert.Equal("Alpha", OriginalPerkStore.GetOriginalDefName(42, 3, "Personal", "Beta"));
+            Assert.False(OriginalPerkStore.HasBaseline(9, 9, "Personal"));
+            Assert.Equal(2, OriginalPerkStore.Snapshot().Count);
         }
     }
 }

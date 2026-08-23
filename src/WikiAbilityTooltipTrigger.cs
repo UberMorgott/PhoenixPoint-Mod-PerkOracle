@@ -99,13 +99,14 @@ namespace Morgott.Oracle
 
                 // Skill-point cost gate: when the swap costs SP and the soldier can't afford it, deny with a
                 // localized notice (TrySwap would otherwise abort silently) and leave the wiki open. Reads
-                // the same shadow-aware figure the module displays (PerkSwapper.GetAvailableSkillPoints), so
-                // the message can never disagree with the on-screen SP counter.
+                // the same shadow-aware soldier+faction figure the module displays
+                // (PerkSwapper.GetAvailableSkillPoints), so the message can never disagree with the
+                // on-screen SP counters.
                 int spCost = PerkSwapper.ResolveSwapCost(SwapContext, Def);
                 if (spCost > 0)
                 {
                     var prog = SwapContext.Character?.Progression;
-                    int available = PerkSwapper.GetAvailableSkillPoints(prog, SwapContext.Module);
+                    int available = PerkSwapper.GetAvailableSkillPoints(SwapContext);
                     if (prog != null && available < spCost)
                     {
                         string msg = Loc.Get(

@@ -456,5 +456,63 @@ namespace Morgott.Oracle.Tests
             // existed: no fault deny, no price deny, no drill gate at all.
             Assert.Equal(PerkSwapVerdict.Allow, PerkSwapDecision.Evaluate("B", "A", Owned(), drills: null));
         }
+
+        // --- AllocateSwapCost: soldier SP first, remainder off the faction pool (native
+        // ConsumeAbilityCost:435-440 / CanAffordSkill:1058). ---
+
+        [Fact]
+        public void Allocate_ExactFit_TakesEverythingItNeedsAndAffords()
+        {
+            var alloc = PerkSwapDecision.AllocateSwapCost(50, soldierPoints: 20, factionPoints: 30);
+            Assert.True(alloc.Affordable);
+            Assert.Equal(20, alloc.FromSoldier);
+            Assert.Equal(30, alloc.FromFaction);
+        }
+
+        [Fact]
+        public void Allocate_SoldierCovers_LeavesFactionUntouched()
+        {
+            var alloc = PerkSwapDecision.AllocateSwapCost(10, soldierPoints: 40, factionPoints: 100);
+            Assert.True(alloc.Affordable);
+            Assert.Equal(10, alloc.FromSoldier);
+            Assert.Equal(0, alloc.FromFaction);
+        }
+
+        [Fact]
+        public void Allocate_SpillsIntoFaction()
+        {
+            var alloc = PerkSwapDecision.AllocateSwapCost(50, soldierPoints: 12, factionPoints: 100);
+            Assert.True(alloc.Affordable);
+            Assert.Equal(12, alloc.FromSoldier);
+            Assert.Equal(38, alloc.FromFaction);
+        }
+
+        [Fact]
+        public void Allocate_InsufficientAcrossBothPools_Denies()
+        {
+            var alloc = PerkSwapDecision.AllocateSwapCost(50, soldierPoints: 12, factionPoints: 30);
+            Assert.False(alloc.Affordable);
+        }
+
+        [Fact]
+        public void Allocate_ZeroCost_ChargesNothingAndAffords()
+        {
+            var alloc = PerkSwapDecision.AllocateSwapCost(0, soldierPoints: 0, factionPoints: 0);
+            Assert.True(alloc.Affordable);
+            Assert.Equal(0, alloc.FromSoldier);
+            Assert.Equal(0, alloc.FromFaction);
+        }
+
+        [Fact]
+        public void Allocate_CostToggleOff_IsAlwaysFree()
+        {
+            // Cost toggle off => SwapCost returns 0 => nothing is taken from either pool.
+            int cost = PerkSwapDecision.SwapCost(false, false, 10, 25, costEnabled: false, configuredCost: 50);
+            var alloc = PerkSwapDecision.AllocateSwapCost(cost, soldierPoints: 0, factionPoints: 0);
+            Assert.Equal(0, cost);
+            Assert.True(alloc.Affordable);
+            Assert.Equal(0, alloc.FromSoldier);
+            Assert.Equal(0, alloc.FromFaction);
+        }
     }
 }

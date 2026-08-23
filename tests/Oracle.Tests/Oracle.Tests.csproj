@@ -27,8 +27,8 @@
     <Compile Include="..\..\src\ClassPerkResolver.cs" Link="ClassPerkResolver.cs" />
     <!-- DrillWikiFormat is the pure drills ordering/requirement-wording core (no Unity/TFTV types). -->
     <Compile Include="..\..\src\DrillWikiFormat.cs" Link="DrillWikiFormat.cs" />
-    <!-- OriginalPerkStore is the pure swap-history core (plain strings + System.IO, no Unity/TFTV),
-         so its keying / first-write-wins / clear-on-revert / corrupt-file behaviour tests under net8. -->
+    <!-- OriginalPerkStore is the pure swap-history core (plain strings, no Unity/TFTV/IO), so its
+         keying / first-write-wins / clear-on-revert / snapshot-restore behaviour tests under net8. -->
     <Compile Include="..\..\src\OriginalPerkStore.cs" Link="OriginalPerkStore.cs" />
     <!-- EventOutcomeData (POCO DTO) + EventOutcomePreview (pure formatter) are engine-free,
          so they link and unit-test under net8 exactly like PerkPoolResolver. -->

@@ -228,30 +228,10 @@ namespace Morgott.Oracle
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             OracleLog.Debug("[Oracle] PatchAll done");
             LoadLocalization();
-            InitOriginalPerkStore();
+            // Swap history persists through the game's own mod-instance-data API (see
+            // OracleGeoscapeMod); the store itself only needs its diagnostic sink.
+            OriginalPerkStore.Log = OracleLog.Debug;
             RegisterPerkSwapResearch();
-        }
-
-        /// <summary>
-        /// Point the swap-history store at a JSON file in the mod's own install directory — the same
-        /// directory the localization CSV is read from (<c>base.Instance.Entry.Directory</c>), which is the
-        /// only mod-owned folder the game hands us. Leaving <c>FilePath</c> null (path unresolvable)
-        /// degrades the revert feature to in-memory-only for the session rather than throwing.
-        /// ponytail: a Workshop re-download can wipe this folder, losing revert history; move the file to
-        /// Application.persistentDataPath if that ever actually bites.
-        /// </summary>
-        private void InitOriginalPerkStore()
-        {
-            try
-            {
-                OriginalPerkStore.Log = OracleLog.Debug;
-                OriginalPerkStore.FilePath =
-                    Path.Combine(base.Instance.Entry.Directory, "OraclePerkOriginals.json");
-            }
-            catch (Exception ex)
-            {
-                OracleLog.Debug("[Oracle] OriginalPerkStore init failed: " + ex.Message);
-            }
         }
 
         /// <summary>

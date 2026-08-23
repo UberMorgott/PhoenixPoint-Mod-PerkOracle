@@ -293,6 +293,47 @@ namespace Morgott.Oracle
             return cost > 0 ? cost : 0;
         }
 
+        /// <summary>How a swap price splits over the two skill-point pools; see <see cref="AllocateSwapCost"/>.</summary>
+        public struct SpAllocation
+        {
+            /// <summary>Taken from the soldier's own skill points.</summary>
+            public int FromSoldier;
+            /// <summary>Remainder taken from the faction pool.</summary>
+            public int FromFaction;
+            /// <summary>False when the two pools together cannot cover the cost (nothing may be charged).</summary>
+            public bool Affordable;
+        }
+
+        /// <summary>
+        /// Split a swap price over the soldier's SP and the faction SP pool exactly like the game's own
+        /// ability purchase does (<c>UIModuleCharacterProgression.ConsumeAbilityCost:435-440</c>): soldier
+        /// points first, the overflow off the faction pool. Pure so the money rule is unit-tested
+        /// engine-free; the live balances are read in <c>PerkSwapper.ChargeSwapCost</c>.
+        /// </summary>
+        public static SpAllocation AllocateSwapCost(int cost, int soldierPoints, int factionPoints)
+        {
+            if (cost <= 0)
+            {
+                return new SpAllocation { Affordable = true };
+            }
+            if (soldierPoints < 0)
+            {
+                soldierPoints = 0;
+            }
+            if (factionPoints < 0)
+            {
+                factionPoints = 0;
+            }
+            int fromSoldier = cost < soldierPoints ? cost : soldierPoints;
+            int fromFaction = cost - fromSoldier;
+            return new SpAllocation
+            {
+                FromSoldier = fromSoldier,
+                FromFaction = fromFaction,
+                Affordable = fromFaction <= factionPoints,
+            };
+        }
+
         /// <summary>
         /// Whether a wiki candidate cell must render in the dim "not a choice" look: the perk the slot
         /// already holds, or any candidate whose verdict is not <see cref="PerkSwapVerdict.Allow"/>

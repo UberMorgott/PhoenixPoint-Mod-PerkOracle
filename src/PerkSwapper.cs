@@ -117,22 +117,30 @@ namespace Morgott.Oracle
                 // un-committed stat purchases — that is the number the user sees. The click site pre-checks
                 // this too (to show a message); this guard also protects any direct caller.
                 int swapCost = ResolveSwapCost(ctx, chosenDef);
+                GeoPhoenixFaction faction = ResolveFaction(ctx);
                 if (swapCost > 0)
                 {
-                    int available = GetAvailableSkillPoints(progression, ctx.Module);
-                    if (available < swapCost)
+                    // Soldier SP first, remainder from the faction pool — the game's own purchase rule
+                    // (ConsumeAbilityCost:435-440 / CanAffordSkill:1058).
+                    int soldierPoints = SoldierPoints(progression, ctx.Module);
+                    int factionPoints = FactionPoints(faction, ctx.Module);
+                    PerkSwapDecision.SpAllocation alloc =
+                        PerkSwapDecision.AllocateSwapCost(swapCost, soldierPoints, factionPoints);
+                    if (!alloc.Affordable)
                     {
                         OracleLog.Debug("[Oracle] PerkSwap aborted: insufficient skill points ("
-                                  + available + " < " + swapCost + ").");
+                                  + soldierPoints + " soldier + " + factionPoints + " faction < "
+                                  + swapCost + ").");
                         return false;
                     }
-                    // The charge is a THREE-store transaction (see ChargeSwapCost). If any store is
+                    // The charge is a SIX-store transaction (see ChargeSwapCost). If any store is
                     // unreachable the charge cannot be applied coherently and the player would get a
                     // partial charge or a free swap, so deny BEFORE touching the soldier.
-                    if (!CanChargeSwapCost(ctx.Module))
+                    if (!CanChargeSwapCost(ctx.Module, faction, alloc))
                     {
                         OracleLog.Debug("[Oracle] PerkSwap aborted: skill points cannot be charged"
-                                  + " coherently (SP shadow field unresolved); refusing a free swap.");
+                                  + " coherently (SP shadow field or faction pool unresolved);"
+                                  + " refusing a free swap.");
                         return false;
                     }
                 }
@@ -186,6 +194,10 @@ namespace Morgott.Oracle
                 int chosenCountBefore = CountOf(abilities, chosenDef);
                 bool slotChanged = false; // slot.Ability re-pointed
 
+                // Limitation: rollback restores OUR state only. CharacterProgression.AddAbility mutates
+                // the list and then raises OnAbilityAdded (CharacterProgression.cs:158) with no removal
+                // event, so side effects other mods' subscribers already performed cannot be undone.
+                // Game-API limitation, not something to work around here.
                 void Rollback()
                 {
                     try
@@ -243,7 +255,7 @@ namespace Morgott.Oracle
                 // Swap data committed: spend the skill points as ONE verified transaction. A charge that
                 // cannot be applied coherently rolls the whole swap back — a free or half-paid swap is
                 // worse than no swap. Affordability and reachability were both verified above.
-                if (!ChargeSwapCost(progression, ctx.Module, swapCost))
+                if (!ChargeSwapCost(progression, ctx.Module, faction, swapCost))
                 {
                     Rollback();
                     OracleLog.Debug("[Oracle] PerkSwap rolled back: skill-point charge could not be applied.");
@@ -605,15 +617,22 @@ namespace Morgott.Oracle
         // CommitStatChanges() writes the shadow back ABSOLUTELY (SkillPoints = _currentSkillPoints, :375),
         // which would erase a bare Progression.SkillPoints decrement. The native spend pair
         // (ConsumeAbilityCost:428 + CommitStatChanges:367, as used by BuyAbility:403-405) cannot be reused
-        // verbatim: ConsumeAbilityCost spills overflow into the FACTION SP pool (:436-441; our cost is
-        // soldier-only) and CommitStatChanges also commits any pending un-confirmed stat edits (:369-374)
-        // the player may have open. So we mirror the spend across all three stores instead (see
-        // ChargeSwapCost). AccessTools.Field is cached once; null (game update renamed the field) degrades
-        // to persisted-only behavior, logged.
+        // verbatim: CommitStatChanges also commits any pending un-confirmed stat edits (:369-374) the
+        // player may have open. So we mirror the spend ourselves across all SIX stores (see
+        // ChargeSwapCost), following ConsumeAbilityCost's soldier-first-then-faction allocation
+        // (:435-440) — the faction pool is part of the price the game itself charges, so ignoring it both
+        // denied affordable swaps and under-charged the ones it allowed. The faction pool has the exact
+        // same shadow/persist split as the soldier pool (_currentFactionPoints:231, _startingFactionPoints:219,
+        // committed absolutely to _phoenixFaction.Skillpoints:378). AccessTools.Field is cached once; null
+        // (game update renamed the field) degrades to persisted-only behavior, logged.
         private static readonly FieldInfo CurrentSkillPointsField =
             AccessTools.Field(typeof(UIModuleCharacterProgression), "_currentSkillPoints");
         private static readonly FieldInfo StartingSkillPointsField =
             AccessTools.Field(typeof(UIModuleCharacterProgression), "_startingSkillPoints");
+        private static readonly FieldInfo CurrentFactionPointsField =
+            AccessTools.Field(typeof(UIModuleCharacterProgression), "_currentFactionPoints");
+        private static readonly FieldInfo StartingFactionPointsField =
+            AccessTools.Field(typeof(UIModuleCharacterProgression), "_startingFactionPoints");
 
         /// <summary>
         /// <c>GeoCharacter.UpdateStats(bool)</c> (private, GeoCharacter.cs:1185), resolved ONCE at type
@@ -639,75 +658,138 @@ namespace Morgott.Oracle
 
         /// <summary>
         /// True when a non-zero SP charge can be applied to EVERY store it must touch. With the module
-        /// open that means both private shadows as well as the persisted field: writing only some of them
-        /// desyncs the display from the save and lets a later native CommitStatChanges refund the swap.
-        /// Checked BEFORE any soldier mutation so an uncharageable swap is denied, never given away free.
+        /// open that means all four private shadows (soldier + faction) as well as the two persisted
+        /// fields: writing only some of them desyncs the display from the save and lets a later native
+        /// CommitStatChanges refund the swap. The faction entity is only required when the price actually
+        /// spills into the faction pool. Checked BEFORE any soldier mutation so an uncharageable swap is
+        /// denied, never given away free.
         /// </summary>
-        private static bool CanChargeSwapCost(UIModuleCharacterProgression module)
+        private static bool CanChargeSwapCost(UIModuleCharacterProgression module, GeoPhoenixFaction faction,
+            PerkSwapDecision.SpAllocation alloc)
         {
+            if (alloc.FromFaction > 0 && faction == null)
+            {
+                return false;
+            }
             if ((UnityEngine.Object)(object)module == (UnityEngine.Object)null)
             {
-                return true; // module closed: the persisted field is the only store.
+                return true; // module closed: the persisted fields are the only stores.
             }
-            return CurrentSkillPointsField != null && StartingSkillPointsField != null;
+            return CurrentSkillPointsField != null && StartingSkillPointsField != null
+                   && CurrentFactionPointsField != null && StartingFactionPointsField != null;
         }
 
-        /// <summary>
-        /// The SP figure the USER currently sees: the open module's private _currentSkillPoints shadow
-        /// (which already reflects pending, un-committed stat purchases), falling back to the persisted
-        /// <c>Progression.SkillPoints</c> when the module/shadow is unavailable. Used by both the click-site
-        /// pre-check (deny message) and the TrySwap guard so they can never disagree with the display.
-        /// </summary>
-        public static int GetAvailableSkillPoints(CharacterProgression progression, UIModuleCharacterProgression module)
+        /// <summary>The Phoenix faction that owns the shared SP pool, or null when it cannot be resolved.</summary>
+        private static GeoPhoenixFaction ResolveFaction(PerkSwapContext ctx)
         {
             try
             {
-                if (CurrentSkillPointsField != null
-                    && (UnityEngine.Object)(object)module != (UnityEngine.Object)null)
+                return ctx?.Character?.Faction?.GeoLevel?.PhoenixFaction;
+            }
+            catch (Exception ex)
+            {
+                OracleLog.Debug("[Oracle] PerkSwap faction resolve failed: " + ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// One pool's spendable figure as the USER currently sees it: the open module's private shadow
+        /// (which already reflects pending, un-committed stat purchases), falling back to the persisted
+        /// value when the module/shadow is unavailable.
+        /// </summary>
+        private static int PoolPoints(FieldInfo shadow, UIModuleCharacterProgression module, int persisted)
+        {
+            try
+            {
+                if (shadow != null && (UnityEngine.Object)(object)module != (UnityEngine.Object)null)
                 {
-                    return (int)CurrentSkillPointsField.GetValue(module);
+                    return (int)shadow.GetValue(module);
                 }
             }
             catch (Exception ex)
             {
-                OracleLog.Debug("[Oracle] GetAvailableSkillPoints shadow read failed: " + ex.Message);
+                OracleLog.Debug("[Oracle] PerkSwap SP shadow read failed: " + ex.Message);
             }
-            return progression != null ? progression.SkillPoints : 0;
+            return persisted;
+        }
+
+        private static int SoldierPoints(CharacterProgression progression, UIModuleCharacterProgression module)
+        {
+            return PoolPoints(CurrentSkillPointsField, module, progression != null ? progression.SkillPoints : 0);
+        }
+
+        private static int FactionPoints(GeoPhoenixFaction faction, UIModuleCharacterProgression module)
+        {
+            return PoolPoints(CurrentFactionPointsField, module, faction != null ? faction.Skillpoints : 0);
         }
 
         /// <summary>
-        /// Spend the swap's skill-point cost, keeping the persisted field and the module's shadow copies
-        /// consistent (see the shadow-desync note above): decrement the module's <c>_currentSkillPoints</c>
-        /// (displayed; a later native CommitStatChanges then writes the already-charged value back — no
-        /// double charge, commit is an absolute write) and <c>_startingSkillPoints</c> (so a native
-        /// cancel/reset of pending stat edits cannot restore the pre-swap SP), then the persisted
-        /// <c>Progression.SkillPoints</c> (the save entity). Shadow writes go FIRST and are each
-        /// independently guarded so one failing can never skip the other (a half-written pair is exactly
-        /// the desync that lets a later native commit refund the swap); a failed/absent shadow degrades to
-        /// the persisted-only charge (same as the module-closed path), logged. The public RefreshStatPanel
+        /// The SP figure the USER can actually spend: soldier points PLUS the faction pool, exactly like
+        /// the game's own <c>CanAffordSkill</c> (UIModuleCharacterProgression.cs:1058). Shadow-aware, so
+        /// the click-site deny message and the TrySwap guard can never disagree with the on-screen counters.
+        /// </summary>
+        public static int GetAvailableSkillPoints(PerkSwapContext ctx)
+        {
+            CharacterProgression progression = ctx?.Character?.Progression;
+            UIModuleCharacterProgression module = ctx?.Module;
+            return SoldierPoints(progression, module) + FactionPoints(ResolveFaction(ctx), module);
+        }
+
+        /// <summary>Snapshot of every skill-point store a charge touches, for verify/rollback.</summary>
+        private struct SpStores
+        {
+            public bool ModuleOpen;
+            public bool FactionKnown;
+            public int PersistedSp;
+            public int CurrentSp;
+            public int StartingSp;
+            public int PersistedFp;
+            public int CurrentFp;
+            public int StartingFp;
+        }
+
+        /// <summary>
+        /// Spend the swap's skill-point cost across BOTH pools — soldier points first, the remainder from
+        /// the faction pool, exactly like the native ConsumeAbilityCost (:435-440) — keeping the persisted
+        /// fields and the module's shadow copies consistent (see the shadow-desync note above). Per pool:
+        /// the module's <c>_current*</c> shadow (displayed; a later native CommitStatChanges writes the
+        /// already-charged value back — no double charge, commit is an absolute write), the
+        /// <c>_starting*</c> shadow (so a native cancel/reset of pending stat edits cannot restore the
+        /// pre-swap points), and the persisted entity (<c>Progression.SkillPoints</c> /
+        /// <c>GeoPhoenixFaction.Skillpoints</c>). All six are snapshotted, written, read back for
+        /// verification, and restored together on any failure — a partial charge is exactly the desync
+        /// that lets a later native commit refund or double-charge the swap. The public RefreshStatPanel
         /// repaint always runs. Called only after a fully-committed swap with affordability verified.
         /// Guarded: a hiccup is logged, never thrown.
         /// </summary>
-        private static bool ChargeSwapCost(CharacterProgression progression, UIModuleCharacterProgression module, int cost)
+        private static bool ChargeSwapCost(CharacterProgression progression, UIModuleCharacterProgression module,
+            GeoPhoenixFaction faction, int cost)
         {
             if (cost <= 0)
             {
                 return true;
             }
-            bool moduleOpen = (UnityEngine.Object)(object)module != (UnityEngine.Object)null;
 
-            // Snapshot every store first, so any failure can put ALL of them back. A partially applied
-            // charge is the desync that lets a later native commit refund (or double-charge) the swap.
-            int persistedBefore;
-            int currentBefore = 0;
-            int startingBefore = 0;
+            // Snapshot every store first, so any failure can put ALL of them back.
+            var before = new SpStores
+            {
+                ModuleOpen = (UnityEngine.Object)(object)module != (UnityEngine.Object)null,
+                FactionKnown = faction != null,
+            };
             try
             {
-                persistedBefore = progression.SkillPoints;
-                if (moduleOpen)
+                before.PersistedSp = progression.SkillPoints;
+                if (before.FactionKnown)
                 {
-                    currentBefore = (int)CurrentSkillPointsField.GetValue(module);
-                    startingBefore = (int)StartingSkillPointsField.GetValue(module);
+                    before.PersistedFp = faction.Skillpoints;
+                }
+                if (before.ModuleOpen)
+                {
+                    before.CurrentSp = (int)CurrentSkillPointsField.GetValue(module);
+                    before.StartingSp = (int)StartingSkillPointsField.GetValue(module);
+                    before.CurrentFp = (int)CurrentFactionPointsField.GetValue(module);
+                    before.StartingFp = (int)StartingFactionPointsField.GetValue(module);
                 }
             }
             catch (Exception ex)
@@ -716,19 +798,39 @@ namespace Morgott.Oracle
                 return false;
             }
 
+            // Allocate against the same figures the player sees (shadows when open, persisted otherwise).
+            PerkSwapDecision.SpAllocation alloc = PerkSwapDecision.AllocateSwapCost(cost,
+                before.ModuleOpen ? before.CurrentSp : before.PersistedSp,
+                before.ModuleOpen ? before.CurrentFp : before.PersistedFp);
+            if (!alloc.Affordable || (alloc.FromFaction > 0 && !before.FactionKnown))
+            {
+                OracleLog.Debug("[Oracle] PerkSwap SP charge impossible at charge time (cost " + cost
+                          + ", faction pool " + (before.FactionKnown ? "known" : "unresolved") + ").");
+                return false;
+            }
+
             try
             {
-                if (moduleOpen)
+                if (before.ModuleOpen)
                 {
-                    CurrentSkillPointsField.SetValue(module, currentBefore - cost);
-                    StartingSkillPointsField.SetValue(module, startingBefore - cost);
+                    CurrentSkillPointsField.SetValue(module, before.CurrentSp - alloc.FromSoldier);
+                    StartingSkillPointsField.SetValue(module, before.StartingSp - alloc.FromSoldier);
+                    CurrentFactionPointsField.SetValue(module, before.CurrentFp - alloc.FromFaction);
+                    StartingFactionPointsField.SetValue(module, before.StartingFp - alloc.FromFaction);
                 }
-                progression.SkillPoints = persistedBefore - cost;
+                progression.SkillPoints = before.PersistedSp - alloc.FromSoldier;
+                if (before.FactionKnown)
+                {
+                    faction.Skillpoints = before.PersistedFp - alloc.FromFaction;
+                }
 
                 // Verify: a silently-swallowed or clamped write would otherwise pass as a charge.
-                if (progression.SkillPoints != persistedBefore - cost
-                    || (moduleOpen && ((int)CurrentSkillPointsField.GetValue(module) != currentBefore - cost
-                                       || (int)StartingSkillPointsField.GetValue(module) != startingBefore - cost)))
+                if (progression.SkillPoints != before.PersistedSp - alloc.FromSoldier
+                    || (before.FactionKnown && faction.Skillpoints != before.PersistedFp - alloc.FromFaction)
+                    || (before.ModuleOpen && ((int)CurrentSkillPointsField.GetValue(module) != before.CurrentSp - alloc.FromSoldier
+                                       || (int)StartingSkillPointsField.GetValue(module) != before.StartingSp - alloc.FromSoldier
+                                       || (int)CurrentFactionPointsField.GetValue(module) != before.CurrentFp - alloc.FromFaction
+                                       || (int)StartingFactionPointsField.GetValue(module) != before.StartingFp - alloc.FromFaction)))
                 {
                     throw new Exception("post-charge verification mismatch");
                 }
@@ -736,9 +838,10 @@ namespace Morgott.Oracle
             catch (Exception ex)
             {
                 OracleLog.Debug("[Oracle] PerkSwap SP charge failed, restoring: " + ex.Message);
-                RestoreSkillPoints(progression, module, moduleOpen, persistedBefore, currentBefore, startingBefore);
+                RestoreSkillPoints(progression, module, faction, before);
                 return false;
             }
+            bool moduleOpen = before.ModuleOpen;
 
             if (moduleOpen)
             {
@@ -755,17 +858,23 @@ namespace Morgott.Oracle
             return true;
         }
 
-        /// <summary>Put all three skill-point stores back to their snapshot; best-effort, never throws.</summary>
+        /// <summary>Put all six skill-point stores back to their snapshot; best-effort, never throws.</summary>
         private static void RestoreSkillPoints(CharacterProgression progression, UIModuleCharacterProgression module,
-            bool moduleOpen, int persisted, int current, int starting)
+            GeoPhoenixFaction faction, SpStores before)
         {
             try
             {
-                progression.SkillPoints = persisted;
-                if (moduleOpen)
+                progression.SkillPoints = before.PersistedSp;
+                if (before.FactionKnown)
                 {
-                    CurrentSkillPointsField.SetValue(module, current);
-                    StartingSkillPointsField.SetValue(module, starting);
+                    faction.Skillpoints = before.PersistedFp;
+                }
+                if (before.ModuleOpen)
+                {
+                    CurrentSkillPointsField.SetValue(module, before.CurrentSp);
+                    StartingSkillPointsField.SetValue(module, before.StartingSp);
+                    CurrentFactionPointsField.SetValue(module, before.CurrentFp);
+                    StartingFactionPointsField.SetValue(module, before.StartingFp);
                 }
             }
             catch (Exception ex)

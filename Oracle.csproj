@@ -16,6 +16,10 @@
     <DebugType>portable</DebugType>
     <!-- Only compile mod source; the SDK default glob would otherwise pull in tests\. -->
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- ...and keep tests\**\bin out of the default None glob: those files are RAR's
+         {CandidateAssemblyFiles}, which outranks HintPath and would resolve Newtonsoft.Json to the
+         test project's net8 copy. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);tests\**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="src\**\*.cs" />
@@ -58,6 +62,12 @@
     </Reference>
     <!-- ImageConversion.LoadImage (runtime PNG->Texture2D) for the custom research-icon loader; the
          ModSDK omits this module, so pull it from the game's Managed folder. -->
+    <!-- One-time read of the pre-1.7 swap-history sidecar. The game itself serializes mod instance
+         data with Newtonsoft (ModManager.SerializeModObject), so the assembly is already loaded. -->
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(GameManaged)\Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.ImageConversionModule">
       <HintPath>$(GameManaged)\UnityEngine.ImageConversionModule.dll</HintPath>
       <Private>false</Private>
