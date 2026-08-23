@@ -59,8 +59,8 @@ namespace Morgott.Oracle
         }
 
         /// <summary>
-        /// Replace the history with <paramref name="map"/> (from the savegame, or the legacy sidecar on
-        /// first load). Only our own prefixed, non-empty entries are taken, so foreign or half-written
+        /// Replace the history with <paramref name="map"/> restored from the savegame. Only our own
+        /// prefixed, non-empty entries are taken, so foreign or half-written
         /// content lands as an empty store instead of junk. Never throws.
         /// </summary>
         public static void LoadFrom(IDictionary<string, string> map)

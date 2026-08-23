@@ -1,9 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
-using Newtonsoft.Json;
-using PhoenixPoint.Geoscape.Entities;
-using PhoenixPoint.Geoscape.Levels;
 using PhoenixPoint.Modding;
 
 namespace Morgott.Oracle
@@ -33,19 +28,11 @@ namespace Morgott.Oracle
     ///
     /// Call order the engine guarantees (GeoLevelController / ModManager, verified in the decompile):
     ///   Level.State.Loading -> <see cref="Init"/>            (fresh instance per geoscape session)
-    ///   new campaign only   -> <see cref="OnGeoscapeNewWorldInit"/>
     ///   loaded save only    -> <see cref="ProcessGeoscapeInstanceData"/>
-    ///   always              -> <see cref="OnGeoscapeStart"/>
     ///   on every save       -> <see cref="RecordGeoscapeInstanceData"/>
     /// </summary>
     public class OracleGeoscapeMod : ModGeoscape
     {
-        /// <summary>Legacy pre-1.7 sidecar, folded in once for a campaign saved before this change.</summary>
-        private const string LegacyFileName = "OraclePerkOriginals.json";
-
-        private bool _newCampaign;
-        private bool _fromSave;
-
         /// <summary>
         /// Runs while the geoscape level is still LOADING, i.e. before the save hands its own history
         /// back. Dropping the map here is what stops a new campaign (or a second campaign in the same
@@ -53,15 +40,7 @@ namespace Morgott.Oracle
         /// </summary>
         public override void Init()
         {
-            _newCampaign = false;
-            _fromSave = false;
             OriginalPerkStore.Clear();
-        }
-
-        public override void OnGeoscapeNewWorldInit(GeoInitialWorldSetup setup,
-            IList<GeoSiteSceneDef.SiteInfo> worldSites)
-        {
-            _newCampaign = true; // fires only while generating a brand-new world
         }
 
         /// <summary>
@@ -94,48 +73,8 @@ namespace Morgott.Oracle
                 return;
             }
             OriginalPerkStore.LoadFrom(data.Map);
-            _fromSave = true;
             OracleLog.Debug("[Oracle] ProcessGeoscapeInstanceData done, entries="
                 + (data.Map != null ? data.Map.Count : 0));
-        }
-
-        /// <summary>
-        /// Runs after the save's own history (if any) has been restored. A campaign that is neither new
-        /// nor carrying a document was saved BEFORE the history moved into the savegame, so its history
-        /// still only exists in the legacy sidecar — fold that in once. The file is left on disk.
-        /// </summary>
-        public override void OnGeoscapeStart()
-        {
-            if (_fromSave || _newCampaign)
-            {
-                return;
-            }
-            MigrateLegacySidecar();
-        }
-
-        private void MigrateLegacySidecar()
-        {
-            try
-            {
-                ModMain main = Main;
-                if (main == null)
-                {
-                    return;
-                }
-                string path = Path.Combine(main.Instance.Entry.Directory, LegacyFileName);
-                if (!File.Exists(path))
-                {
-                    return;
-                }
-                var map = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
-                OriginalPerkStore.LoadFrom(map);
-                OracleLog.Debug("[Oracle] Folded the legacy swap history in from " + path);
-            }
-            catch (Exception ex)
-            {
-                // An unreadable sidecar just means no pre-1.7 history; the file is never rewritten.
-                OracleLog.Debug("[Oracle] Legacy swap-history migration skipped: " + ex.Message);
-            }
         }
     }
 }
